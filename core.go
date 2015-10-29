@@ -91,10 +91,6 @@ func (gs *goldsmith) AbsDstPath(path string) string {
 }
 
 func (gs *goldsmith) Apply(p Processor) Applier {
-	return gs.ApplyTo(p, "*")
-}
-
-func (gs *goldsmith) ApplyTo(p Processor, pattern string) Applier {
 	s := gs.stage()
 
 	gs.wg.Add(1)
@@ -106,7 +102,6 @@ func (gs *goldsmith) ApplyTo(p Processor, pattern string) Applier {
 	return gs
 }
 
-func (gs *goldsmith) Wait() Applier {
+func (gs *goldsmith) Complete() {
 	gs.wg.Wait()
-	return gs
 }

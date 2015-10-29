@@ -38,6 +38,5 @@ type Processor interface {
 
 type Applier interface {
 	Apply(p Processor) Applier
-	ApplyTo(p Processor, pattern string) Applier
-	Wait() Applier
+	Complete()
 }
