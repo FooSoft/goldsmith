@@ -22,28 +22,86 @@
 
 package goldsmith
 
-import "bytes"
+import (
+	"path/filepath"
+	"sync"
 
-type Context interface {
-	AbsSrcPath(path string) string
-	AbsDstPath(path string) string
+	"github.com/bmatcuk/doublestar"
+)
+
+type stage struct {
+	input  chan File
+	output chan File
 }
 
-type File interface {
-	Path() string
-	SetPath(path string)
-
-	Property(key string) (interface{}, bool)
-	SetProperty(key string, value interface{})
-
-	Data() (*bytes.Buffer, error)
+type goldsmith struct {
+	srcPath, dstPath string
+	stages           []stage
+	files            chan File
+	wg               sync.WaitGroup
 }
 
-type Processor interface {
-	Process(ctx Context, input chan File, output chan File) error
+func NewGoldsmith(srcPath, dstPath string) (Applier, error) {
+	gs := &goldsmith{srcPath: srcPath, dstPath: dstPath}
+	if err := gs.scan(); err != nil {
+		return nil, err
+	}
+
+	return gs, nil
 }
 
-type Applier interface {
-	Apply(p Processor) Applier
-	Complete()
+func (gs *goldsmith) scan() error {
+	matches, err := doublestar.Glob(filepath.Join(gs.srcPath, "**"))
+	if err != nil {
+		return err
+	}
+
+	gs.files = make(chan File, len(matches))
+
+	for _, match := range matches {
+		path, err := filepath.Rel(gs.srcPath, match)
+		if err != nil {
+			return err
+		}
+
+		gs.files <- &file{path, make(map[string]interface{})}
+	}
+
+	return nil
+}
+
+func (gs *goldsmith) stage() stage {
+	s := stage{output: make(chan File)}
+	if len(gs.stages) == 0 {
+		s.input = gs.files
+	} else {
+		s.input = gs.stages[len(gs.stages)-1].output
+	}
+
+	gs.stages = append(gs.stages, s)
+	return s
+}
+
+func (gs *goldsmith) AbsSrcPath(path string) string {
+	return filepath.Join(gs.srcPath, path)
+}
+
+func (gs *goldsmith) AbsDstPath(path string) string {
+	return filepath.Join(gs.dstPath, path)
+}
+
+func (gs *goldsmith) Apply(p Processor) Applier {
+	s := gs.stage()
+
+	gs.wg.Add(1)
+	go func() {
+		p.Process(gs, s.input, s.output)
+		gs.wg.Done()
+	}()
+
+	return gs
+}
+
+func (gs *goldsmith) Complete() {
+	gs.wg.Wait()
 }
