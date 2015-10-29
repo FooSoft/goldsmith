@@ -23,6 +23,7 @@
 package goldsmith
 
 import (
+	"bytes"
 	"path/filepath"
 	"sync"
 
@@ -30,15 +31,41 @@ import (
 )
 
 type stage struct {
-	input  chan File
-	output chan File
+	input  chan file
+	output chan file
+}
+
+type file struct {
+	path string
+	meta map[string]interface{}
 }
 
 type goldsmith struct {
 	srcPath, dstPath string
 	stages           []stage
-	files            chan File
+	files            chan file
 	wg               sync.WaitGroup
+}
+
+func (f *file) Path() string {
+	return f.path
+}
+
+func (f *file) SetPath(path string) {
+	f.path = path
+}
+
+func (f *file) Meta(key string) (interface{}, bool) {
+	value, ok := f.meta[key]
+	return value, ok
+}
+
+func (f *file) SetMeta(key string, value interface{}) {
+	f.meta[key] = value
+}
+
+func (f *file) Data() (*bytes.Buffer, error) {
+	return nil, nil
 }
 
 func NewGoldsmith(srcPath, dstPath string) (Applier, error) {
@@ -56,7 +83,7 @@ func (gs *goldsmith) scan() error {
 		return err
 	}
 
-	gs.files = make(chan File, len(matches))
+	gs.files = make(chan file, len(matches))
 
 	for _, match := range matches {
 		path, err := filepath.Rel(gs.srcPath, match)
@@ -64,14 +91,14 @@ func (gs *goldsmith) scan() error {
 			return err
 		}
 
-		gs.files <- File{path, make(map[string]interface{})}
+		gs.files <- file{path, make(map[string]interface{})}
 	}
 
 	return nil
 }
 
 func (gs *goldsmith) stage() stage {
-	s := stage{output: make(chan File)}
+	s := stage{output: make(chan file)}
 	if len(gs.stages) == 0 {
 		s.input = gs.files
 	} else {

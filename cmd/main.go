@@ -22,9 +22,7 @@
 
 package main
 
-import "github.com/FooSoft/goldsmith"
+import _ "github.com/FooSoft/goldsmith"
 
 func main() {
-	gs := goldsmith.NewGoldsmith("", "")
-	gs.Use(nil)
 }

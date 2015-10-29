@@ -22,18 +22,25 @@
 
 package goldsmith
 
+import "bytes"
+
 type Context interface {
 	AbsSrcPath(path string) string
 	AbsDstPath(path string) string
 }
 
-type File struct {
-	Path string
-	Meta map[string]interface{}
+type File interface {
+	Path() string
+	SetPath(path string)
+
+	Meta(key string) (interface{}, bool)
+	SetMeta(key string, value interface{})
+
+	Data() (*bytes.Buffer, error)
 }
 
 type Processor interface {
-	Process(ctx Context, input chan File, output chan File) error
+	Process(ctx Context, input chan file, output chan file) error
 }
 
 type Applier interface {
