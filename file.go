@@ -30,6 +30,7 @@ import (
 type file struct {
 	path string
 	meta map[string]interface{}
+	buff *bytes.Buffer
 }
 
 func (f *file) Path() string {
@@ -50,6 +51,10 @@ func (f *file) SetProperty(key string, value interface{}) {
 }
 
 func (f *file) Data() (*bytes.Buffer, error) {
+	if f.buff != nil {
+		return f.buff, nil
+	}
+
 	file, err := os.Open(f.path)
 	if err != nil {
 		return nil, err
@@ -61,5 +66,6 @@ func (f *file) Data() (*bytes.Buffer, error) {
 		return nil, err
 	}
 
-	return &buff, nil
+	f.buff = &buff
+	return f.buff, nil
 }

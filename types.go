@@ -25,8 +25,10 @@ package goldsmith
 import "bytes"
 
 type Context interface {
-	AbsSrcPath(path string) string
-	AbsDstPath(path string) string
+	SrcPath(path string) string
+	DstPath(path string) string
+
+	NewFile(path string) File
 }
 
 type File interface {

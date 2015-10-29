@@ -64,7 +64,7 @@ func (gs *goldsmith) scan() error {
 			return err
 		}
 
-		gs.files <- &file{path, make(map[string]interface{})}
+		gs.files <- gs.NewFile(path)
 	}
 
 	return nil
@@ -82,12 +82,16 @@ func (gs *goldsmith) stage() stage {
 	return s
 }
 
-func (gs *goldsmith) AbsSrcPath(path string) string {
-	return filepath.Join(gs.srcPath, path)
+func (gs *goldsmith) SrcPath(path string) string {
+	return gs.srcPath
 }
 
-func (gs *goldsmith) AbsDstPath(path string) string {
-	return filepath.Join(gs.dstPath, path)
+func (gs *goldsmith) DstPath(path string) string {
+	return gs.dstPath
+}
+
+func (gs *goldsmith) NewFile(path string) File {
+	return &file{path, make(map[string]interface{}), nil}
 }
 
 func (gs *goldsmith) Apply(p Processor) Applier {
