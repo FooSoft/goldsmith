@@ -22,28 +22,44 @@
 
 package goldsmith
 
-import "bytes"
+import (
+	"bytes"
+	"os"
+)
 
-type Context interface {
-	AbsSrcPath(path string) string
-	AbsDstPath(path string) string
+type file struct {
+	path string
+	meta map[string]interface{}
 }
 
-type File interface {
-	Path() string
-	SetPath(path string)
-
-	Property(key string) (interface{}, bool)
-	SetProperty(key string, value interface{})
-
-	Data() (*bytes.Buffer, error)
+func (f *file) Path() string {
+	return f.path
 }
 
-type Processor interface {
-	Process(ctx Context, input chan File, output chan File) error
+func (f *file) SetPath(path string) {
+	f.path = path
 }
 
-type Applier interface {
-	Apply(p Processor) Applier
-	Complete()
+func (f *file) Property(key string) (interface{}, bool) {
+	value, ok := f.meta[key]
+	return value, ok
+}
+
+func (f *file) SetProperty(key string, value interface{}) {
+	f.meta[key] = value
+}
+
+func (f *file) Data() (*bytes.Buffer, error) {
+	file, err := os.Open(f.path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var buff bytes.Buffer
+	if _, err := buff.ReadFrom(file); err != nil {
+		return nil, err
+	}
+
+	return &buff, nil
 }
