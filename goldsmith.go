@@ -32,10 +32,11 @@ type File struct {
 }
 
 type Processor interface {
-	ProcessFiles(inputFiles chan File, outputFiles chan File) error
+	ProcessFiles(input chan File, output chan File) error
 }
 
 type Applier interface {
-	ApplyAll(p Processor) Applier
-	Apply(p Processor, pattern string) Applier
+	Apply(p Processor) Applier
+	ApplyTo(p Processor, pattern string) Applier
+	Wait() Applier
 }

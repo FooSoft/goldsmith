@@ -24,14 +24,22 @@ package goldsmith
 
 import (
 	"path/filepath"
+	"sync"
 
 	"github.com/bmatcuk/doublestar"
 )
 
+type stage struct {
+	input  chan File
+	output chan File
+}
+
 type goldsmith struct {
 	Context
 
-	files []File
+	stages []stage
+	files  chan File
+	wg     sync.WaitGroup
 }
 
 func NewGoldsmith(srcPath, dstPath string) (Applier, error) {
@@ -49,33 +57,49 @@ func (gs *goldsmith) scan() error {
 		return err
 	}
 
+	gs.files = make(chan File, len(matches))
+
 	for _, match := range matches {
 		path, err := filepath.Rel(gs.srcPath, match)
 		if err != nil {
 			return err
 		}
 
-		file := File{path, make(map[string]interface{})}
-		gs.files = append(gs.files, file)
+		gs.files <- File{path, make(map[string]interface{})}
 	}
 
 	return nil
 }
 
-func (gs *goldsmith) ApplyAll(p Processor) Applier {
-	return gs.Apply(p, "*")
-}
-
-func (gs *goldsmith) Apply(p Processor, pattern string) Applier {
-	inputFiles := make(chan File)
-	outputFiles := make(chan File)
-
-	for _, file := range gs.files {
-		if matched, _ := doublestar.Match(pattern, file.Path); matched {
-			inputFiles <- file
-		}
+func (gs *goldsmith) stage() stage {
+	s := stage{output: make(chan File)}
+	if len(gs.stages) == 0 {
+		s.input = gs.files
+	} else {
+		s.input = gs.stages[len(gs.stages)-1].output
 	}
 
-	p.ProcessFiles(inputFiles, outputFiles)
+	gs.stages = append(gs.stages, s)
+	return s
+}
+
+func (gs *goldsmith) Apply(p Processor) Applier {
+	return gs.ApplyTo(p, "*")
+}
+
+func (gs *goldsmith) ApplyTo(p Processor, pattern string) Applier {
+	s := gs.stage()
+
+	gs.wg.Add(1)
+	go func() {
+		p.ProcessFiles(s.input, s.output)
+		gs.wg.Done()
+	}()
+
+	return gs
+}
+
+func (gs *goldsmith) Wait() Applier {
+	gs.wg.Wait()
 	return gs
 }
