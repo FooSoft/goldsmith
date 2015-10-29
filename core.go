@@ -35,15 +35,14 @@ type stage struct {
 }
 
 type goldsmith struct {
-	Context
-
-	stages []stage
-	files  chan File
-	wg     sync.WaitGroup
+	srcPath, dstPath string
+	stages           []stage
+	files            chan File
+	wg               sync.WaitGroup
 }
 
 func NewGoldsmith(srcPath, dstPath string) (Applier, error) {
-	gs := &goldsmith{Context: Context{srcPath, dstPath}}
+	gs := &goldsmith{srcPath: srcPath, dstPath: dstPath}
 	if err := gs.scan(); err != nil {
 		return nil, err
 	}
@@ -83,6 +82,14 @@ func (gs *goldsmith) stage() stage {
 	return s
 }
 
+func (gs *goldsmith) AbsSrcPath(path string) string {
+	return filepath.Join(gs.srcPath, path)
+}
+
+func (gs *goldsmith) AbsDstPath(path string) string {
+	return filepath.Join(gs.dstPath, path)
+}
+
 func (gs *goldsmith) Apply(p Processor) Applier {
 	return gs.ApplyTo(p, "*")
 }
@@ -92,7 +99,7 @@ func (gs *goldsmith) ApplyTo(p Processor, pattern string) Applier {
 
 	gs.wg.Add(1)
 	go func() {
-		p.ProcessFiles(s.input, s.output)
+		p.Process(gs, s.input, s.output)
 		gs.wg.Done()
 	}()
 

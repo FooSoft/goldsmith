@@ -22,8 +22,9 @@
 
 package goldsmith
 
-type Context struct {
-	srcPath, dstPath string
+type Context interface {
+	AbsSrcPath(path string) string
+	AbsDstPath(path string) string
 }
 
 type File struct {
@@ -32,7 +33,7 @@ type File struct {
 }
 
 type Processor interface {
-	ProcessFiles(input chan File, output chan File) error
+	Process(ctx Context, input chan File, output chan File) error
 }
 
 type Applier interface {
