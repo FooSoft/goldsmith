@@ -20,11 +20,22 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package main
+package goldsmith
 
-import "github.com/FooSoft/goldsmith"
+type Context struct {
+	srcPath, dstPath string
+}
 
-func main() {
-	gs := goldsmith.NewGoldsmith("", "")
-	gs.Use(nil)
+type File struct {
+	Path string
+	Meta map[string]interface{}
+}
+
+type Processor interface {
+	ProcessFiles(inputFiles chan File, outputFiles chan File) error
+}
+
+type Applier interface {
+	ApplyAll(p Processor) Applier
+	Apply(p Processor, pattern string) Applier
 }
