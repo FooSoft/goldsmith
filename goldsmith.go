@@ -35,59 +35,52 @@ type stage struct {
 }
 
 type goldsmith struct {
-	srcPath, dstPath string
-	stages           []stage
-	files            chan File
-	wg               sync.WaitGroup
+	stages []stage
+	files  chan File
+	wg     sync.WaitGroup
 }
 
-func NewGoldsmith(srcPath, dstPath string) (Goldsmith, error) {
-	gs := &goldsmith{srcPath: srcPath, dstPath: dstPath}
-	if err := gs.scan(); err != nil {
+func NewGoldsmith(path string) (Goldsmith, error) {
+	gs := new(goldsmith)
+	if err := gs.scan(path); err != nil {
 		return nil, err
 	}
 
 	return gs, nil
 }
 
-func (gs *goldsmith) scan() error {
-	matches, err := doublestar.Glob(filepath.Join(gs.srcPath, "**"))
+func (gs *goldsmith) scan(path string) error {
+	matches, err := doublestar.Glob(filepath.Join(path, "**"))
 	if err != nil {
 		return err
 	}
 
-	gs.files = make(chan File, len(matches))
+	s := stage{
+		input:  nil,
+		output: make(chan File, len(matches)),
+	}
 
 	for _, match := range matches {
-		path, err := filepath.Rel(gs.srcPath, match)
+		path, err := filepath.Rel(path, match)
 		if err != nil {
 			return err
 		}
 
-		gs.files <- gs.NewFile(path)
+		s.output <- gs.NewFile(path)
 	}
 
+	gs.stages = append(gs.stages, s)
 	return nil
 }
 
 func (gs *goldsmith) stage() stage {
-	s := stage{output: make(chan File)}
-	if len(gs.stages) == 0 {
-		s.input = gs.files
-	} else {
-		s.input = gs.stages[len(gs.stages)-1].output
+	s := stage{
+		input:  gs.stages[len(gs.stages)-1].output,
+		output: make(chan File),
 	}
 
 	gs.stages = append(gs.stages, s)
 	return s
-}
-
-func (gs *goldsmith) SrcPath(path string) string {
-	return gs.srcPath
-}
-
-func (gs *goldsmith) DstPath(path string) string {
-	return gs.dstPath
 }
 
 func (gs *goldsmith) NewFile(path string) File {
@@ -106,6 +99,7 @@ func (gs *goldsmith) Apply(p Processor) Goldsmith {
 	return gs
 }
 
-func (gs *goldsmith) Complete() {
+func (gs *goldsmith) Complete(path string) error {
 	gs.wg.Wait()
+	return nil
 }

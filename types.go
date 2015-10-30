@@ -25,9 +25,6 @@ package goldsmith
 import "bytes"
 
 type Context interface {
-	SrcPath(path string) string
-	DstPath(path string) string
-
 	NewFile(path string) File
 }
 
@@ -47,5 +44,5 @@ type Processor interface {
 
 type Goldsmith interface {
 	Apply(p Processor) Goldsmith
-	Complete()
+	Complete(path string) error
 }
