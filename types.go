@@ -45,7 +45,7 @@ type Processor interface {
 	Process(ctx Context, input chan File, output chan File) error
 }
 
-type Applier interface {
-	Apply(p Processor) Applier
+type Goldsmith interface {
+	Apply(p Processor) Goldsmith
 	Complete()
 }

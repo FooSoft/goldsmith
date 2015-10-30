@@ -41,7 +41,7 @@ type goldsmith struct {
 	wg               sync.WaitGroup
 }
 
-func NewGoldsmith(srcPath, dstPath string) (Applier, error) {
+func NewGoldsmith(srcPath, dstPath string) (Goldsmith, error) {
 	gs := &goldsmith{srcPath: srcPath, dstPath: dstPath}
 	if err := gs.scan(); err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (gs *goldsmith) NewFile(path string) File {
 	return &file{path, make(map[string]interface{}), nil}
 }
 
-func (gs *goldsmith) Apply(p Processor) Applier {
+func (gs *goldsmith) Apply(p Processor) Goldsmith {
 	s := gs.stage()
 
 	gs.wg.Add(1)
