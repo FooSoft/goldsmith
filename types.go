@@ -35,6 +35,9 @@ type File interface {
 	Property(key string) (interface{}, bool)
 	SetProperty(key string, value interface{})
 
+	Error() error
+	SetError(err error)
+
 	Data() (*bytes.Buffer, error)
 }
 
@@ -44,5 +47,5 @@ type Processor interface {
 
 type Goldsmith interface {
 	Apply(p Processor) Goldsmith
-	Complete(path string) error
+	Complete(path string) []File
 }

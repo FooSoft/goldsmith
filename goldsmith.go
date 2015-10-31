@@ -23,21 +23,19 @@
 package goldsmith
 
 import (
+	"io/ioutil"
 	"path/filepath"
-	"sync"
 
 	"github.com/bmatcuk/doublestar"
 )
 
 type stage struct {
-	input  chan File
-	output chan File
+	input, output chan File
 }
 
 type goldsmith struct {
 	stages []stage
 	files  chan File
-	wg     sync.WaitGroup
 }
 
 func NewGoldsmith(path string) (Goldsmith, error) {
@@ -84,22 +82,34 @@ func (gs *goldsmith) stage() stage {
 }
 
 func (gs *goldsmith) NewFile(path string) File {
-	return &file{path, make(map[string]interface{}), nil}
+	return &file{path: path}
 }
 
 func (gs *goldsmith) Apply(p Processor) Goldsmith {
 	s := gs.stage()
-
-	gs.wg.Add(1)
-	go func() {
-		p.Process(gs, s.input, s.output)
-		gs.wg.Done()
-	}()
-
+	go p.Process(gs, s.input, s.output)
 	return gs
 }
 
-func (gs *goldsmith) Complete(path string) error {
-	gs.wg.Wait()
-	return nil
+func (gs *goldsmith) Complete(path string) []File {
+	s := gs.stages[len(gs.stages)-1]
+
+	var files []File
+	for file := range s.output {
+		data, err := file.Data()
+		if err != nil {
+			file.SetError(err)
+			continue
+		}
+
+		absPath := filepath.Join(path, file.Path())
+		if err := ioutil.WriteFile(absPath, data.Bytes(), 0644); err != nil {
+			file.SetError(err)
+			continue
+		}
+
+		files = append(files, file)
+	}
+
+	return files
 }
