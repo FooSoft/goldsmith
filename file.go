@@ -28,18 +28,18 @@ import (
 )
 
 type file struct {
-	path string
-	meta map[string]interface{}
-	buff *bytes.Buffer
-	err  error
+	relPath, srcPath string
+	meta             map[string]interface{}
+	buff             *bytes.Buffer
+	err              error
 }
 
 func (f *file) Path() string {
-	return f.path
+	return f.relPath
 }
 
 func (f *file) SetPath(path string) {
-	f.path = path
+	f.relPath = path
 }
 
 func (f *file) Property(key, def string) interface{} {
@@ -63,24 +63,26 @@ func (f *file) SetError(err error) {
 	f.err = err
 }
 
-func (f *file) Data() (*bytes.Buffer, error) {
+func (f *file) Data() *bytes.Buffer {
 	if f.buff != nil {
-		return f.buff, nil
+		return f.buff
 	}
-
-	file, err := os.Open(f.path)
-	if err != nil {
-		f.SetError(err)
-		return nil, err
-	}
-	defer file.Close()
 
 	var buff bytes.Buffer
-	if _, err := buff.ReadFrom(file); err != nil {
-		f.SetError(err)
-		return nil, err
+	if len(f.srcPath) > 0 {
+		file, err := os.Open(f.srcPath)
+		if err != nil {
+			f.SetError(err)
+			return nil
+		}
+		defer file.Close()
+
+		if _, err := buff.ReadFrom(file); err != nil {
+			f.SetError(err)
+			return nil
+		}
 	}
 
 	f.buff = &buff
-	return f.buff, nil
+	return f.buff
 }

@@ -38,7 +38,7 @@ type File interface {
 	Error() error
 	SetError(err error)
 
-	Data() (*bytes.Buffer, error)
+	Data() *bytes.Buffer
 }
 
 type Processor interface {
