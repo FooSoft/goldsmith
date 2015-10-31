@@ -24,7 +24,6 @@ package goldsmith
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -72,7 +71,7 @@ func (gs *goldsmith) scan(srcDir string) error {
 	return nil
 }
 
-func (gs *goldsmith) stage() stage {
+func (gs *goldsmith) makeStage() stage {
 	s := stage{
 		input:  gs.stages[len(gs.stages)-1].output,
 		output: make(chan File),
@@ -87,7 +86,7 @@ func (gs *goldsmith) NewFile(relPath string) File {
 }
 
 func (gs *goldsmith) Apply(p Processor) Goldsmith {
-	s := gs.stage()
+	s := gs.makeStage()
 	go p.Process(gs, s.input, s.output)
 	return gs
 }
@@ -97,8 +96,6 @@ func (gs *goldsmith) Complete(dstDir string) []File {
 
 	var files []File
 	for file := range s.output {
-		log.Print(file)
-
 		data := file.Data()
 		if data == nil {
 			continue
