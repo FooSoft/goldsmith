@@ -23,7 +23,6 @@
 package goldsmith
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -41,7 +40,7 @@ type goldsmith struct {
 	files  chan File
 }
 
-func NewGoldsmith(src string) Goldsmith {
+func New(src string) Goldsmith {
 	gs := new(goldsmith)
 	gs.scan(src)
 	return gs
@@ -125,7 +124,7 @@ func (gs *goldsmith) Complete(dstDir string) []File {
 
 	var files []File
 	for file := range s.output {
-		data := file.Bytes()
+		data := file.Data()
 		if data == nil {
 			continue
 		}
@@ -137,7 +136,14 @@ func (gs *goldsmith) Complete(dstDir string) []File {
 			continue
 		}
 
-		if err := ioutil.WriteFile(absPath, data, 0644); err != nil {
+		f, err := os.Create(absPath)
+		if err != nil {
+			file.SetError(err)
+			continue
+		}
+		defer f.Close()
+
+		if _, err := f.Write(data); err != nil {
 			file.SetError(err)
 			continue
 		}

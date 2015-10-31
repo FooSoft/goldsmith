@@ -67,7 +67,7 @@ func (f *file) SetError(err error) {
 	f.err = err
 }
 
-func (f *file) Bytes() []byte {
+func (f *file) Data() []byte {
 	if f.buff != nil {
 		return f.buff.Bytes()
 	}
@@ -91,6 +91,6 @@ func (f *file) Bytes() []byte {
 	return f.buff.Bytes()
 }
 
-func (f *file) SetBytes(data []byte) {
+func (f *file) SetData(data []byte) {
 	f.buff = bytes.NewBuffer(data)
 }

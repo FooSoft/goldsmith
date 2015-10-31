@@ -43,8 +43,8 @@ type File interface {
 	Path() string
 	SetPath(path string)
 
-	Bytes() []byte
-	SetBytes(bytes []byte)
+	Data() []byte
+	SetData(data []byte)
 
 	Property(key, def string) interface{}
 	SetProperty(key string, value interface{})
