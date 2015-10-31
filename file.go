@@ -52,6 +52,10 @@ func (f *file) Property(key, def string) interface{} {
 }
 
 func (f *file) SetProperty(key string, value interface{}) {
+	if f.meta == nil {
+		f.meta = make(map[string]interface{})
+	}
+
 	f.meta[key] = value
 }
 
