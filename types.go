@@ -22,8 +22,6 @@
 
 package goldsmith
 
-import "bytes"
-
 type Context interface {
 	NewFile(path string) File
 }
@@ -38,7 +36,8 @@ type File interface {
 	Error() error
 	SetError(err error)
 
-	Data() *bytes.Buffer
+	Bytes() []byte
+	SetBytes(bytes []byte)
 }
 
 type ProcessorMultiple interface {

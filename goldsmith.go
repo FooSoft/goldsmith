@@ -125,7 +125,7 @@ func (gs *goldsmith) Complete(dstDir string) []File {
 
 	var files []File
 	for file := range s.output {
-		data := file.Data()
+		data := file.Bytes()
 		if data == nil {
 			continue
 		}
@@ -137,7 +137,7 @@ func (gs *goldsmith) Complete(dstDir string) []File {
 			continue
 		}
 
-		if err := ioutil.WriteFile(absPath, data.Bytes(), 0644); err != nil {
+		if err := ioutil.WriteFile(absPath, data, 0644); err != nil {
 			file.SetError(err)
 			continue
 		}
