@@ -41,11 +41,15 @@ type File interface {
 	Data() *bytes.Buffer
 }
 
-type Processor interface {
-	Process(ctx Context, input, output chan File)
+type ProcessorMultiple interface {
+	ProcessMultiple(ctx Context, input, output chan File)
+}
+
+type ProcessorSingle interface {
+	ProcessSingle(ctx Context, file File) File
 }
 
 type Goldsmith interface {
-	Apply(p Processor) Goldsmith
+	Apply(proc interface{}) Goldsmith
 	Complete(path string) []File
 }

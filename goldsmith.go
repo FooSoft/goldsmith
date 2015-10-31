@@ -27,6 +27,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
 
 	"github.com/bmatcuk/doublestar"
 )
@@ -85,9 +86,37 @@ func (gs *goldsmith) NewFile(relPath string) File {
 	return &file{relPath: relPath}
 }
 
-func (gs *goldsmith) Apply(p Processor) Goldsmith {
+func (gs *goldsmith) applySingle(proc ProcessorSingle) {
 	s := gs.makeStage()
-	go p.Process(gs, s.input, s.output)
+
+	var wg sync.WaitGroup
+	for file := range s.input {
+		wg.Add(1)
+		go func(f File) {
+			s.output <- proc.ProcessSingle(gs, f)
+			wg.Done()
+		}(file)
+	}
+
+	go func() {
+		wg.Wait()
+		close(s.output)
+	}()
+}
+
+func (gs *goldsmith) applyMultiple(proc ProcessorMultiple) {
+	s := gs.makeStage()
+	proc.ProcessMultiple(gs, s.input, s.output)
+}
+
+func (gs *goldsmith) Apply(proc interface{}) Goldsmith {
+	switch p := proc.(type) {
+	case ProcessorSingle:
+		gs.applySingle(p)
+	case ProcessorMultiple:
+		gs.applyMultiple(p)
+	}
+
 	return gs
 }
 
