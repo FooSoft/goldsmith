@@ -42,9 +42,13 @@ func (f *file) SetPath(path string) {
 	f.path = path
 }
 
-func (f *file) Property(key string) (interface{}, bool) {
+func (f *file) Property(key, def string) interface{} {
 	value, ok := f.meta[key]
-	return value, ok
+	if ok {
+		return value
+	}
+
+	return def
 }
 
 func (f *file) SetProperty(key string, value interface{}) {

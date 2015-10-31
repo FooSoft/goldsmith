@@ -38,13 +38,10 @@ type goldsmith struct {
 	files  chan File
 }
 
-func NewGoldsmith(path string) (Goldsmith, error) {
+func NewGoldsmith(path string) Goldsmith {
 	gs := new(goldsmith)
-	if err := gs.scan(path); err != nil {
-		return nil, err
-	}
-
-	return gs, nil
+	gs.scan(path)
+	return gs
 }
 
 func (gs *goldsmith) scan(path string) error {

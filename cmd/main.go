@@ -22,7 +22,13 @@
 
 package main
 
-import _ "github.com/FooSoft/goldsmith"
+import (
+	"github.com/FooSoft/goldsmith"
+	_ "github.com/FooSoft/goldsmith-plugins/markdown"
+)
 
 func main() {
+	gs := goldsmith.NewGoldsmith("/home/alex/projects/website/content/src")
+	// gs.Apply(markdown.NewMarkdown()).Complete("/home/alex/projects/test")
+	gs.Complete("/home/alex/projects/test")
 }

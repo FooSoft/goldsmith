@@ -32,7 +32,7 @@ type File interface {
 	Path() string
 	SetPath(path string)
 
-	Property(key string) (interface{}, bool)
+	Property(key, def string) interface{}
 	SetProperty(key string, value interface{})
 
 	Error() error
@@ -42,7 +42,7 @@ type File interface {
 }
 
 type Processor interface {
-	Process(ctx Context, input chan File, output chan File) error
+	Process(ctx Context, input, output chan File)
 }
 
 type Goldsmith interface {
