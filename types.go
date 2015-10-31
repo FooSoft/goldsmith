@@ -22,33 +22,33 @@
 
 package goldsmith
 
+type Goldsmith interface {
+	Task(task interface{}) Goldsmith
+	Complete(dstDir string) []File
+}
+
+type TaskerSingle interface {
+	TaskSingle(ctx Context, file File) File
+}
+
+type TaskerMultiple interface {
+	TaskMultiple(ctx Context, input, output chan File)
+}
+
 type Context interface {
-	NewFile(path string) File
+	NewFile(srcDir string) File
 }
 
 type File interface {
 	Path() string
 	SetPath(path string)
 
+	Bytes() []byte
+	SetBytes(bytes []byte)
+
 	Property(key, def string) interface{}
 	SetProperty(key string, value interface{})
 
 	Error() error
 	SetError(err error)
-
-	Bytes() []byte
-	SetBytes(bytes []byte)
-}
-
-type ProcessorMultiple interface {
-	ProcessMultiple(ctx Context, input, output chan File)
-}
-
-type ProcessorSingle interface {
-	ProcessSingle(ctx Context, file File) File
-}
-
-type Goldsmith interface {
-	Apply(proc interface{}) Goldsmith
-	Complete(path string) []File
 }
