@@ -39,3 +39,16 @@ func globMatch(globs []string, name string) (bool, error) {
 
 	return match, err
 }
+
+func skipFile(file *File, globs []string) bool {
+	if file.Err != nil {
+		return true
+	}
+
+	matched := true
+	if len(globs) > 0 {
+		matched, file.Err = globMatch(globs, file.Path)
+	}
+
+	return !matched
+}

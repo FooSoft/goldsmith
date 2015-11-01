@@ -96,19 +96,10 @@ func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle, globs []string) {
 		wg.Add(1)
 		go func(f File) {
 			defer wg.Done()
-
-			matched := true
-			if len(globs) > 0 {
-				var err error
-				if matched, err = globMatch(globs, file.Path); err != nil {
-					file.Err = err
-				}
-			}
-
-			if f.Err == nil && matched {
-				s.output <- cs.ChainSingle(f)
-			} else {
+			if skipFile(&f, globs) {
 				s.output <- f
+			} else {
+				s.output <- cs.ChainSingle(f)
 			}
 		}(file)
 	}
@@ -123,18 +114,10 @@ func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple, globs []string) 
 	go cm.ChainMultiple(filtered, s.output)
 
 	for file := range s.input {
-		matched := true
-		if len(globs) > 0 {
-			var err error
-			if matched, err = globMatch(globs, file.Path); err != nil {
-				file.Err = err
-			}
-		}
-
-		if file.Err == nil && matched {
-			filtered <- file
-		} else {
+		if skipFile(&file, globs) {
 			s.output <- file
+		} else {
+			filtered <- file
 		}
 	}
 }
