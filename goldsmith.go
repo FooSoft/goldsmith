@@ -23,6 +23,7 @@
 package goldsmith
 
 import (
+	"bytes"
 	"os"
 	"path"
 	"path/filepath"
@@ -66,6 +67,7 @@ func (gs *goldsmith) scan(srcDir string) {
 		file := File{
 			Path: relPath,
 			Meta: make(map[string]interface{}),
+			Buff: new(bytes.Buffer),
 		}
 
 		var f *os.File
@@ -120,12 +122,12 @@ func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple) {
 	}
 }
 
-func (gs *goldsmith) Chain(ctx *Context) Goldsmith {
+func (gs *goldsmith) Chain(ctx Context) Goldsmith {
 	if gs.err != nil {
 		return gs
 	}
 
-	if gs.err = ctx.Err; gs.err != nil {
+	if gs.err = ctx.Err; gs.err == nil {
 		switch c := ctx.Chainer.(type) {
 		case ChainerSingle:
 			go gs.chainSingle(gs.makeStage(), c)
@@ -149,13 +151,13 @@ func (gs *goldsmith) Complete(dstDir string) ([]File, error) {
 			}
 
 			var f *os.File
-			if f, file.Err = os.Create(absPath); f == nil {
+			if f, file.Err = os.Create(absPath); file.Err == nil {
 				_, file.Err = f.Write(file.Buff.Bytes())
 				f.Close()
 			}
 		}
 
-		file.Buff.Reset()
+		file.Buff = nil
 		files = append(files, file)
 	}
 

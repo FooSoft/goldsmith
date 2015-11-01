@@ -25,7 +25,7 @@ package goldsmith
 import "bytes"
 
 type Goldsmith interface {
-	Chain(ctx *Context) Goldsmith
+	Chain(ctx Context) Goldsmith
 	Complete(dstDir string) ([]File, error)
 }
 
@@ -40,7 +40,7 @@ type ChainerMultiple interface {
 type File struct {
 	Path string
 	Meta map[string]interface{}
-	Buff bytes.Buffer
+	Buff *bytes.Buffer
 	Err  error
 }
 
