@@ -23,21 +23,20 @@
 package goldsmith
 
 type Goldsmith interface {
-	Task(task interface{}) Goldsmith
+	Chain(task interface{}, err error) Goldsmith
 	Complete(dstDir string) ([]File, error)
 }
 
-type TaskerSingle interface {
-	TaskSingle(ctx Context, file File) File
+type ChainerSingle interface {
+	ChainSingle(ctx Context, file File) File
 }
 
-type TaskerMultiple interface {
-	TaskMultiple(ctx Context, input, output chan File)
+type ChainerMultiple interface {
+	ChainMultiple(ctx Context, input, output chan File)
 }
 
 type Context interface {
 	NewFile(srcDir string) File
-	SetError(err error)
 }
 
 type File interface {

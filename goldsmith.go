@@ -75,22 +75,14 @@ func (gs *goldsmith) makeStage() stage {
 	return s
 }
 
-func (gs *goldsmith) NewFile(relPath string) File {
-	return &file{relPath: relPath}
-}
-
-func (gs *goldsmith) SetError(err error) {
-	gs.err = err
-}
-
-func (gs *goldsmith) taskSingle(ts TaskerSingle) {
+func (gs *goldsmith) chainSingle(ts ChainerSingle) {
 	s := gs.makeStage()
 
 	var wg sync.WaitGroup
 	for file := range s.input {
 		wg.Add(1)
 		go func(f File) {
-			s.output <- ts.TaskSingle(gs, f)
+			s.output <- ts.ChainSingle(gs, f)
 			wg.Done()
 		}(file)
 	}
@@ -101,18 +93,26 @@ func (gs *goldsmith) taskSingle(ts TaskerSingle) {
 	}()
 }
 
-func (gs *goldsmith) taskMultiple(tm TaskerMultiple) {
+func (gs *goldsmith) chainMultiple(tm ChainerMultiple) {
 	s := gs.makeStage()
-	tm.TaskMultiple(gs, s.input, s.output)
+	tm.ChainMultiple(gs, s.input, s.output)
 }
 
-func (gs *goldsmith) Task(task interface{}) Goldsmith {
-	if gs.err == nil {
-		switch t := task.(type) {
-		case TaskerSingle:
-			gs.taskSingle(t)
-		case TaskerMultiple:
-			gs.taskMultiple(t)
+func (gs *goldsmith) NewFile(relPath string) File {
+	return &file{relPath: relPath}
+}
+
+func (gs *goldsmith) Chain(chain interface{}, err error) Goldsmith {
+	if gs.err != nil {
+		return gs
+	}
+
+	if gs.err = err; gs.err != nil {
+		switch t := chain.(type) {
+		case ChainerSingle:
+			gs.chainSingle(t)
+		case ChainerMultiple:
+			gs.chainMultiple(t)
 		}
 	}
 
@@ -124,28 +124,29 @@ func (gs *goldsmith) Complete(dstDir string) ([]File, error) {
 
 	var files []File
 	for file := range s.output {
-		data := file.Data()
-		if data == nil {
-			continue
-		}
+		if file.Error() == nil {
+			data := file.Data()
+			if data == nil {
+				continue
+			}
 
-		absPath := filepath.Join(dstDir, file.Path())
+			absPath := filepath.Join(dstDir, file.Path())
+			if err := os.MkdirAll(path.Dir(absPath), 0755); err != nil {
+				file.SetError(err)
+				continue
+			}
 
-		if err := os.MkdirAll(path.Dir(absPath), 0755); err != nil {
-			file.SetError(err)
-			continue
-		}
+			f, err := os.Create(absPath)
+			if err != nil {
+				file.SetError(err)
+				continue
+			}
+			defer f.Close()
 
-		f, err := os.Create(absPath)
-		if err != nil {
-			file.SetError(err)
-			continue
-		}
-		defer f.Close()
-
-		if _, err := f.Write(data); err != nil {
-			file.SetError(err)
-			continue
+			if _, err := f.Write(data); err != nil {
+				file.SetError(err)
+				continue
+			}
 		}
 
 		files = append(files, file)
