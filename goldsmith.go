@@ -55,17 +55,28 @@ func (gs *goldsmith) scan(srcDir string) {
 	}
 
 	s := stage{nil, make(chan File, len(matches))}
+	defer close(s.output)
+
 	for _, match := range matches {
 		relPath, err := filepath.Rel(srcDir, match)
 		if err != nil {
-			gs.err = err
-			return
+			panic(err)
 		}
 
-		s.output <- &file{relPath: relPath, srcPath: match}
+		file := File{
+			Path: relPath,
+			Meta: make(map[string]interface{}),
+		}
+
+		var f *os.File
+		if f, file.Err = os.Open(match); file.Err == nil {
+			defer f.Close()
+			_, file.Err = file.Buff.ReadFrom(f)
+		}
+
+		s.output <- file
 	}
 
-	close(s.output)
 	gs.stages = append(gs.stages, s)
 }
 
@@ -82,7 +93,7 @@ func (gs *goldsmith) chainSingle(ts ChainerSingle) {
 	for file := range s.input {
 		wg.Add(1)
 		go func(f File) {
-			s.output <- ts.ChainSingle(gs, f)
+			s.output <- ts.ChainSingle(f)
 			wg.Done()
 		}(file)
 	}
@@ -95,11 +106,7 @@ func (gs *goldsmith) chainSingle(ts ChainerSingle) {
 
 func (gs *goldsmith) chainMultiple(tm ChainerMultiple) {
 	s := gs.makeStage()
-	tm.ChainMultiple(gs, s.input, s.output)
-}
-
-func (gs *goldsmith) NewFile(relPath string) File {
-	return &file{relPath: relPath}
+	tm.ChainMultiple(s.input, s.output)
 }
 
 func (gs *goldsmith) Chain(chain interface{}, err error) Goldsmith {
@@ -124,31 +131,20 @@ func (gs *goldsmith) Complete(dstDir string) ([]File, error) {
 
 	var files []File
 	for file := range s.output {
-		if file.Error() == nil {
-			data := file.Data()
-			if data == nil {
+		if file.Err == nil {
+			absPath := filepath.Join(dstDir, file.Path)
+			if file.Err = os.MkdirAll(path.Dir(absPath), 0755); file.Err != nil {
 				continue
 			}
 
-			absPath := filepath.Join(dstDir, file.Path())
-			if err := os.MkdirAll(path.Dir(absPath), 0755); err != nil {
-				file.SetError(err)
-				continue
-			}
-
-			f, err := os.Create(absPath)
-			if err != nil {
-				file.SetError(err)
-				continue
-			}
-			defer f.Close()
-
-			if _, err := f.Write(data); err != nil {
-				file.SetError(err)
-				continue
+			var f *os.File
+			if f, file.Err = os.Create(absPath); f == nil {
+				_, file.Err = f.Write(file.Buff.Bytes())
+				f.Close()
 			}
 		}
 
+		file.Buff.Reset()
 		files = append(files, file)
 	}
 

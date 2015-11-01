@@ -22,33 +22,24 @@
 
 package goldsmith
 
+import "bytes"
+
 type Goldsmith interface {
 	Chain(task interface{}, err error) Goldsmith
 	Complete(dstDir string) ([]File, error)
 }
 
 type ChainerSingle interface {
-	ChainSingle(ctx Context, file File) File
+	ChainSingle(file File) File
 }
 
 type ChainerMultiple interface {
-	ChainMultiple(ctx Context, input, output chan File)
+	ChainMultiple(input, output chan File)
 }
 
-type Context interface {
-	NewFile(srcDir string) File
-}
-
-type File interface {
-	Path() string
-	SetPath(path string)
-
-	Data() []byte
-	SetData(data []byte)
-
-	Property(key, def string) interface{}
-	SetProperty(key string, value interface{})
-
-	Error() error
-	SetError(err error)
+type File struct {
+	Path string
+	Meta map[string]interface{}
+	Buff bytes.Buffer
+	Err  error
 }
