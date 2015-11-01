@@ -88,7 +88,7 @@ func (gs *goldsmith) makeStage() stage {
 	return s
 }
 
-func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle) {
+func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle, globs []string) {
 	defer close(s.output)
 
 	var wg sync.WaitGroup
@@ -96,7 +96,16 @@ func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle) {
 		wg.Add(1)
 		go func(f File) {
 			defer wg.Done()
-			if f.Err == nil {
+
+			matched := true
+			if len(globs) > 0 {
+				var err error
+				if matched, err = globMatch(file.Path, globs); err != nil {
+					file.Err = err
+				}
+			}
+
+			if f.Err == nil && matched {
 				s.output <- cs.ChainSingle(f)
 			} else {
 				s.output <- f
@@ -107,14 +116,22 @@ func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle) {
 	wg.Wait()
 }
 
-func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple) {
+func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple, globs []string) {
 	filtered := make(chan File)
 	defer close(filtered)
 
 	go cm.ChainMultiple(filtered, s.output)
 
 	for file := range s.input {
-		if file.Err == nil {
+		matched := true
+		if len(globs) > 0 {
+			var err error
+			if matched, err = globMatch(file.Path, globs); err != nil {
+				file.Err = err
+			}
+		}
+
+		if file.Err == nil && matched {
 			filtered <- file
 		} else {
 			s.output <- file
@@ -130,9 +147,9 @@ func (gs *goldsmith) Chain(ctx Context) Goldsmith {
 	if gs.err = ctx.Err; gs.err == nil {
 		switch c := ctx.Chainer.(type) {
 		case ChainerSingle:
-			go gs.chainSingle(gs.makeStage(), c)
+			go gs.chainSingle(gs.makeStage(), c, ctx.Globs)
 		case ChainerMultiple:
-			go gs.chainMultiple(gs.makeStage(), c)
+			go gs.chainMultiple(gs.makeStage(), c, ctx.Globs)
 		}
 	}
 

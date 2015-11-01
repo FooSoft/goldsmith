@@ -22,30 +22,20 @@
 
 package goldsmith
 
-import "bytes"
+import "path/filepath"
 
-type Goldsmith interface {
-	Chain(ctx Context) Goldsmith
-	Complete(dstDir string) ([]File, error)
-}
+func globMatch(pattern string, globs []string) (bool, error) {
+	var (
+		match bool
+		err   error
+	)
 
-type ChainerSingle interface {
-	ChainSingle(file File) File
-}
+	for _, glob := range globs {
+		match, err = filepath.Match(pattern, glob)
+		if err != nil || match {
+			break
+		}
+	}
 
-type ChainerMultiple interface {
-	ChainMultiple(input, output chan File)
-}
-
-type File struct {
-	Path string
-	Meta map[string]interface{}
-	Buff *bytes.Buffer
-	Err  error
-}
-
-type Context struct {
-	Chainer interface{}
-	Globs   []string
-	Err     error
+	return match, err
 }
