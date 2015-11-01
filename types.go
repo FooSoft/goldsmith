@@ -24,7 +24,7 @@ package goldsmith
 
 type Goldsmith interface {
 	Task(task interface{}) Goldsmith
-	Complete(dstDir string) []File
+	Complete(dstDir string) ([]File, error)
 }
 
 type TaskerSingle interface {
@@ -37,6 +37,7 @@ type TaskerMultiple interface {
 
 type Context interface {
 	NewFile(srcDir string) File
+	SetError(err error)
 }
 
 type File interface {

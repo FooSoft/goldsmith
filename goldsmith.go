@@ -38,6 +38,7 @@ type stage struct {
 type goldsmith struct {
 	stages []stage
 	files  chan File
+	err    error
 }
 
 func New(src string) Goldsmith {
@@ -46,21 +47,19 @@ func New(src string) Goldsmith {
 	return gs
 }
 
-func (gs *goldsmith) scan(srcDir string) error {
+func (gs *goldsmith) scan(srcDir string) {
 	matches, err := doublestar.Glob(filepath.Join(srcDir, "**"))
 	if err != nil {
-		return err
+		gs.err = err
+		return
 	}
 
-	s := stage{
-		input:  nil,
-		output: make(chan File, len(matches)),
-	}
-
+	s := stage{nil, make(chan File, len(matches))}
 	for _, match := range matches {
 		relPath, err := filepath.Rel(srcDir, match)
 		if err != nil {
-			return err
+			gs.err = err
+			return
 		}
 
 		s.output <- &file{relPath: relPath, srcPath: match}
@@ -68,21 +67,20 @@ func (gs *goldsmith) scan(srcDir string) error {
 
 	close(s.output)
 	gs.stages = append(gs.stages, s)
-	return nil
 }
 
 func (gs *goldsmith) makeStage() stage {
-	s := stage{
-		input:  gs.stages[len(gs.stages)-1].output,
-		output: make(chan File),
-	}
-
+	s := stage{gs.stages[len(gs.stages)-1].output, make(chan File)}
 	gs.stages = append(gs.stages, s)
 	return s
 }
 
 func (gs *goldsmith) NewFile(relPath string) File {
 	return &file{relPath: relPath}
+}
+
+func (gs *goldsmith) SetError(err error) {
+	gs.err = err
 }
 
 func (gs *goldsmith) taskSingle(ts TaskerSingle) {
@@ -109,17 +107,19 @@ func (gs *goldsmith) taskMultiple(tm TaskerMultiple) {
 }
 
 func (gs *goldsmith) Task(task interface{}) Goldsmith {
-	switch t := task.(type) {
-	case TaskerSingle:
-		gs.taskSingle(t)
-	case TaskerMultiple:
-		gs.taskMultiple(t)
+	if gs.err == nil {
+		switch t := task.(type) {
+		case TaskerSingle:
+			gs.taskSingle(t)
+		case TaskerMultiple:
+			gs.taskMultiple(t)
+		}
 	}
 
 	return gs
 }
 
-func (gs *goldsmith) Complete(dstDir string) []File {
+func (gs *goldsmith) Complete(dstDir string) ([]File, error) {
 	s := gs.stages[len(gs.stages)-1]
 
 	var files []File
@@ -151,5 +151,5 @@ func (gs *goldsmith) Complete(dstDir string) []File {
 		files = append(files, file)
 	}
 
-	return files
+	return files, gs.err
 }
