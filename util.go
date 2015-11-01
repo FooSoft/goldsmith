@@ -24,14 +24,14 @@ package goldsmith
 
 import "path/filepath"
 
-func globMatch(pattern string, globs []string) (bool, error) {
+func globMatch(globs []string, name string) (bool, error) {
 	var (
 		match bool
 		err   error
 	)
 
 	for _, glob := range globs {
-		match, err = filepath.Match(pattern, glob)
+		match, err = filepath.Match(glob, name)
 		if err != nil || match {
 			break
 		}

@@ -100,7 +100,7 @@ func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle, globs []string) {
 			matched := true
 			if len(globs) > 0 {
 				var err error
-				if matched, err = globMatch(file.Path, globs); err != nil {
+				if matched, err = globMatch(globs, file.Path); err != nil {
 					file.Err = err
 				}
 			}
@@ -126,7 +126,7 @@ func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple, globs []string) 
 		matched := true
 		if len(globs) > 0 {
 			var err error
-			if matched, err = globMatch(file.Path, globs); err != nil {
+			if matched, err = globMatch(globs, file.Path); err != nil {
 				file.Err = err
 			}
 		}
