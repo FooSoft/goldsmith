@@ -22,7 +22,10 @@
 
 package goldsmith
 
-import "path/filepath"
+import (
+	"os"
+	"path/filepath"
+)
 
 func globMatch(globs []string, name string) (bool, error) {
 	var (
@@ -51,4 +54,22 @@ func skipFile(file *File, globs []string) bool {
 	}
 
 	return !matched
+}
+
+func scanDir(root string) (files, dirs []string, err error) {
+	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			dirs = append(dirs, path)
+		} else {
+			files = append(files, path)
+		}
+
+		return nil
+	})
+
+	return
 }

@@ -28,8 +28,6 @@ import (
 	"path"
 	"path/filepath"
 	"sync"
-
-	"github.com/bmatcuk/doublestar"
 )
 
 type stage struct {
@@ -40,26 +38,32 @@ type goldsmith struct {
 	srcDir, dstDir string
 	stages         []stage
 	files          chan *File
+	refs           map[string]bool
 	err            error
 }
 
 func New(srcDir, dstDir string) Goldsmith {
-	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
+	gs := &goldsmith{
+		srcDir: srcDir,
+		dstDir: dstDir,
+		refs:   make(map[string]bool),
+	}
+
 	gs.scan()
 	return gs
 }
 
 func (gs *goldsmith) scan() {
-	matches, err := doublestar.Glob(filepath.Join(gs.srcDir, "**"))
+	fileMatches, _, err := scanDir(gs.srcDir)
 	if err != nil {
 		gs.err = err
 		return
 	}
 
-	s := stage{nil, make(chan *File, len(matches))}
+	s := stage{nil, make(chan *File, len(fileMatches))}
 	defer close(s.output)
 
-	for _, match := range matches {
+	for _, match := range fileMatches {
 		relPath, err := filepath.Rel(gs.srcDir, match)
 		if err != nil {
 			panic(err)
@@ -81,6 +85,29 @@ func (gs *goldsmith) scan() {
 	}
 
 	gs.stages = append(gs.stages, s)
+}
+
+func (gs *goldsmith) clean() {
+	fileMatches, _, err := scanDir(gs.dstDir)
+	if err != nil {
+		gs.err = err
+		return
+	}
+
+	for _, path := range fileMatches {
+		relPath, err := filepath.Rel(gs.dstDir, path)
+		if err != nil {
+			gs.err = err
+			return
+		}
+
+		if contained, _ := gs.refs[relPath]; !contained {
+			if err := os.Remove(path); err != nil {
+				gs.err = err
+				return
+			}
+		}
+	}
 }
 
 func (gs *goldsmith) makeStage() stage {
@@ -165,7 +192,10 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 
 			var f *os.File
 			if f, file.Err = os.Create(absPath); file.Err == nil {
-				_, file.Err = f.Write(file.Buff.Bytes())
+				if _, file.Err = f.Write(file.Buff.Bytes()); file.Err == nil {
+					gs.refs[file.Path] = true
+				}
+
 				f.Close()
 			}
 		}
@@ -173,6 +203,8 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 		file.Buff = nil
 		files = append(files, file)
 	}
+
+	gs.clean()
 
 	return files, gs.err
 }
