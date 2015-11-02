@@ -33,38 +33,39 @@ import (
 )
 
 type stage struct {
-	input, output chan File
+	input, output chan *File
 }
 
 type goldsmith struct {
-	stages []stage
-	files  chan File
-	err    error
+	srcDir, dstDir string
+	stages         []stage
+	files          chan *File
+	err            error
 }
 
-func New(src string) Goldsmith {
-	gs := new(goldsmith)
-	gs.scan(src)
+func New(srcDir, dstDir string) Goldsmith {
+	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
+	gs.scan()
 	return gs
 }
 
-func (gs *goldsmith) scan(srcDir string) {
-	matches, err := doublestar.Glob(filepath.Join(srcDir, "**"))
+func (gs *goldsmith) scan() {
+	matches, err := doublestar.Glob(filepath.Join(gs.srcDir, "**"))
 	if err != nil {
 		gs.err = err
 		return
 	}
 
-	s := stage{nil, make(chan File, len(matches))}
+	s := stage{nil, make(chan *File, len(matches))}
 	defer close(s.output)
 
 	for _, match := range matches {
-		relPath, err := filepath.Rel(srcDir, match)
+		relPath, err := filepath.Rel(gs.srcDir, match)
 		if err != nil {
 			panic(err)
 		}
 
-		file := File{
+		file := &File{
 			Path: relPath,
 			Meta: make(map[string]interface{}),
 			Buff: new(bytes.Buffer),
@@ -83,7 +84,11 @@ func (gs *goldsmith) scan(srcDir string) {
 }
 
 func (gs *goldsmith) makeStage() stage {
-	s := stage{gs.stages[len(gs.stages)-1].output, make(chan File)}
+	s := stage{
+		gs.stages[len(gs.stages)-1].output,
+		make(chan *File),
+	}
+
 	gs.stages = append(gs.stages, s)
 	return s
 }
@@ -94,12 +99,12 @@ func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle, globs []string) {
 	var wg sync.WaitGroup
 	for file := range s.input {
 		wg.Add(1)
-		go func(f File) {
+		go func(f *File) {
 			defer wg.Done()
-			if skipFile(&f, globs) {
+			if skipFile(f, globs) {
 				s.output <- f
 			} else {
-				s.output <- cs.ChainSingle(f)
+				s.output <- cs.ChainSingle(gs, f)
 			}
 		}(file)
 	}
@@ -108,13 +113,13 @@ func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle, globs []string) {
 }
 
 func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple, globs []string) {
-	filtered := make(chan File)
+	filtered := make(chan *File)
 	defer close(filtered)
 
-	go cm.ChainMultiple(filtered, s.output)
+	go cm.ChainMultiple(gs, filtered, s.output)
 
 	for file := range s.input {
-		if skipFile(&file, globs) {
+		if skipFile(file, globs) {
 			s.output <- file
 		} else {
 			filtered <- file
@@ -122,7 +127,15 @@ func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple, globs []string) 
 	}
 }
 
-func (gs *goldsmith) Chain(ctx Context) Goldsmith {
+func (gs *goldsmith) SrcDir() string {
+	return gs.srcDir
+}
+
+func (gs *goldsmith) DstDir() string {
+	return gs.dstDir
+}
+
+func (gs *goldsmith) Chain(ctx Config) Goldsmith {
 	if gs.err != nil {
 		return gs
 	}
@@ -139,13 +152,13 @@ func (gs *goldsmith) Chain(ctx Context) Goldsmith {
 	return gs
 }
 
-func (gs *goldsmith) Complete(dstDir string) ([]File, error) {
+func (gs *goldsmith) Complete() ([]*File, error) {
 	s := gs.stages[len(gs.stages)-1]
 
-	var files []File
+	var files []*File
 	for file := range s.output {
 		if file.Err == nil {
-			absPath := filepath.Join(dstDir, file.Path)
+			absPath := filepath.Join(gs.dstDir, file.Path)
 			if file.Err = os.MkdirAll(path.Dir(absPath), 0755); file.Err != nil {
 				continue
 			}
