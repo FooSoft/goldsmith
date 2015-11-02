@@ -45,6 +45,9 @@ type File struct {
 }
 
 type Context interface {
+	NewFile(path string) (*File, error)
+	RefFile(path string) error
+
 	SrcDir() string
 	DstDir() string
 }

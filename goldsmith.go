@@ -24,6 +24,7 @@ package goldsmith
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -69,11 +70,7 @@ func (gs *goldsmith) scan() {
 			panic(err)
 		}
 
-		file := &File{
-			Path: relPath,
-			Meta: make(map[string]interface{}),
-			Buff: new(bytes.Buffer),
-		}
+		file, _ := gs.NewFile(relPath)
 
 		var f *os.File
 		if f, file.Err = os.Open(match); file.Err == nil {
@@ -176,6 +173,29 @@ func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple, globs []string) 
 			filtered <- file
 		}
 	}
+}
+
+func (gs *goldsmith) NewFile(path string) (*File, error) {
+	if filepath.IsAbs(path) {
+		return nil, fmt.Errorf("absolute paths are not supported: %s", path)
+	}
+
+	file := &File{
+		Path: path,
+		Meta: make(map[string]interface{}),
+		Buff: new(bytes.Buffer),
+	}
+
+	return file, nil
+}
+
+func (gs *goldsmith) RefFile(path string) error {
+	if filepath.IsAbs(path) {
+		return fmt.Errorf("absolute paths are not supported: %s", path)
+	}
+
+	gs.refs[path] = true
+	return nil
 }
 
 func (gs *goldsmith) SrcDir() string {
