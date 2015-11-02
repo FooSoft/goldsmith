@@ -110,6 +110,30 @@ func (gs *goldsmith) clean() {
 	}
 }
 
+func (gs *goldsmith) export(file *File) {
+	defer func() {
+		file.Buff = nil
+	}()
+
+	if file.Err != nil {
+		return
+	}
+
+	absPath := filepath.Join(gs.dstDir, file.Path)
+	if file.Err = os.MkdirAll(path.Dir(absPath), 0755); file.Err != nil {
+		return
+	}
+
+	var f *os.File
+	if f, file.Err = os.Create(absPath); file.Err == nil {
+		if _, file.Err = f.Write(file.Buff.Bytes()); file.Err == nil {
+			gs.refs[file.Path] = true
+		}
+
+		f.Close()
+	}
+}
+
 func (gs *goldsmith) makeStage() stage {
 	s := stage{
 		gs.stages[len(gs.stages)-1].output,
@@ -184,23 +208,7 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 
 	var files []*File
 	for file := range s.output {
-		if file.Err == nil {
-			absPath := filepath.Join(gs.dstDir, file.Path)
-			if file.Err = os.MkdirAll(path.Dir(absPath), 0755); file.Err != nil {
-				continue
-			}
-
-			var f *os.File
-			if f, file.Err = os.Create(absPath); file.Err == nil {
-				if _, file.Err = f.Write(file.Buff.Bytes()); file.Err == nil {
-					gs.refs[file.Path] = true
-				}
-
-				f.Close()
-			}
-		}
-
-		file.Buff = nil
+		gs.export(file)
 		files = append(files, file)
 	}
 
