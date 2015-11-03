@@ -62,7 +62,6 @@ func (gs *goldsmith) scanFs() {
 	}
 
 	s := gs.makeStage()
-	gs.stages = append(gs.stages, s)
 
 	go func() {
 		defer close(s.output)
