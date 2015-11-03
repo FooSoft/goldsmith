@@ -50,41 +50,43 @@ func New(srcDir, dstDir string) Goldsmith {
 		refs:   make(map[string]bool),
 	}
 
-	gs.scan()
+	gs.scanFs()
 	return gs
 }
 
-func (gs *goldsmith) scan() {
+func (gs *goldsmith) scanFs() {
 	fileMatches, _, err := scanDir(gs.srcDir)
 	if err != nil {
 		gs.err = err
 		return
 	}
 
-	s := stage{nil, make(chan *File, len(fileMatches))}
-	defer close(s.output)
-
-	for _, match := range fileMatches {
-		relPath, err := filepath.Rel(gs.srcDir, match)
-		if err != nil {
-			panic(err)
-		}
-
-		file, _ := gs.NewFile(relPath)
-
-		var f *os.File
-		if f, file.Err = os.Open(match); file.Err == nil {
-			_, file.Err = file.Buff.ReadFrom(f)
-			f.Close()
-		}
-
-		s.output <- file
-	}
-
+	s := gs.makeStage()
 	gs.stages = append(gs.stages, s)
+
+	go func() {
+		defer close(s.output)
+
+		for _, match := range fileMatches {
+			relPath, err := filepath.Rel(gs.srcDir, match)
+			if err != nil {
+				panic(err)
+			}
+
+			file, _ := gs.NewFile(relPath)
+
+			var f *os.File
+			if f, file.Err = os.Open(match); file.Err == nil {
+				_, file.Err = file.Buff.ReadFrom(f)
+				f.Close()
+			}
+
+			s.output <- file
+		}
+	}()
 }
 
-func (gs *goldsmith) clean() {
+func (gs *goldsmith) cleanupFiles() {
 	fileMatches, _, err := scanDir(gs.dstDir)
 	if err != nil {
 		gs.err = err
@@ -107,7 +109,7 @@ func (gs *goldsmith) clean() {
 	}
 }
 
-func (gs *goldsmith) export(file *File) {
+func (gs *goldsmith) exportFile(file *File) {
 	defer func() {
 		file.Buff = nil
 	}()
@@ -132,9 +134,9 @@ func (gs *goldsmith) export(file *File) {
 }
 
 func (gs *goldsmith) makeStage() stage {
-	s := stage{
-		gs.stages[len(gs.stages)-1].output,
-		make(chan *File),
+	s := stage{output: make(chan *File)}
+	if len(gs.stages) > 0 {
+		s.input = gs.stages[len(gs.stages)-1].output
 	}
 
 	gs.stages = append(gs.stages, s)
@@ -228,11 +230,11 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 
 	var files []*File
 	for file := range s.output {
-		gs.export(file)
+		gs.exportFile(file)
 		files = append(files, file)
 	}
 
-	gs.clean()
+	gs.cleanupFiles()
 
 	return files, gs.err
 }
