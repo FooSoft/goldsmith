@@ -33,8 +33,9 @@ func globMatch(globs []string, name string) (bool, error) {
 		err   error
 	)
 
+	base := filepath.Base(name)
 	for _, glob := range globs {
-		match, err = filepath.Match(glob, name)
+		match, err = filepath.Match(glob, base)
 		if err != nil || match {
 			break
 		}
