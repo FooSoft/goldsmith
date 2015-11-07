@@ -53,15 +53,14 @@ func New(srcDir, dstDir string) Goldsmith {
 		refs:   make(map[string]bool),
 	}
 
-	gs.scanFs()
+	gs.err = gs.scanFs()
 	return gs
 }
 
-func (gs *goldsmith) scanFs() {
+func (gs *goldsmith) scanFs() error {
 	fileMatches, _, err := scanDir(gs.srcDir)
 	if err != nil {
-		gs.err = err
-		return
+		return err
 	}
 
 	s := gs.makeStage()
@@ -86,35 +85,38 @@ func (gs *goldsmith) scanFs() {
 			s.output <- file
 		}
 	}()
+
+	return nil
 }
 
-func (gs *goldsmith) cleanupFiles() {
-	fileMatches, _, err := scanDir(gs.dstDir)
+func (gs *goldsmith) cleanupFiles() error {
+	fileMatches, dirMatches, err := scanDir(gs.dstDir)
 	if err != nil {
-		gs.err = err
-		return
+		return err
 	}
 
-	for _, path := range fileMatches {
-		relPath, err := filepath.Rel(gs.dstDir, path)
+	matches := append(fileMatches, dirMatches...)
+
+	for _, match := range matches {
+		relPath, err := filepath.Rel(gs.dstDir, match)
 		if err != nil {
-			gs.err = err
-			return
+			panic(err)
 		}
 
-		if contained, _ := gs.refs[relPath]; !contained {
-			if err := os.Remove(path); err != nil {
-				gs.err = err
-				return
-			}
+		if contained, _ := gs.refs[relPath]; contained {
+			continue
+		}
+
+		if err := os.RemoveAll(match); err != nil {
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (gs *goldsmith) exportFile(file *File) {
-	defer func() {
-		file.Buff = nil
-	}()
+	defer func() { file.Buff = nil }()
 
 	if file.Err != nil {
 		return
@@ -129,7 +131,7 @@ func (gs *goldsmith) exportFile(file *File) {
 	if f, file.Err = os.Create(absPath); file.Err == nil {
 		defer f.Close()
 		if _, file.Err = f.Write(file.Buff.Bytes()); file.Err == nil {
-			gs.refs[file.Path] = true
+			gs.RefFile(file.Path)
 		}
 	}
 }
@@ -190,8 +192,14 @@ func (gs *goldsmith) RefFile(path string) error {
 		return fmt.Errorf("absolute paths are not supported: %s", path)
 	}
 
-	gs.refs[path] = true
-	return nil
+	path = filepath.Clean(path)
+	for {
+		gs.refs[path] = true
+		if path == "." {
+			return nil
+		}
+		path = filepath.Dir(path)
+	}
 }
 
 func (gs *goldsmith) SrcDir() string {
@@ -215,6 +223,10 @@ func (gs *goldsmith) Chain(c Chainer, err error) Goldsmith {
 }
 
 func (gs *goldsmith) Complete() ([]*File, error) {
+	if gs.err != nil {
+		return nil, gs.err
+	}
+
 	s := gs.stages[len(gs.stages)-1]
 
 	var files []*File
@@ -223,6 +235,6 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 		files = append(files, file)
 	}
 
-	gs.cleanupFiles()
+	gs.err = gs.cleanupFiles()
 	return files, gs.err
 }
