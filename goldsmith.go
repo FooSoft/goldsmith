@@ -28,7 +28,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sync"
 )
 
 type stage struct {
@@ -124,11 +123,10 @@ func (gs *goldsmith) exportFile(file *File) {
 
 	var f *os.File
 	if f, file.Err = os.Create(absPath); file.Err == nil {
+		defer f.Close()
 		if _, file.Err = f.Write(file.Buff.Bytes()); file.Err == nil {
 			gs.refs[file.Path] = true
 		}
-
-		f.Close()
 	}
 }
 
@@ -142,36 +140,19 @@ func (gs *goldsmith) makeStage() stage {
 	return s
 }
 
-func (gs *goldsmith) chainSingle(s stage, cs ChainerSingle, globs []string) {
-	defer close(s.output)
+func (gs *goldsmith) chain(s stage, c Chainer) {
+	f, _ := c.(Filterer)
 
-	var wg sync.WaitGroup
-	for file := range s.input {
-		wg.Add(1)
-		go func(f *File) {
-			defer wg.Done()
-			if skipFile(f, globs) {
-				s.output <- f
-			} else {
-				s.output <- cs.ChainSingle(gs, f)
-			}
-		}(file)
-	}
+	allowed := make(chan *File)
+	defer close(allowed)
 
-	wg.Wait()
-}
-
-func (gs *goldsmith) chainMultiple(s stage, cm ChainerMultiple, globs []string) {
-	filtered := make(chan *File)
-	defer close(filtered)
-
-	go cm.ChainMultiple(gs, filtered, s.output)
+	go c.Chain(gs, allowed, s.output)
 
 	for file := range s.input {
-		if skipFile(file, globs) {
+		if f.Filter(file.Path) {
 			s.output <- file
 		} else {
-			filtered <- file
+			allowed <- file
 		}
 	}
 }
@@ -207,18 +188,13 @@ func (gs *goldsmith) DstDir() string {
 	return gs.dstDir
 }
 
-func (gs *goldsmith) Chain(ctx Config) Goldsmith {
+func (gs *goldsmith) Chain(c Chainer, err error) Goldsmith {
 	if gs.err != nil {
 		return gs
 	}
 
-	if gs.err = ctx.Err; gs.err == nil {
-		switch c := ctx.Chainer.(type) {
-		case ChainerSingle:
-			go gs.chainSingle(gs.makeStage(), c, ctx.Globs)
-		case ChainerMultiple:
-			go gs.chainMultiple(gs.makeStage(), c, ctx.Globs)
-		}
+	if gs.err = err; gs.err == nil {
+		go gs.chain(gs.makeStage(), c)
 	}
 
 	return gs
@@ -234,6 +210,5 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 	}
 
 	gs.cleanupFiles()
-
 	return files, gs.err
 }

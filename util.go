@@ -27,36 +27,6 @@ import (
 	"path/filepath"
 )
 
-func globMatch(globs []string, name string) (bool, error) {
-	var (
-		match bool
-		err   error
-	)
-
-	base := filepath.Base(name)
-	for _, glob := range globs {
-		match, err = filepath.Match(glob, base)
-		if err != nil || match {
-			break
-		}
-	}
-
-	return match, err
-}
-
-func skipFile(file *File, globs []string) bool {
-	if file.Err != nil {
-		return true
-	}
-
-	matched := true
-	if len(globs) > 0 {
-		matched, file.Err = globMatch(globs, file.Path)
-	}
-
-	return !matched
-}
-
 func scanDir(root string) (files, dirs []string, err error) {
 	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

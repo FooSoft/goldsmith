@@ -25,16 +25,16 @@ package goldsmith
 import "bytes"
 
 type Goldsmith interface {
-	Chain(cfg Config) Goldsmith
+	Chain(c Chainer, err error) Goldsmith
 	Complete() ([]*File, error)
 }
 
-type ChainerSingle interface {
-	ChainSingle(ctx Context, file *File) *File
+type Chainer interface {
+	Chain(ctx Context, input, output chan *File)
 }
 
-type ChainerMultiple interface {
-	ChainMultiple(ctx Context, input, output chan *File)
+type Filterer interface {
+	Filter(path string) bool
 }
 
 type File struct {
@@ -50,10 +50,4 @@ type Context interface {
 
 	SrcDir() string
 	DstDir() string
-}
-
-type Config struct {
-	Chainer interface{}
-	Globs   []string
-	Err     error
 }
