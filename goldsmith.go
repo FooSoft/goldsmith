@@ -238,3 +238,21 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 	gs.err = gs.cleanupFiles()
 	return files, gs.err
 }
+
+func scanDir(root string) (files, dirs []string, err error) {
+	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			dirs = append(dirs, path)
+		} else {
+			files = append(files, path)
+		}
+
+		return nil
+	})
+
+	return
+}
