@@ -30,6 +30,10 @@ import (
 	"path/filepath"
 )
 
+const (
+	FILE_FLAG_STATIC = 1 << iota
+)
+
 type stage struct {
 	input, output chan *File
 }
@@ -149,7 +153,7 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 	go c.Chain(gs, allowed, s.output)
 
 	for file := range s.input {
-		if f.Filter(file.Path) {
+		if file.flags&FILE_FLAG_STATIC != 0 || f.Filter(file.Path) {
 			s.output <- file
 		} else {
 			allowed <- file
@@ -168,6 +172,16 @@ func (gs *goldsmith) NewFile(path string) (*File, error) {
 		Buff: new(bytes.Buffer),
 	}
 
+	return file, nil
+}
+
+func (gs *goldsmith) NewFileStatic(path string) (*File, error) {
+	file, err := gs.NewFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	file.flags |= FILE_FLAG_STATIC
 	return file, nil
 }
 

@@ -42,10 +42,14 @@ type File struct {
 	Meta map[string]interface{}
 	Buff *bytes.Buffer
 	Err  error
+
+	flags uint32
 }
 
 type Context interface {
+	NewFileStatic(path string) (*File, error)
 	NewFile(path string) (*File, error)
+
 	RefFile(path string) error
 
 	SrcDir() string
