@@ -153,7 +153,7 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 	go c.Chain(gs, allowed, s.output)
 
 	for file := range s.input {
-		if file.flags&FILE_FLAG_STATIC != 0 || f.Filter(file.Path) {
+		if file.flags&FILE_FLAG_STATIC != 0 || (f != nil && f.Filter(file.Path)) {
 			s.output <- file
 		} else {
 			allowed <- file
