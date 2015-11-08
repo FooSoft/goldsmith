@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	FILE_FLAG_STATIC = 1 << iota
+	FileFlagStatic = 1 << iota
 )
 
 type stage struct {
@@ -155,7 +155,7 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 	go c.Chain(gs, allowed, s.output)
 
 	for file := range s.input {
-		if file.flags&FILE_FLAG_STATIC != 0 || (f != nil && f.Filter(file.Path)) {
+		if file.flags&FileFlagStatic != 0 || (f != nil && f.Filter(file.Path)) {
 			s.output <- file
 		} else {
 			allowed <- file
@@ -183,7 +183,7 @@ func (gs *goldsmith) NewFileStatic(path string) (*File, error) {
 		return nil, err
 	}
 
-	file.flags |= FILE_FLAG_STATIC
+	file.flags |= FileFlagStatic
 	return file, nil
 }
 
