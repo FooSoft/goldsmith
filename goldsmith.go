@@ -23,8 +23,6 @@
 package goldsmith
 
 import (
-	"bytes"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -41,7 +39,6 @@ type stage struct {
 type goldsmith struct {
 	srcDir, dstDir string
 	stages         []stage
-	files          chan *File
 	refs           map[string]bool
 	err            error
 }
@@ -74,7 +71,7 @@ func (gs *goldsmith) scanFs() error {
 				panic(err)
 			}
 
-			file, _ := gs.NewFile(relPath)
+			file := gs.NewFile(relPath)
 
 			var f *os.File
 			if f, file.Err = os.Open(match); file.Err == nil {
@@ -116,7 +113,7 @@ func (gs *goldsmith) cleanupFiles() error {
 }
 
 func (gs *goldsmith) exportFile(file *File) {
-	defer func() { file.Buff = nil }()
+	defer file.Buff.Reset()
 
 	if file.Err != nil {
 		return
@@ -163,41 +160,44 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 	}
 }
 
-func (gs *goldsmith) NewFile(path string) (*File, error) {
+func (gs *goldsmith) NewFile(path string) *File {
 	if filepath.IsAbs(path) {
-		return nil, fmt.Errorf("absolute paths are not supported: %s", path)
+		var err error
+		path, err = filepath.Rel("/", path)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	file := &File{
-		Path: path,
+	return &File{
+		Path: filepath.Clean(path),
 		Meta: make(map[string]interface{}),
-		Buff: new(bytes.Buffer),
 	}
-
-	return file, nil
 }
 
-func (gs *goldsmith) NewFileStatic(path string) (*File, error) {
-	file, err := gs.NewFile(path)
-	if err != nil {
-		return nil, err
-	}
-
+func (gs *goldsmith) NewFileStatic(path string) *File {
+	file := gs.NewFile(path)
 	file.flags |= FileFlagStatic
-	return file, nil
+	return file
 }
 
-func (gs *goldsmith) RefFile(path string) error {
+func (gs *goldsmith) RefFile(path string) {
 	if filepath.IsAbs(path) {
-		return fmt.Errorf("absolute paths are not supported: %s", path)
+		var err error
+		path, err = filepath.Rel("/", path)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	path = filepath.Clean(path)
+
 	for {
 		gs.refs[path] = true
 		if path == "." {
-			return nil
+			break
 		}
+
 		path = filepath.Dir(path)
 	}
 }

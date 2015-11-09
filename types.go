@@ -40,17 +40,17 @@ type Filterer interface {
 type File struct {
 	Path string
 	Meta map[string]interface{}
-	Buff *bytes.Buffer
+	Buff bytes.Buffer
 	Err  error
 
 	flags uint32
 }
 
 type Context interface {
-	NewFileStatic(path string) (*File, error)
-	NewFile(path string) (*File, error)
+	NewFileStatic(path string) *File
+	NewFile(path string) *File
 
-	RefFile(path string) error
+	RefFile(path string)
 
 	SrcDir() string
 	DstDir() string
