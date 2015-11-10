@@ -26,6 +26,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
 )
 
 const (
@@ -144,20 +145,43 @@ func (gs *goldsmith) makeStage() stage {
 }
 
 func (gs *goldsmith) chain(s stage, c Chainer) {
-	f, _ := c.(Filterer)
+	var (
+		wg     sync.WaitGroup
+		output = make(chan *File)
+		input  = make(chan *File)
+	)
 
-	allowed := make(chan *File)
-	defer close(allowed)
+	defer func() {
+		wg.Wait()
+		close(s.output)
+	}()
 
-	go c.Chain(gs, allowed, s.output)
-
-	for file := range s.input {
-		if file.flags&FileFlagStatic != 0 || (f != nil && f.Filter(file.Path)) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for file := range output {
 			s.output <- file
-		} else {
-			allowed <- file
 		}
-	}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer func() {
+			close(input)
+			wg.Done()
+		}()
+
+		f, _ := c.(Filterer)
+		for file := range s.input {
+			if file.flags&FileFlagStatic != 0 || (f != nil && f.Filter(file.Path)) {
+				s.output <- file
+			} else {
+				input <- file
+			}
+		}
+	}()
+
+	go c.Chain(gs, input, output)
 }
 
 func (gs *goldsmith) NewFile(path string) *File {
