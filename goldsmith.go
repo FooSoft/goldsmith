@@ -151,26 +151,17 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 		input  = make(chan *File)
 	)
 
-	defer func() {
-		wg.Wait()
-		close(s.output)
-	}()
-
 	wg.Add(1)
 	go func() {
-		defer wg.Done()
 		for file := range output {
 			s.output <- file
 		}
+
+		wg.Done()
 	}()
 
 	wg.Add(1)
 	go func() {
-		defer func() {
-			close(input)
-			wg.Done()
-		}()
-
 		f, _ := c.(Filterer)
 		for file := range s.input {
 			if file.flags&FileFlagStatic != 0 || (f != nil && f.Filter(file.Path)) {
@@ -179,9 +170,17 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 				input <- file
 			}
 		}
+
+		close(input)
+		wg.Done()
 	}()
 
-	go c.Chain(gs, input, output)
+	go func() {
+		c.Chain(gs, input, output)
+
+		wg.Wait()
+		close(s.output)
+	}()
 }
 
 func (gs *goldsmith) NewFile(path string) *File {
@@ -240,7 +239,7 @@ func (gs *goldsmith) Chain(c Chainer, err error) Goldsmith {
 	}
 
 	if gs.err = err; gs.err == nil {
-		go gs.chain(gs.makeStage(), c)
+		gs.chain(gs.makeStage(), c)
 	}
 
 	return gs
