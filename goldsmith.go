@@ -51,7 +51,7 @@ func New(srcDir, dstDir string) Goldsmith {
 		refs:   make(map[string]bool),
 	}
 
-	gs.err = gs.scanFs()
+	gs.scanFs()
 	return gs
 }
 
@@ -74,19 +74,17 @@ func NewFileRef(path string) *File {
 	return file
 }
 
-func (gs *goldsmith) scanFs() error {
-	fileMatches, _, err := scanDir(gs.srcDir)
-	if err != nil {
-		return err
-	}
+func (gs *goldsmith) scanFs() {
+	files := make(chan string)
+	go scanDir(gs.srcDir, files, nil)
 
 	s := gs.makeStage()
 
 	go func() {
 		defer close(s.output)
 
-		for _, match := range fileMatches {
-			relPath, err := filepath.Rel(gs.srcDir, match)
+		for path := range files {
+			relPath, err := filepath.Rel(gs.srcDir, path)
 			if err != nil {
 				panic(err)
 			}
@@ -94,7 +92,7 @@ func (gs *goldsmith) scanFs() error {
 			file := NewFile(relPath)
 
 			var f *os.File
-			if f, file.Err = os.Open(match); file.Err == nil {
+			if f, file.Err = os.Open(path); file.Err == nil {
 				_, file.Err = file.Buff.ReadFrom(f)
 				f.Close()
 			}
@@ -102,20 +100,35 @@ func (gs *goldsmith) scanFs() error {
 			s.output <- file
 		}
 	}()
-
-	return nil
 }
 
-func (gs *goldsmith) cleanupFiles() error {
-	fileMatches, dirMatches, err := scanDir(gs.dstDir)
-	if err != nil {
-		return err
-	}
+func (gs *goldsmith) cleanupFiles() {
+	files := make(chan string)
+	dirs := make(chan string)
+	go scanDir(gs.dstDir, files, dirs)
 
-	matches := append(fileMatches, dirMatches...)
+	for files != nil || dirs != nil {
+		var (
+			path string
+			ok   bool
+		)
 
-	for _, match := range matches {
-		relPath, err := filepath.Rel(gs.dstDir, match)
+		select {
+		case path, ok = <-files:
+			if !ok {
+				files = nil
+				continue
+			}
+		case path, ok = <-dirs:
+			if !ok {
+				dirs = nil
+				continue
+			}
+		default:
+			continue
+		}
+
+		relPath, err := filepath.Rel(gs.dstDir, path)
 		if err != nil {
 			panic(err)
 		}
@@ -124,12 +137,8 @@ func (gs *goldsmith) cleanupFiles() error {
 			continue
 		}
 
-		if err := os.RemoveAll(match); err != nil {
-			return err
-		}
+		os.RemoveAll(path)
 	}
-
-	return nil
 }
 
 func (gs *goldsmith) exportFile(file *File) {
@@ -253,7 +262,7 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 		files = append(files, file)
 	}
 
-	gs.err = gs.cleanupFiles()
+	gs.cleanupFiles()
 	return files, gs.err
 }
 
@@ -268,20 +277,31 @@ func cleanPath(path string) string {
 	return filepath.Clean(path)
 }
 
-func scanDir(root string) (files, dirs []string, err error) {
-	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+func scanDir(root string, files, dirs chan string) {
+	defer func() {
+		if files != nil {
+			close(files)
+		}
+		if dirs != nil {
+			close(dirs)
+		}
+	}()
+
+	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		if info.IsDir() {
-			dirs = append(dirs, path)
+			if dirs != nil {
+				dirs <- path
+			}
 		} else {
-			files = append(files, path)
+			if files != nil {
+				files <- path
+			}
 		}
 
 		return nil
 	})
-
-	return
 }
