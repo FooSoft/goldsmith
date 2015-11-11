@@ -33,25 +33,27 @@ type Chainer interface {
 	Chain(ctx Context, input, output chan *File)
 }
 
-type Filterer interface {
-	Filter(path string) bool
+type Accepter interface {
+	Accept(file *File) bool
 }
+
+type FileType int
+
+const (
+	FileNormal FileType = iota
+	FileStatic
+	FileReference
+)
 
 type File struct {
 	Path string
 	Meta map[string]interface{}
 	Buff bytes.Buffer
 	Err  error
-
-	flags uint32
+	Type FileType
 }
 
 type Context interface {
-	NewFileStatic(path string) *File
-	NewFile(path string) *File
-
-	RefFile(path string)
-
 	SrcDir() string
 	DstDir() string
 }

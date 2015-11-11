@@ -55,6 +55,25 @@ func New(srcDir, dstDir string) Goldsmith {
 	return gs
 }
 
+func NewFile(path string) *File {
+	return &File{
+		Path: cleanPath(path),
+		Meta: make(map[string]interface{}),
+	}
+}
+
+func NewFileStatic(path string) *File {
+	file := NewFile(path)
+	file.Type = FileStatic
+	return file
+}
+
+func NewFileRef(path string) *File {
+	file := NewFile(path)
+	file.Type = FileReference
+	return file
+}
+
 func (gs *goldsmith) scanFs() error {
 	fileMatches, _, err := scanDir(gs.srcDir)
 	if err != nil {
@@ -72,7 +91,7 @@ func (gs *goldsmith) scanFs() error {
 				panic(err)
 			}
 
-			file := gs.NewFile(relPath)
+			file := NewFile(relPath)
 
 			var f *os.File
 			if f, file.Err = os.Open(match); file.Err == nil {
@@ -120,6 +139,11 @@ func (gs *goldsmith) exportFile(file *File) {
 		return
 	}
 
+	if file.Type == FileReference {
+		gs.refFile(file.Path)
+		return
+	}
+
 	absPath := filepath.Join(gs.dstDir, file.Path)
 	if file.Err = os.MkdirAll(path.Dir(absPath), 0755); file.Err != nil {
 		return
@@ -129,7 +153,7 @@ func (gs *goldsmith) exportFile(file *File) {
 	if f, file.Err = os.Create(absPath); file.Err == nil {
 		defer f.Close()
 		if _, file.Err = f.Write(file.Buff.Bytes()); file.Err == nil {
-			gs.RefFile(file.Path)
+			gs.refFile(file.Path)
 		}
 	}
 }
@@ -162,12 +186,12 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 
 	wg.Add(1)
 	go func() {
-		f, _ := c.(Filterer)
+		a, _ := c.(Accepter)
 		for file := range s.input {
-			if file.flags&FileFlagStatic != 0 || (f != nil && f.Filter(file.Path)) {
-				s.output <- file
-			} else {
+			if file.Type == FileNormal && (a == nil || a.Accept(file)) {
 				input <- file
+			} else {
+				s.output <- file
 			}
 		}
 
@@ -183,37 +207,8 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 	}()
 }
 
-func (gs *goldsmith) NewFile(path string) *File {
-	if filepath.IsAbs(path) {
-		var err error
-		path, err = filepath.Rel("/", path)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	return &File{
-		Path: filepath.Clean(path),
-		Meta: make(map[string]interface{}),
-	}
-}
-
-func (gs *goldsmith) NewFileStatic(path string) *File {
-	file := gs.NewFile(path)
-	file.flags |= FileFlagStatic
-	return file
-}
-
-func (gs *goldsmith) RefFile(path string) {
-	if filepath.IsAbs(path) {
-		var err error
-		path, err = filepath.Rel("/", path)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	path = filepath.Clean(path)
+func (gs *goldsmith) refFile(path string) {
+	path = cleanPath(path)
 
 	for {
 		gs.refs[path] = true
@@ -260,6 +255,17 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 
 	gs.err = gs.cleanupFiles()
 	return files, gs.err
+}
+
+func cleanPath(path string) string {
+	if filepath.IsAbs(path) {
+		var err error
+		if path, err = filepath.Rel("/", path); err != nil {
+			panic(err)
+		}
+	}
+
+	return filepath.Clean(path)
 }
 
 func scanDir(root string) (files, dirs []string, err error) {
