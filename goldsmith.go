@@ -45,13 +45,8 @@ type goldsmith struct {
 }
 
 func New(srcDir, dstDir string) Goldsmith {
-	gs := &goldsmith{
-		srcDir: srcDir,
-		dstDir: dstDir,
-		refs:   make(map[string]bool),
-	}
-
-	gs.scanFs()
+	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
+	gs.queueFiles()
 	return gs
 }
 
@@ -74,7 +69,7 @@ func NewFileRef(path string) *File {
 	return file
 }
 
-func (gs *goldsmith) scanFs() {
+func (gs *goldsmith) queueFiles() {
 	files := make(chan string)
 	go scanDir(gs.srcDir, files, nil)
 
@@ -217,6 +212,10 @@ func (gs *goldsmith) chain(s stage, c Chainer) {
 func (gs *goldsmith) refFile(path string) {
 	path = cleanPath(path)
 
+	if gs.refs == nil {
+		gs.refs = make(map[string]bool)
+	}
+
 	for {
 		gs.refs[path] = true
 		if path == "." {
@@ -264,7 +263,13 @@ func (gs *goldsmith) Complete() ([]*File, error) {
 		gs.cleanupFiles()
 	}
 
-	return files, gs.err
+	err := gs.err
+
+	gs.stages = nil
+	gs.refs = nil
+	gs.err = nil
+
+	return files, err
 }
 
 func cleanPath(path string) string {
