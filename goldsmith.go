@@ -142,8 +142,6 @@ func (gs *goldsmith) cleanupFiles() {
 }
 
 func (gs *goldsmith) exportFile(file *File) {
-	defer file.Buff.Reset()
-
 	if file.Err != nil {
 		return
 	}
@@ -250,19 +248,22 @@ func (gs *goldsmith) Chain(c Chainer, err error) Goldsmith {
 }
 
 func (gs *goldsmith) Complete() ([]*File, error) {
-	if gs.err != nil {
-		return nil, gs.err
-	}
-
 	s := gs.stages[len(gs.stages)-1]
 
 	var files []*File
 	for file := range s.output {
-		gs.exportFile(file)
+		if gs.err == nil {
+			gs.exportFile(file)
+		}
+
+		file.Buff.Reset()
 		files = append(files, file)
 	}
 
-	gs.cleanupFiles()
+	if gs.err == nil {
+		gs.cleanupFiles()
+	}
+
 	return files, gs.err
 }
 
