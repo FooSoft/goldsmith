@@ -25,16 +25,26 @@ package goldsmith
 import "bytes"
 
 type Goldsmith interface {
-	Chain(c Chainer, err error) Goldsmith
-	Complete() ([]*File, error)
+	Chain(p Plugin, err error) Goldsmith
+	Complete() ([]*File, []error)
+}
+
+type Plugin interface{}
+
+type Initializer interface {
+	Initialize(ctx Context) error
+}
+
+type Finalizer interface {
+	Finalize(ctx Context) error
+}
+
+type Processor interface {
+	Process(ctx Context, file *File) bool
 }
 
 type Chainer interface {
 	Chain(ctx Context, input, output chan *File)
-}
-
-type Accepter interface {
-	Accept(file *File) bool
 }
 
 type FileType int
@@ -56,4 +66,8 @@ type File struct {
 type Context interface {
 	SrcDir() string
 	DstDir() string
+
+	NewFile(path string) *File
+	NewFileStatic(path string) *File
+	NewFileRef(path string) *File
 }

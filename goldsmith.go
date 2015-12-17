@@ -29,19 +29,15 @@ import (
 	"sync"
 )
 
-const (
-	FileFlagStatic = 1 << iota
-)
-
 type stage struct {
 	input, output chan *File
+	err           error
 }
 
 type goldsmith struct {
 	srcDir, dstDir string
-	stages         []stage
+	stages         []*stage
 	refs           map[string]bool
-	err            error
 }
 
 func New(srcDir, dstDir string) Goldsmith {
@@ -50,21 +46,21 @@ func New(srcDir, dstDir string) Goldsmith {
 	return gs
 }
 
-func NewFile(path string) *File {
+func (gs *goldsmith) NewFile(path string) *File {
 	return &File{
 		Path: cleanPath(path),
 		Meta: make(map[string]interface{}),
 	}
 }
 
-func NewFileStatic(path string) *File {
-	file := NewFile(path)
+func (gs *goldsmith) NewFileStatic(path string) *File {
+	file := gs.NewFile(path)
 	file.Type = FileStatic
 	return file
 }
 
-func NewFileRef(path string) *File {
-	file := NewFile(path)
+func (gs *goldsmith) NewFileRef(path string) *File {
+	file := gs.NewFile(path)
 	file.Type = FileReference
 	return file
 }
@@ -84,7 +80,7 @@ func (gs *goldsmith) queueFiles() {
 				panic(err)
 			}
 
-			file := NewFile(relPath)
+			file := gs.NewFile(relPath)
 
 			var f *os.File
 			if f, file.Err = os.Open(path); file.Err == nil {
@@ -160,8 +156,8 @@ func (gs *goldsmith) exportFile(file *File) {
 	}
 }
 
-func (gs *goldsmith) makeStage() stage {
-	s := stage{output: make(chan *File)}
+func (gs *goldsmith) makeStage() *stage {
+	s := &stage{output: make(chan *File)}
 	if len(gs.stages) > 0 {
 		s.input = gs.stages[len(gs.stages)-1].output
 	}
@@ -170,43 +166,36 @@ func (gs *goldsmith) makeStage() stage {
 	return s
 }
 
-func (gs *goldsmith) chain(s stage, c Chainer) {
-	var (
-		wg     sync.WaitGroup
-		output = make(chan *File)
-		input  = make(chan *File)
-	)
+func (gs *goldsmith) chain(s *stage, p Plugin) {
+	defer close(s.output)
 
-	wg.Add(1)
-	go func() {
-		for file := range output {
-			s.output <- file
+	if init, ok := p.(Initializer); ok {
+		if s.err = init.Initialize(gs); s.err != nil {
+			return
 		}
+	}
 
-		wg.Done()
-	}()
-
-	wg.Add(1)
-	go func() {
-		a, _ := c.(Accepter)
+	if proc, ok := p.(Processor); ok {
+		var wg sync.WaitGroup
 		for file := range s.input {
-			if file.Type == FileNormal && (a == nil || a.Accept(file)) {
-				input <- file
-			} else {
-				s.output <- file
-			}
+			go func(f *File) {
+				defer wg.Done()
+				if proc.Process(gs, f) {
+					s.output <- f
+				}
+			}(file)
 		}
-
-		close(input)
-		wg.Done()
-	}()
-
-	go func() {
-		c.Chain(gs, input, output)
 
 		wg.Wait()
-		close(s.output)
-	}()
+	} else {
+		for file := range s.input {
+			s.output <- file
+		}
+	}
+
+	if fin, ok := p.(Finalizer); ok {
+		s.err = fin.Finalize(gs)
+	}
 }
 
 func (gs *goldsmith) refFile(path string) {
@@ -234,42 +223,34 @@ func (gs *goldsmith) DstDir() string {
 	return gs.dstDir
 }
 
-func (gs *goldsmith) Chain(c Chainer, err error) Goldsmith {
-	if gs.err != nil {
-		return gs
-	}
-
-	if gs.err = err; gs.err == nil {
-		gs.chain(gs.makeStage(), c)
-	}
-
+func (gs *goldsmith) Chain(p Plugin) Goldsmith {
+	go gs.chain(gs.makeStage(), p)
 	return gs
 }
 
-func (gs *goldsmith) Complete() ([]*File, error) {
+func (gs *goldsmith) Complete() ([]*File, []error) {
 	s := gs.stages[len(gs.stages)-1]
 
 	var files []*File
 	for file := range s.output {
-		if gs.err == nil {
-			gs.exportFile(file)
-		}
-
+		gs.exportFile(file)
 		file.Buff.Reset()
 		files = append(files, file)
 	}
 
-	if gs.err == nil {
-		gs.cleanupFiles()
-	}
+	gs.cleanupFiles()
 
-	err := gs.err
+	var errs []error
+	for _, s := range gs.stages {
+		if s.err != nil {
+			errs = append(errs, s.err)
+		}
+	}
 
 	gs.stages = nil
 	gs.refs = nil
-	gs.err = nil
 
-	return files, err
+	return files, errs
 }
 
 func cleanPath(path string) string {
