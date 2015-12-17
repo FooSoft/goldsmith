@@ -43,7 +43,7 @@ type goldsmith struct {
 	stages         []*stage
 	refs           map[string]bool
 	mtx            sync.Mutex
-	busy           int64
+	active         int64
 	stalled        int64
 }
 
@@ -58,7 +58,7 @@ func (gs *goldsmith) queueFiles(target uint) {
 
 		for path := range files {
 			for {
-				if gs.busy-gs.stalled >= int64(target) {
+				if gs.active-gs.stalled >= int64(target) {
 					time.Sleep(time.Millisecond)
 				} else {
 					break
@@ -128,7 +128,7 @@ func (gs *goldsmith) cleanupFiles() {
 func (gs *goldsmith) exportFile(file *File) {
 	defer func() {
 		file.Buff = *bytes.NewBuffer(nil)
-		atomic.AddInt64(&gs.busy, -1)
+		atomic.AddInt64(&gs.active, -1)
 	}()
 
 	if file.Err != nil {
@@ -223,7 +223,7 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 					dispatch(f)
 				} else {
 					f.Buff = *bytes.NewBuffer(nil)
-					atomic.AddInt64(&gs.busy, -1)
+					atomic.AddInt64(&gs.active, -1)
 				}
 			}(file)
 		}

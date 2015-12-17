@@ -29,7 +29,7 @@ func (s *stage) RefFile(path string) {
 }
 
 func (s *stage) AddFile(file *File) {
-	atomic.AddInt64(&s.gs.busy, 1)
+	atomic.AddInt64(&s.gs.active, 1)
 	s.output <- file
 }
 
