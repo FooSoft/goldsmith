@@ -183,12 +183,7 @@ func (gs *goldsmith) newStage() *stage {
 func (gs *goldsmith) chain(s *stage, p Plugin) {
 	defer close(s.output)
 
-	if init, ok := p.(Initializer); ok {
-		if s.err = init.Initialize(s); s.err != nil {
-			return
-		}
-	}
-
+	init, _ := p.(Initializer)
 	accept, _ := p.(Accepter)
 	proc, _ := p.(Processor)
 	fin, _ := p.(Finalizer)
@@ -196,7 +191,7 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 	var (
 		wg    sync.WaitGroup
 		mtx   sync.Mutex
-		files []*File
+		batch []*File
 	)
 
 	dispatch := func(f *File) {
@@ -204,8 +199,14 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 			s.output <- f
 		} else {
 			mtx.Lock()
-			files = append(files, f)
+			batch = append(batch, f)
 			mtx.Unlock()
+		}
+	}
+
+	if init != nil {
+		if s.err = init.Initialize(s); s.err != nil {
+			return
 		}
 	}
 
@@ -228,8 +229,8 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 	wg.Wait()
 
 	if fin != nil {
-		if s.err = fin.Finalize(s, files); s.err == nil {
-			for _, file := range files {
+		if s.err = fin.Finalize(s, batch); s.err == nil {
+			for _, file := range batch {
 				s.output <- file
 			}
 		}
