@@ -59,6 +59,10 @@ type Context interface {
 
 type Plugin interface{}
 
+type Accepter interface {
+	Accept(file *File) bool
+}
+
 type Initializer interface {
 	Initialize(ctx Context) error
 }

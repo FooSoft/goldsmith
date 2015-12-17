@@ -189,23 +189,26 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 		}
 	}
 
-	if proc, ok := p.(Processor); ok {
-		var wg sync.WaitGroup
-		for file := range s.input {
+	accept, _ := p.(Accepter)
+	proc, _ := p.(Processor)
+
+	var wg sync.WaitGroup
+	for file := range s.input {
+		if file.Err != nil || proc == nil || (accept != nil && !accept.Accept(file)) {
+			s.output <- file
+		} else {
+			wg.Add(1)
 			go func(f *File) {
 				defer wg.Done()
 				if proc.Process(s, f) {
 					s.output <- f
+				} else {
+					gs.decFiles()
 				}
 			}(file)
 		}
-
-		wg.Wait()
-	} else {
-		for file := range s.input {
-			s.output <- file
-		}
 	}
+	wg.Wait()
 
 	if fin, ok := p.(Finalizer); ok {
 		s.err = fin.Finalize(s)
