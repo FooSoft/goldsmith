@@ -30,6 +30,7 @@ import (
 )
 
 type stage struct {
+	gs            *goldsmith
 	input, output chan *File
 	err           error
 }
@@ -40,29 +41,17 @@ type goldsmith struct {
 	refs           map[string]bool
 }
 
-func New(srcDir, dstDir string) Goldsmith {
-	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
-	gs.queueFiles()
-	return gs
-}
-
-func (gs *goldsmith) NewFile(path string) *File {
+func newFile(path string) *File {
 	return &File{
 		Path: cleanPath(path),
 		Meta: make(map[string]interface{}),
 	}
 }
 
-func (gs *goldsmith) NewFileStatic(path string) *File {
-	file := gs.NewFile(path)
-	file.Type = FileStatic
-	return file
-}
-
-func (gs *goldsmith) NewFileRef(path string) *File {
-	file := gs.NewFile(path)
-	file.Type = FileReference
-	return file
+func New(srcDir, dstDir string) Goldsmith {
+	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
+	gs.queueFiles()
+	return gs
 }
 
 func (gs *goldsmith) queueFiles() {
@@ -80,7 +69,7 @@ func (gs *goldsmith) queueFiles() {
 				panic(err)
 			}
 
-			file := gs.NewFile(relPath)
+			file := s.NewFile(relPath)
 
 			var f *os.File
 			if f, file.Err = os.Open(path); file.Err == nil {
@@ -170,7 +159,7 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 	defer close(s.output)
 
 	if init, ok := p.(Initializer); ok {
-		if s.err = init.Initialize(gs); s.err != nil {
+		if s.err = init.Initialize(s); s.err != nil {
 			return
 		}
 	}
@@ -180,7 +169,7 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 		for file := range s.input {
 			go func(f *File) {
 				defer wg.Done()
-				if proc.Process(gs, f) {
+				if proc.Process(s, f) {
 					s.output <- f
 				}
 			}(file)
@@ -194,7 +183,7 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 	}
 
 	if fin, ok := p.(Finalizer); ok {
-		s.err = fin.Finalize(gs)
+		s.err = fin.Finalize(s)
 	}
 }
 
@@ -213,14 +202,6 @@ func (gs *goldsmith) refFile(path string) {
 
 		path = filepath.Dir(path)
 	}
-}
-
-func (gs *goldsmith) SrcDir() string {
-	return gs.srcDir
-}
-
-func (gs *goldsmith) DstDir() string {
-	return gs.dstDir
 }
 
 func (gs *goldsmith) Chain(p Plugin) Goldsmith {
@@ -251,44 +232,4 @@ func (gs *goldsmith) Complete() ([]*File, []error) {
 	gs.refs = nil
 
 	return files, errs
-}
-
-func cleanPath(path string) string {
-	if filepath.IsAbs(path) {
-		var err error
-		if path, err = filepath.Rel("/", path); err != nil {
-			panic(err)
-		}
-	}
-
-	return filepath.Clean(path)
-}
-
-func scanDir(root string, files, dirs chan string) {
-	defer func() {
-		if files != nil {
-			close(files)
-		}
-		if dirs != nil {
-			close(dirs)
-		}
-	}()
-
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			if dirs != nil {
-				dirs <- path
-			}
-		} else {
-			if files != nil {
-				files <- path
-			}
-		}
-
-		return nil
-	})
 }

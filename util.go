@@ -22,52 +22,47 @@
 
 package goldsmith
 
-import "bytes"
-
-type Goldsmith interface {
-	Chain(p Plugin) Goldsmith
-	Complete() ([]*File, []error)
-}
-
-type Plugin interface{}
-
-type Initializer interface {
-	Initialize(ctx Context) error
-}
-
-type Finalizer interface {
-	Finalize(ctx Context) error
-}
-
-type Processor interface {
-	Process(ctx Context, file *File) bool
-}
-
-type Chainer interface {
-	Chain(ctx Context, input, output chan *File)
-}
-
-type FileType int
-
-const (
-	FileNormal FileType = iota
-	FileStatic
-	FileReference
+import (
+	"os"
+	"path/filepath"
 )
 
-type File struct {
-	Path string
-	Meta map[string]interface{}
-	Buff bytes.Buffer
-	Err  error
-	Type FileType
+func cleanPath(path string) string {
+	if filepath.IsAbs(path) {
+		var err error
+		if path, err = filepath.Rel("/", path); err != nil {
+			panic(err)
+		}
+	}
+
+	return filepath.Clean(path)
 }
 
-type Context interface {
-	SrcDir() string
-	DstDir() string
+func scanDir(root string, files, dirs chan string) {
+	defer func() {
+		if files != nil {
+			close(files)
+		}
+		if dirs != nil {
+			close(dirs)
+		}
+	}()
 
-	NewFile(path string) *File
-	NewFileStatic(path string) *File
-	NewFileRef(path string) *File
+	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			if dirs != nil {
+				dirs <- path
+			}
+		} else {
+			if files != nil {
+				files <- path
+			}
+		}
+
+		return nil
+	})
 }

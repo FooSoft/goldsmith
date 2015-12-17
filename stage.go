@@ -22,52 +22,28 @@
 
 package goldsmith
 
-import "bytes"
-
-type Goldsmith interface {
-	Chain(p Plugin) Goldsmith
-	Complete() ([]*File, []error)
+func (s *stage) NewFile(path string) *File {
+	file := newFile(path)
+	s.output <- file
+	return file
 }
 
-type Plugin interface{}
-
-type Initializer interface {
-	Initialize(ctx Context) error
+func (s *stage) NewFileStatic(path string) *File {
+	file := s.NewFile(path)
+	file.Type = FileStatic
+	return file
 }
 
-type Finalizer interface {
-	Finalize(ctx Context) error
+func (s *stage) NewFileRef(path string) *File {
+	file := s.NewFile(path)
+	file.Type = FileReference
+	return file
 }
 
-type Processor interface {
-	Process(ctx Context, file *File) bool
+func (s *stage) SrcDir() string {
+	return s.gs.srcDir
 }
 
-type Chainer interface {
-	Chain(ctx Context, input, output chan *File)
-}
-
-type FileType int
-
-const (
-	FileNormal FileType = iota
-	FileStatic
-	FileReference
-)
-
-type File struct {
-	Path string
-	Meta map[string]interface{}
-	Buff bytes.Buffer
-	Err  error
-	Type FileType
-}
-
-type Context interface {
-	SrcDir() string
-	DstDir() string
-
-	NewFile(path string) *File
-	NewFileStatic(path string) *File
-	NewFileRef(path string) *File
+func (s *stage) DstDir() string {
+	return s.gs.dstDir
 }
