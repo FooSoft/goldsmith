@@ -47,20 +47,11 @@ type Chainer interface {
 	Chain(ctx Context, input, output chan *File)
 }
 
-type FileType int
-
-const (
-	FileNormal FileType = iota
-	FileStatic
-	FileReference
-)
-
 type File struct {
 	Path string
 	Meta map[string]interface{}
 	Buff bytes.Buffer
 	Err  error
-	Type FileType
 }
 
 type Context interface {
@@ -68,6 +59,5 @@ type Context interface {
 	DstDir() string
 
 	NewFile(path string) *File
-	NewFileStatic(path string) *File
-	NewFileRef(path string) *File
+	RefFile(path string)
 }

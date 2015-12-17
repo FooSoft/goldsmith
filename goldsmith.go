@@ -39,17 +39,15 @@ type goldsmith struct {
 	srcDir, dstDir string
 	stages         []*stage
 	refs           map[string]bool
-}
-
-func newFile(path string) *File {
-	return &File{
-		Path: cleanPath(path),
-		Meta: make(map[string]interface{}),
-	}
+	mtx            sync.Mutex
 }
 
 func New(srcDir, dstDir string) Goldsmith {
-	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
+	gs := &goldsmith{
+		srcDir: srcDir,
+		dstDir: dstDir,
+	}
+
 	gs.queueFiles()
 	return gs
 }
@@ -83,8 +81,11 @@ func (gs *goldsmith) queueFiles() {
 }
 
 func (gs *goldsmith) cleanupFiles() {
-	files := make(chan string)
-	dirs := make(chan string)
+	var (
+		files = make(chan string)
+		dirs  = make(chan string)
+	)
+
 	go scanDir(gs.dstDir, files, dirs)
 
 	for files != nil || dirs != nil {
@@ -123,11 +124,6 @@ func (gs *goldsmith) cleanupFiles() {
 
 func (gs *goldsmith) exportFile(file *File) {
 	if file.Err != nil {
-		return
-	}
-
-	if file.Type == FileReference {
-		gs.refFile(file.Path)
 		return
 	}
 
@@ -192,11 +188,14 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 }
 
 func (gs *goldsmith) refFile(path string) {
-	path = cleanPath(path)
+	gs.mtx.Lock()
+	defer gs.mtx.Unlock()
 
 	if gs.refs == nil {
 		gs.refs = make(map[string]bool)
 	}
+
+	path = cleanPath(path)
 
 	for {
 		gs.refs[path] = true
