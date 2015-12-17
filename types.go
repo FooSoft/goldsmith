@@ -68,7 +68,7 @@ type Initializer interface {
 }
 
 type Finalizer interface {
-	Finalize(ctx Context) error
+	Finalize(ctx Context, files []*File) error
 }
 
 type Processor interface {

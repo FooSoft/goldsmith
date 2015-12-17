@@ -191,27 +191,48 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 
 	accept, _ := p.(Accepter)
 	proc, _ := p.(Processor)
+	fin, _ := p.(Finalizer)
 
-	var wg sync.WaitGroup
+	var (
+		wg    sync.WaitGroup
+		mtx   sync.Mutex
+		files []*File
+	)
+
+	dispatch := func(f *File) {
+		if fin == nil {
+			s.output <- f
+		} else {
+			mtx.Lock()
+			files = append(files, f)
+			mtx.Unlock()
+		}
+	}
+
 	for file := range s.input {
 		if file.Err != nil || proc == nil || (accept != nil && !accept.Accept(file)) {
-			s.output <- file
+			dispatch(file)
 		} else {
 			wg.Add(1)
 			go func(f *File) {
 				defer wg.Done()
 				if proc.Process(s, f) {
-					s.output <- f
+					dispatch(f)
 				} else {
 					gs.decFiles()
 				}
 			}(file)
 		}
 	}
+
 	wg.Wait()
 
-	if fin, ok := p.(Finalizer); ok {
-		s.err = fin.Finalize(s)
+	if fin != nil {
+		if s.err = fin.Finalize(s, files); s.err == nil {
+			for _, file := range files {
+				s.output <- file
+			}
+		}
 	}
 }
 
