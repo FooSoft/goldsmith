@@ -22,9 +22,10 @@
 
 package goldsmith
 
-import "bytes"
-
-const TargetFileCount = 32
+import (
+	"bytes"
+	"runtime"
+)
 
 type Goldsmith interface {
 	Chain(p Plugin) Goldsmith
@@ -32,7 +33,7 @@ type Goldsmith interface {
 }
 
 func New(srcDir, dstDir string) Goldsmith {
-	return NewThrottled(srcDir, dstDir, TargetFileCount)
+	return NewThrottled(srcDir, dstDir, uint(runtime.NumCPU()))
 }
 
 func NewThrottled(srcDir, dstDir string, targetFileCount uint) Goldsmith {
