@@ -22,17 +22,13 @@
 
 package goldsmith
 
-func (s *stage) NewFile(path string) *File {
-	file := &File{
-		Path: cleanPath(path),
-		Meta: make(map[string]interface{}),
-	}
-	s.output <- file
-	return file
-}
-
 func (s *stage) RefFile(path string) {
 	s.gs.refFile(path)
+}
+
+func (s *stage) AddFile(file *File) {
+	s.gs.incFiles()
+	s.output <- file
 }
 
 func (s *stage) SrcDir() string {

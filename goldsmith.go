@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 )
 
 type stage struct {
@@ -40,16 +41,7 @@ type goldsmith struct {
 	stages         []*stage
 	refs           map[string]bool
 	mtx            sync.Mutex
-}
-
-func New(srcDir, dstDir string) Goldsmith {
-	gs := &goldsmith{
-		srcDir: srcDir,
-		dstDir: dstDir,
-	}
-
-	gs.queueFiles()
-	return gs
+	count          int32
 }
 
 func (gs *goldsmith) queueFiles() {
@@ -67,7 +59,7 @@ func (gs *goldsmith) queueFiles() {
 				panic(err)
 			}
 
-			file := s.NewFile(relPath)
+			file := NewFile(relPath)
 
 			var f *os.File
 			if f, file.Err = os.Open(path); file.Err == nil {
@@ -123,6 +115,11 @@ func (gs *goldsmith) cleanupFiles() {
 }
 
 func (gs *goldsmith) exportFile(file *File) {
+	defer func() {
+		file.Buff.Reset()
+		gs.decFiles()
+	}()
+
 	if file.Err != nil {
 		return
 	}
@@ -139,6 +136,34 @@ func (gs *goldsmith) exportFile(file *File) {
 			gs.refFile(file.Path)
 		}
 	}
+}
+
+func (gs *goldsmith) refFile(path string) {
+	gs.mtx.Lock()
+	defer gs.mtx.Unlock()
+
+	if gs.refs == nil {
+		gs.refs = make(map[string]bool)
+	}
+
+	path = cleanPath(path)
+
+	for {
+		gs.refs[path] = true
+		if path == "." {
+			break
+		}
+
+		path = filepath.Dir(path)
+	}
+}
+
+func (gs *goldsmith) incFiles() {
+	atomic.AddInt32(&gs.count, 1)
+}
+
+func (gs *goldsmith) decFiles() {
+	atomic.AddInt32(&gs.count, -1)
 }
 
 func (gs *goldsmith) newStage() *stage {
@@ -187,26 +212,6 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 	}
 }
 
-func (gs *goldsmith) refFile(path string) {
-	gs.mtx.Lock()
-	defer gs.mtx.Unlock()
-
-	if gs.refs == nil {
-		gs.refs = make(map[string]bool)
-	}
-
-	path = cleanPath(path)
-
-	for {
-		gs.refs[path] = true
-		if path == "." {
-			break
-		}
-
-		path = filepath.Dir(path)
-	}
-}
-
 func (gs *goldsmith) Chain(p Plugin) Goldsmith {
 	go gs.chain(gs.newStage(), p)
 	return gs
@@ -218,7 +223,6 @@ func (gs *goldsmith) Complete() ([]*File, []error) {
 	var files []*File
 	for file := range s.output {
 		gs.exportFile(file)
-		file.Buff.Reset()
 		files = append(files, file)
 	}
 

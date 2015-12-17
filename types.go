@@ -29,6 +29,34 @@ type Goldsmith interface {
 	Complete() ([]*File, []error)
 }
 
+func New(srcDir, dstDir string) Goldsmith {
+	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
+	gs.queueFiles()
+	return gs
+}
+
+type File struct {
+	Path string
+	Meta map[string]interface{}
+	Buff bytes.Buffer
+	Err  error
+}
+
+func NewFile(path string) *File {
+	return &File{
+		Path: cleanPath(path),
+		Meta: make(map[string]interface{}),
+	}
+}
+
+type Context interface {
+	SrcDir() string
+	DstDir() string
+
+	AddFile(file *File)
+	RefFile(path string)
+}
+
 type Plugin interface{}
 
 type Initializer interface {
@@ -41,23 +69,4 @@ type Finalizer interface {
 
 type Processor interface {
 	Process(ctx Context, file *File) bool
-}
-
-type Chainer interface {
-	Chain(ctx Context, input, output chan *File)
-}
-
-type File struct {
-	Path string
-	Meta map[string]interface{}
-	Buff bytes.Buffer
-	Err  error
-}
-
-type Context interface {
-	SrcDir() string
-	DstDir() string
-
-	NewFile(path string) *File
-	RefFile(path string)
 }
