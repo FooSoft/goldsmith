@@ -23,6 +23,7 @@
 package goldsmith
 
 import (
+	"bytes"
 	"os"
 	"path"
 	"path/filepath"
@@ -126,7 +127,7 @@ func (gs *goldsmith) cleanupFiles() {
 
 func (gs *goldsmith) exportFile(file *File) {
 	defer func() {
-		file.Buff.Reset()
+		file.Buff = *bytes.NewBuffer(nil)
 		atomic.AddInt64(&gs.busy, -1)
 	}()
 
@@ -221,6 +222,7 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 				if proc.Process(s, f) {
 					dispatch(f)
 				} else {
+					f.Buff = *bytes.NewBuffer(nil)
 					atomic.AddInt64(&gs.busy, -1)
 				}
 			}(file)
