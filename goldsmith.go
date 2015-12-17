@@ -58,7 +58,7 @@ func (gs *goldsmith) queueFiles() {
 	files := make(chan string)
 	go scanDir(gs.srcDir, files, nil)
 
-	s := gs.makeStage()
+	s := gs.newStage()
 
 	go func() {
 		defer close(s.output)
@@ -145,8 +145,12 @@ func (gs *goldsmith) exportFile(file *File) {
 	}
 }
 
-func (gs *goldsmith) makeStage() *stage {
-	s := &stage{output: make(chan *File)}
+func (gs *goldsmith) newStage() *stage {
+	s := &stage{
+		gs:     gs,
+		output: make(chan *File),
+	}
+
 	if len(gs.stages) > 0 {
 		s.input = gs.stages[len(gs.stages)-1].output
 	}
@@ -205,7 +209,7 @@ func (gs *goldsmith) refFile(path string) {
 }
 
 func (gs *goldsmith) Chain(p Plugin) Goldsmith {
-	go gs.chain(gs.makeStage(), p)
+	go gs.chain(gs.newStage(), p)
 	return gs
 }
 
