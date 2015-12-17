@@ -22,12 +22,14 @@
 
 package goldsmith
 
+import "sync/atomic"
+
 func (s *stage) RefFile(path string) {
 	s.gs.refFile(path)
 }
 
 func (s *stage) AddFile(file *File) {
-	s.gs.incFiles()
+	atomic.AddInt64(&s.gs.busy, 1)
 	s.output <- file
 }
 

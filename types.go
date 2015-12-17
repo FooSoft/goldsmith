@@ -24,14 +24,20 @@ package goldsmith
 
 import "bytes"
 
+const TargetFileCount = 32
+
 type Goldsmith interface {
 	Chain(p Plugin) Goldsmith
 	Complete() ([]*File, []error)
 }
 
 func New(srcDir, dstDir string) Goldsmith {
+	return NewThrottled(srcDir, dstDir, TargetFileCount)
+}
+
+func NewThrottled(srcDir, dstDir string, targetFileCount uint) Goldsmith {
 	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
-	gs.queueFiles()
+	gs.queueFiles(targetFileCount)
 	return gs
 }
 
