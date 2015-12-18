@@ -23,13 +23,13 @@
 package goldsmith
 
 import (
-	"bytes"
+	"io"
 	"runtime"
 )
 
 type Goldsmith interface {
 	Chain(p Plugin) Goldsmith
-	Complete() ([]*File, []error)
+	Complete() bool
 }
 
 func New(srcDir, dstDir string) Goldsmith {
@@ -42,32 +42,29 @@ func NewThrottled(srcDir, dstDir string, targetFileCount uint) Goldsmith {
 	return gs
 }
 
-type File struct {
-	Path string
-	Meta map[string]interface{}
-	Buff bytes.Buffer
-	Err  error
-}
+type File interface {
+	Path() string
 
-func NewFile(path string) *File {
-	return &File{
-		Path: cleanPath(path),
-		Meta: make(map[string]interface{}),
-	}
+	Keys() []string
+	Value(key string, def interface{}) interface{}
+	SetValue(key string, value interface{})
+
+	Read(p []byte) (int, error)
 }
 
 type Context interface {
+	NewFile(path string, r io.Reader) File
+	CopyFile(dst, src string) File
+	RefFile(path string)
+
 	SrcDir() string
 	DstDir() string
-
-	AddFile(file *File)
-	RefFile(path string)
 }
 
 type Plugin interface{}
 
 type Accepter interface {
-	Accept(file *File) bool
+	Accept(file File) bool
 }
 
 type Initializer interface {
@@ -75,9 +72,9 @@ type Initializer interface {
 }
 
 type Finalizer interface {
-	Finalize(ctx Context, files []*File) error
+	Finalize(ctx Context, fs []File) error
 }
 
 type Processor interface {
-	Process(ctx Context, file *File) bool
+	Process(ctx Context, f File) error
 }

@@ -23,20 +23,13 @@
 package goldsmith
 
 import (
-	"bytes"
+	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
 )
-
-type stage struct {
-	gs            *goldsmith
-	input, output chan *File
-	err           error
-}
 
 type goldsmith struct {
 	srcDir, dstDir string
@@ -45,6 +38,12 @@ type goldsmith struct {
 	mtx            sync.Mutex
 	active         int64
 	stalled        int64
+	tainted        bool
+}
+
+func (gs *goldsmith) fault(s *stage, f *file, err error) {
+	log.Print("%s\t%s\t%s", s, f, err)
+	gs.tainted = true
 }
 
 func (gs *goldsmith) queueFiles(target uint) {
@@ -70,15 +69,7 @@ func (gs *goldsmith) queueFiles(target uint) {
 				panic(err)
 			}
 
-			file := NewFile(relPath)
-
-			var f *os.File
-			if f, file.Err = os.Open(path); file.Err == nil {
-				_, file.Err = file.Buff.ReadFrom(f)
-				f.Close()
-			}
-
-			s.AddFile(file)
+			s.CopyFile(relPath, path)
 		}
 	}()
 }
@@ -125,28 +116,16 @@ func (gs *goldsmith) cleanupFiles() {
 	}
 }
 
-func (gs *goldsmith) exportFile(file *File) {
-	defer func() {
-		file.Buff = *bytes.NewBuffer(nil)
-		atomic.AddInt64(&gs.active, -1)
-	}()
+func (gs *goldsmith) exportFile(f *file) error {
+	defer atomic.AddInt64(&gs.active, -1)
 
-	if file.Err != nil {
-		return
+	absPath := filepath.Join(gs.dstDir, f.path)
+	if err := f.export(absPath); err != nil {
+		return err
 	}
 
-	absPath := filepath.Join(gs.dstDir, file.Path)
-	if file.Err = os.MkdirAll(path.Dir(absPath), 0755); file.Err != nil {
-		return
-	}
-
-	var f *os.File
-	if f, file.Err = os.Create(absPath); file.Err == nil {
-		defer f.Close()
-		if _, file.Err = f.Write(file.Buff.Bytes()); file.Err == nil {
-			gs.refFile(file.Path)
-		}
-	}
+	gs.refFile(f.path)
+	return nil
 }
 
 func (gs *goldsmith) refFile(path string) {
@@ -170,7 +149,7 @@ func (gs *goldsmith) refFile(path string) {
 }
 
 func (gs *goldsmith) newStage() *stage {
-	s := &stage{gs: gs, output: make(chan *File)}
+	s := &stage{gs: gs, output: make(chan *file)}
 	if len(gs.stages) > 0 {
 		s.input = gs.stages[len(gs.stages)-1].output
 	}
@@ -190,53 +169,55 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 	var (
 		wg    sync.WaitGroup
 		mtx   sync.Mutex
-		batch []*File
+		batch []File
 	)
 
-	dispatch := func(f *File) {
+	dispatch := func(f *file) {
 		if fin == nil {
 			s.output <- f
 		} else {
 			mtx.Lock()
 			batch = append(batch, f)
-			atomic.AddInt64(&s.gs.stalled, 1)
 			mtx.Unlock()
+
+			atomic.AddInt64(&s.gs.stalled, 1)
 		}
 	}
 
 	if init != nil {
-		if s.err = init.Initialize(s); s.err != nil {
+		if err := init.Initialize(s); err != nil {
+			gs.fault(s, nil, err)
 			return
 		}
 	}
 
-	for file := range s.input {
-		if file.Err != nil || accept != nil && !accept.Accept(file) {
-			s.output <- file
+	for f := range s.input {
+		if accept != nil && !accept.Accept(f) {
+			s.output <- f
 		} else if proc == nil {
-			dispatch(file)
+			dispatch(f)
 		} else {
 			wg.Add(1)
-			go func(f *File) {
+			go func(f *file) {
 				defer wg.Done()
-				if proc.Process(s, f) {
-					dispatch(f)
-				} else {
-					f.Buff = *bytes.NewBuffer(nil)
-					atomic.AddInt64(&gs.active, -1)
+				if err := proc.Process(s, f); err != nil {
+					gs.fault(s, f, err)
 				}
-			}(file)
+				dispatch(f)
+			}(f)
 		}
 	}
 
 	wg.Wait()
 
 	if fin != nil {
-		if s.err = fin.Finalize(s, batch); s.err == nil {
-			for _, file := range batch {
-				atomic.AddInt64(&s.gs.stalled, -1)
-				s.output <- file
-			}
+		if err := fin.Finalize(s, batch); err != nil {
+			gs.fault(s, nil, err)
+		}
+
+		for _, f := range batch {
+			atomic.AddInt64(&s.gs.stalled, -1)
+			s.output <- f.(*file)
 		}
 	}
 }
@@ -246,26 +227,20 @@ func (gs *goldsmith) Chain(p Plugin) Goldsmith {
 	return gs
 }
 
-func (gs *goldsmith) Complete() ([]*File, []error) {
+func (gs *goldsmith) Complete() bool {
 	s := gs.stages[len(gs.stages)-1]
 
-	var files []*File
-	for file := range s.output {
-		gs.exportFile(file)
-		files = append(files, file)
+	for f := range s.output {
+		gs.exportFile(f)
 	}
 
 	gs.cleanupFiles()
 
-	var errs []error
-	for _, s := range gs.stages {
-		if s.err != nil {
-			errs = append(errs, s.err)
-		}
-	}
+	tainted := gs.tainted
 
 	gs.stages = nil
 	gs.refs = nil
+	gs.tainted = false
 
-	return files, errs
+	return tainted
 }

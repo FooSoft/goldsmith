@@ -22,15 +22,28 @@
 
 package goldsmith
 
-import "sync/atomic"
+import (
+	"io"
+	"sync/atomic"
+)
+
+type stage struct {
+	gs            *goldsmith
+	input, output chan *file
+}
+
+func (s *stage) NewFile(path string, r io.Reader) File {
+	atomic.AddInt64(&s.gs.active, 1)
+	return nil
+}
+
+func (s *stage) CopyFile(dst, src string) File {
+	atomic.AddInt64(&s.gs.active, 1)
+	return nil
+}
 
 func (s *stage) RefFile(path string) {
 	s.gs.refFile(path)
-}
-
-func (s *stage) AddFile(file *File) {
-	atomic.AddInt64(&s.gs.active, 1)
-	s.output <- file
 }
 
 func (s *stage) SrcDir() string {
