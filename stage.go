@@ -45,6 +45,7 @@ func newStage(gs *goldsmith) *stage {
 
 func (s *stage) chain(p Plugin) {
 	defer close(s.output)
+	s.name = p.Name()
 
 	init, _ := p.(Initializer)
 	accept, _ := p.(Accepter)
@@ -71,7 +72,7 @@ func (s *stage) chain(p Plugin) {
 
 	if init != nil {
 		if err := init.Initialize(s); err != nil {
-			s.gs.fault(s, nil, err)
+			s.gs.fault(s, "Initialization", nil, err)
 			return
 		}
 	}
@@ -88,7 +89,7 @@ func (s *stage) chain(p Plugin) {
 
 				f.rewind()
 				if err := proc.Process(s, f); err != nil {
-					s.gs.fault(s, f, err)
+					s.gs.fault(s, "Processing", f, err)
 				}
 
 				dispatch(f)
@@ -100,7 +101,7 @@ func (s *stage) chain(p Plugin) {
 
 	if fin != nil {
 		if err := fin.Finalize(s, batch); err != nil {
-			s.gs.fault(s, nil, err)
+			s.gs.fault(s, "Finalization", nil, err)
 		}
 
 		for _, f := range batch {

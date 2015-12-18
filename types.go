@@ -34,17 +34,13 @@ type Goldsmith interface {
 }
 
 func New(srcDir, dstDir string) Goldsmith {
-	return NewThrottled(srcDir, dstDir, uint(runtime.NumCPU()))
-}
-
-func NewThrottled(srcDir, dstDir string, targetFileCount uint) Goldsmith {
 	gs := &goldsmith{
 		srcDir: srcDir,
 		dstDir: dstDir,
 		refs:   make(map[string]bool),
 	}
 
-	gs.queueFiles(targetFileCount)
+	gs.queueFiles(uint(runtime.NumCPU()))
 	return gs
 }
 

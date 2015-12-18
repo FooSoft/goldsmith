@@ -23,22 +23,27 @@
 package goldsmith
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 type goldsmith struct {
 	srcDir, dstDir string
-	refs           map[string]bool
-	mtx            sync.Mutex
-	stages         []*stage
-	active         int64
-	stalled        int64
-	tainted        bool
+
+	stages  []*stage
+	active  int64
+	stalled int64
+
+	refs   map[string]bool
+	refMtx sync.Mutex
+
+	tainted  bool
+	faultMtx sync.Mutex
 }
 
 func (gs *goldsmith) queueFiles(target uint) {
@@ -125,8 +130,8 @@ func (gs *goldsmith) exportFile(f *file) error {
 }
 
 func (gs *goldsmith) referenceFile(path string) {
-	gs.mtx.Lock()
-	defer gs.mtx.Unlock()
+	gs.refMtx.Lock()
+	defer gs.refMtx.Unlock()
 
 	if gs.refs == nil {
 		gs.refs = make(map[string]bool)
@@ -144,8 +149,16 @@ func (gs *goldsmith) referenceFile(path string) {
 	}
 }
 
-func (gs *goldsmith) fault(s *stage, f *file, err error) {
-	log.Printf("%s\t%s\t%s", s.name, f.path, err)
+func (gs *goldsmith) fault(s *stage, step string, f *file, err error) {
+	gs.faultMtx.Lock()
+	defer gs.faultMtx.Unlock()
+
+	color.Red("Fault Detected\n")
+	color.Yellow("\tPlugin:\t%s\n", color.WhiteString(s.name))
+	color.Yellow("\tStep:\t%s\n", color.WhiteString(step))
+	color.Yellow("\tFile:\t%s\n", color.WhiteString(f.path))
+	color.Yellow("\tError:\t%s\n\n", color.WhiteString(err.Error()))
+
 	gs.tainted = true
 }
 
