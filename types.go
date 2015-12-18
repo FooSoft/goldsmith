@@ -60,11 +60,19 @@ type File interface {
 
 	Rewrite(data []byte)
 	Bytes() []byte
+	Meta() map[string]interface{}
+}
+
+func NewFileFromData(path string, srcData []byte) File {
+	return newFileFromData(path, srcData)
+}
+
+func NewFileFromPath(path, srcPath string) File {
+	return newFileFromPath(path, srcPath)
 }
 
 type Context interface {
-	NewFile(path string, data []byte) File
-	CopyFile(dst, src string) File
+	AddFile(f File)
 	RefFile(path string)
 
 	SrcDir() string

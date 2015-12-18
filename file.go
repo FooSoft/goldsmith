@@ -153,3 +153,7 @@ func (f *file) Rewrite(data []byte) {
 func (f *file) Bytes() []byte {
 	return f.srcData
 }
+
+func (f *file) Meta() map[string]interface{} {
+	return f.meta
+}

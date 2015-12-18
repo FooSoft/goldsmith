@@ -31,11 +31,6 @@ import (
 	"time"
 )
 
-type stage struct {
-	name          string
-	input, output chan *file
-}
-
 type goldsmith struct {
 	srcDir, dstDir string
 	refs           map[string]bool
@@ -50,7 +45,7 @@ func (gs *goldsmith) queueFiles(target uint) {
 	files := make(chan string)
 	go scanDir(gs.srcDir, files, nil)
 
-	s := gs.newStage("Goldsmith")
+	s := newStage(gs)
 
 	go func() {
 		defer close(s.output)
@@ -69,7 +64,7 @@ func (gs *goldsmith) queueFiles(target uint) {
 				panic(err)
 			}
 
-			gs.CopyFile(relPath, path)
+			s.AddFile(NewFileFromPath(relPath, path))
 		}
 	}()
 }
@@ -124,127 +119,11 @@ func (gs *goldsmith) exportFile(f *file) error {
 		return err
 	}
 
-	gs.RefFile(f.path)
+	gs.refFile(f.path)
 	return nil
 }
 
-func (gs *goldsmith) newStage(name string) *stage {
-	s := &stage{
-		name:   name,
-		output: make(chan *file),
-	}
-
-	if len(gs.stages) > 0 {
-		s.input = gs.stages[len(gs.stages)-1].output
-	}
-
-	gs.stages = append(gs.stages, s)
-	return s
-}
-
-func (gs *goldsmith) chain(s *stage, p Plugin) {
-	defer close(s.output)
-
-	init, _ := p.(Initializer)
-	accept, _ := p.(Accepter)
-	proc, _ := p.(Processor)
-	fin, _ := p.(Finalizer)
-
-	var (
-		wg    sync.WaitGroup
-		mtx   sync.Mutex
-		batch []File
-	)
-
-	dispatch := func(f *file) {
-		if fin == nil {
-			s.output <- f
-		} else {
-			mtx.Lock()
-			batch = append(batch, f)
-			mtx.Unlock()
-
-			atomic.AddInt64(&gs.stalled, 1)
-		}
-	}
-
-	if init != nil {
-		if err := init.Initialize(gs); err != nil {
-			gs.fault(s, nil, err)
-			return
-		}
-	}
-
-	for f := range s.input {
-		if accept != nil && !accept.Accept(f) {
-			s.output <- f
-		} else if proc == nil {
-			dispatch(f)
-		} else {
-			wg.Add(1)
-			go func(f *file) {
-				defer wg.Done()
-				if err := proc.Process(gs, f); err != nil {
-					gs.fault(s, f, err)
-				}
-				dispatch(f)
-			}(f)
-		}
-	}
-
-	wg.Wait()
-
-	if fin != nil {
-		if err := fin.Finalize(gs, batch); err != nil {
-			gs.fault(s, nil, err)
-		}
-
-		for _, f := range batch {
-			atomic.AddInt64(&gs.stalled, -1)
-			s.output <- f.(*file)
-		}
-	}
-}
-
-func (gs *goldsmith) fault(s *stage, f *file, err error) {
-	log.Printf("%s\t%s\t%s", s.name, f.path, err)
-	gs.tainted = true
-}
-
-//
-//	Goldsmith Implementation
-//
-
-func (gs *goldsmith) Chain(p Plugin) Goldsmith {
-	go gs.chain(gs.newStage(p.Name()), p)
-	return gs
-}
-
-func (gs *goldsmith) Complete() bool {
-	s := gs.stages[len(gs.stages)-1]
-	for f := range s.output {
-		gs.exportFile(f)
-	}
-
-	gs.cleanupFiles()
-	return gs.tainted
-}
-
-//
-//	Context Implementation
-//
-
-func (gs *goldsmith) NewFile(path string, data []byte) File {
-	atomic.AddInt64(&gs.active, 1)
-	return newFileFromData(path, data)
-}
-
-func (gs *goldsmith) CopyFile(dst, src string) File {
-	atomic.AddInt64(&gs.active, 1)
-	return newFileFromPath(dst, src)
-}
-
-func (gs *goldsmith) RefFile(path string) {
+func (gs *goldsmith) refFile(path string) {
 	gs.mtx.Lock()
 	defer gs.mtx.Unlock()
 
@@ -264,10 +143,27 @@ func (gs *goldsmith) RefFile(path string) {
 	}
 }
 
-func (gs *goldsmith) SrcDir() string {
-	return gs.srcDir
+func (gs *goldsmith) fault(s *stage, f *file, err error) {
+	log.Printf("%s\t%s\t%s", s.name, f.path, err)
+	gs.tainted = true
 }
 
-func (gs *goldsmith) DstDir() string {
-	return gs.dstDir
+//
+//	Goldsmith Implementation
+//
+
+func (gs *goldsmith) Chain(p Plugin) Goldsmith {
+	s := newStage(gs)
+	go s.chain(p)
+	return gs
+}
+
+func (gs *goldsmith) Complete() bool {
+	s := gs.stages[len(gs.stages)-1]
+	for f := range s.output {
+		gs.exportFile(f)
+	}
+
+	gs.cleanupFiles()
+	return gs.tainted
 }
