@@ -32,29 +32,25 @@ import (
 )
 
 type stage struct {
+	name          string
 	input, output chan *file
 }
 
 type goldsmith struct {
 	srcDir, dstDir string
-	stages         []*stage
 	refs           map[string]bool
 	mtx            sync.Mutex
+	stages         []*stage
 	active         int64
 	stalled        int64
 	tainted        bool
-}
-
-func (gs *goldsmith) fault(s *stage, f *file, err error) {
-	log.Print("%s\t%s\t%s", s, f, err)
-	gs.tainted = true
 }
 
 func (gs *goldsmith) queueFiles(target uint) {
 	files := make(chan string)
 	go scanDir(gs.srcDir, files, nil)
 
-	s := gs.newStage()
+	s := gs.newStage("Goldsmith")
 
 	go func() {
 		defer close(s.output)
@@ -132,8 +128,12 @@ func (gs *goldsmith) exportFile(f *file) error {
 	return nil
 }
 
-func (gs *goldsmith) newStage() *stage {
-	s := &stage{output: make(chan *file)}
+func (gs *goldsmith) newStage(name string) *stage {
+	s := &stage{
+		name:   name,
+		output: make(chan *file),
+	}
+
 	if len(gs.stages) > 0 {
 		s.input = gs.stages[len(gs.stages)-1].output
 	}
@@ -206,28 +206,33 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 	}
 }
 
+func (gs *goldsmith) fault(s *stage, f *file, err error) {
+	log.Printf("%s\t%s\t%s", s.name, f.path, err)
+	gs.tainted = true
+}
+
+//
+//	Goldsmith Implementation
+//
+
 func (gs *goldsmith) Chain(p Plugin) Goldsmith {
-	go gs.chain(gs.newStage(), p)
+	go gs.chain(gs.newStage(p.Name()), p)
 	return gs
 }
 
 func (gs *goldsmith) Complete() bool {
 	s := gs.stages[len(gs.stages)-1]
-
 	for f := range s.output {
 		gs.exportFile(f)
 	}
 
 	gs.cleanupFiles()
-
-	tainted := gs.tainted
-
-	gs.stages = nil
-	gs.refs = nil
-	gs.tainted = false
-
-	return tainted
+	return gs.tainted
 }
+
+//
+//	Context Implementation
+//
 
 func (gs *goldsmith) NewFile(path string, data []byte) File {
 	atomic.AddInt64(&gs.active, 1)

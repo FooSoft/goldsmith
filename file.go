@@ -31,9 +31,8 @@ import (
 )
 
 type file struct {
-	path string
-	meta map[string]interface{}
-
+	path    string
+	meta    map[string]interface{}
 	srcData *bytes.Reader
 	srcPath string
 }
@@ -107,6 +106,10 @@ func (f *file) cache() error {
 	f.srcData = bytes.NewReader(data)
 	return nil
 }
+
+//
+//	File Implementation
+//
 
 func (f *file) Path() string {
 	return f.path

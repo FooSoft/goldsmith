@@ -34,7 +34,12 @@ func New(srcDir, dstDir string) Goldsmith {
 }
 
 func NewThrottled(srcDir, dstDir string, targetFileCount uint) Goldsmith {
-	gs := &goldsmith{srcDir: srcDir, dstDir: dstDir}
+	gs := &goldsmith{
+		srcDir: srcDir,
+		dstDir: dstDir,
+		refs:   make(map[string]bool),
+	}
+
 	gs.queueFiles(targetFileCount)
 	return gs
 }
