@@ -23,6 +23,7 @@
 package goldsmith
 
 import (
+	"bytes"
 	"io"
 	"runtime"
 )
@@ -51,29 +52,32 @@ type File interface {
 	Path() string
 	Rename(path string)
 
-	Keys() []string
-	Value(key string) (interface{}, bool)
-	SetValue(key string, value interface{})
+	Meta() map[string]interface{}
 
 	Read(p []byte) (int, error)
 	WriteTo(w io.Writer) (int64, error)
-
 	Rewrite(data []byte)
-	Bytes() []byte
-	Meta() map[string]interface{}
 }
 
-func NewFileFromData(path string, srcData []byte) File {
-	return newFileFromData(path, srcData)
+func NewFileFromData(path string, data []byte) File {
+	return &file{
+		path:   path,
+		meta:   make(map[string]interface{}),
+		reader: bytes.NewReader(data),
+	}
 }
 
-func NewFileFromPath(path, srcPath string) File {
-	return newFileFromPath(path, srcPath)
+func NewFileFromAsset(path, asset string) File {
+	return &file{
+		path:  path,
+		meta:  make(map[string]interface{}),
+		asset: asset,
+	}
 }
 
 type Context interface {
-	AddFile(f File)
-	RefFile(path string)
+	DispatchFile(f File)
+	ReferenceFile(path string)
 
 	SrcDir() string
 	DstDir() string

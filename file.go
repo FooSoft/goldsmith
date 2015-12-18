@@ -34,31 +34,13 @@ type file struct {
 	path string
 	meta map[string]interface{}
 
-	srcData   []byte
-	srcReader *bytes.Reader
-	srcPath   string
-}
-
-func newFileFromData(path string, srcData []byte) *file {
-	return &file{
-		path:      path,
-		meta:      make(map[string]interface{}),
-		srcData:   srcData,
-		srcReader: bytes.NewReader(srcData),
-	}
-}
-
-func newFileFromPath(path, srcPath string) *file {
-	return &file{
-		path:    path,
-		meta:    make(map[string]interface{}),
-		srcPath: srcPath,
-	}
+	reader *bytes.Reader
+	asset  string
 }
 
 func (f *file) rewind() {
-	if f.srcReader != nil {
-		f.srcReader.Seek(0, os.SEEK_SET)
+	if f.reader != nil {
+		f.reader.Seek(0, os.SEEK_SET)
 	}
 }
 
@@ -86,11 +68,11 @@ func (f *file) export(dstPath string) error {
 }
 
 func (f *file) cache() error {
-	if f.srcReader != nil {
+	if f.reader != nil {
 		return nil
 	}
 
-	data, err := ioutil.ReadFile(f.srcPath)
+	data, err := ioutil.ReadFile(f.asset)
 	if err != nil {
 		return err
 	}
@@ -111,21 +93,8 @@ func (f *file) Rename(path string) {
 	f.path = path
 }
 
-func (f *file) Keys() (keys []string) {
-	for key := range f.meta {
-		keys = append(keys, key)
-	}
-
-	return keys
-}
-
-func (f *file) Value(key string) (interface{}, bool) {
-	value, ok := f.meta[key]
-	return value, ok
-}
-
-func (f *file) SetValue(key string, value interface{}) {
-	f.meta[key] = value
+func (f *file) Meta() map[string]interface{} {
+	return f.meta
 }
 
 func (f *file) Read(p []byte) (int, error) {
@@ -133,7 +102,7 @@ func (f *file) Read(p []byte) (int, error) {
 		return 0, err
 	}
 
-	return f.srcReader.Read(p)
+	return f.reader.Read(p)
 }
 
 func (f *file) WriteTo(w io.Writer) (int64, error) {
@@ -141,18 +110,9 @@ func (f *file) WriteTo(w io.Writer) (int64, error) {
 		return 0, err
 	}
 
-	return f.srcReader.WriteTo(w)
+	return f.reader.WriteTo(w)
 }
 
 func (f *file) Rewrite(data []byte) {
-	f.srcData = data
-	f.srcReader = bytes.NewReader(data)
-}
-
-func (f *file) Bytes() []byte {
-	return f.srcData
-}
-
-func (f *file) Meta() map[string]interface{} {
-	return f.meta
+	f.reader = bytes.NewReader(data)
 }

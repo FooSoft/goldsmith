@@ -64,7 +64,8 @@ func (gs *goldsmith) queueFiles(target uint) {
 				panic(err)
 			}
 
-			s.AddFile(NewFileFromPath(relPath, path))
+			f := NewFileFromAsset(relPath, path)
+			s.DispatchFile(f)
 		}
 	}()
 }
@@ -119,11 +120,11 @@ func (gs *goldsmith) exportFile(f *file) error {
 		return err
 	}
 
-	gs.refFile(f.path)
+	gs.referenceFile(f.path)
 	return nil
 }
 
-func (gs *goldsmith) refFile(path string) {
+func (gs *goldsmith) referenceFile(path string) {
 	gs.mtx.Lock()
 	defer gs.mtx.Unlock()
 

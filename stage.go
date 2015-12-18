@@ -111,13 +111,13 @@ func (s *stage) chain(p Plugin) {
 //	Context Implementation
 //
 
-func (s *stage) AddFile(f File) {
+func (s *stage) DispatchFile(f File) {
 	atomic.AddInt64(&s.gs.active, 1)
 	s.output <- f.(*file)
 }
 
-func (s *stage) RefFile(path string) {
-	s.gs.refFile(path)
+func (s *stage) ReferenceFile(path string) {
+	s.gs.referenceFile(path)
 }
 
 func (s *stage) SrcDir() string {
