@@ -85,9 +85,12 @@ func (s *stage) chain(p Plugin) {
 			wg.Add(1)
 			go func(f *file) {
 				defer wg.Done()
+
+				f.rewind()
 				if err := proc.Process(s, f); err != nil {
 					s.gs.fault(s, f, err)
 				}
+
 				dispatch(f)
 			}(f)
 		}

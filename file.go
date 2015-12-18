@@ -40,7 +40,9 @@ type file struct {
 
 func (f *file) rewind() {
 	if f.reader != nil {
-		f.reader.Seek(0, os.SEEK_SET)
+		if _, err := f.reader.Seek(0, os.SEEK_SET); err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -49,19 +51,27 @@ func (f *file) export(dstPath string) error {
 		return err
 	}
 
-	if err := f.cache(); err != nil {
-		return err
-	}
-
-	fh, err := os.Create(dstPath)
+	fw, err := os.Create(dstPath)
 	if err != nil {
 		return err
 	}
-	defer fh.Close()
+	defer fw.Close()
 
-	f.rewind()
-	if _, err := f.WriteTo(fh); err != nil {
-		return err
+	if f.reader == nil {
+		fr, err := os.Open(f.asset)
+		if err != nil {
+			return err
+		}
+		defer fr.Close()
+
+		if _, err := io.Copy(fw, fr); err != nil {
+			return err
+		}
+	} else {
+		f.rewind()
+		if _, err := f.WriteTo(fw); err != nil {
+			return err
+		}
 	}
 
 	return nil
