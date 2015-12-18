@@ -31,17 +31,20 @@ import (
 )
 
 type file struct {
-	path    string
-	meta    map[string]interface{}
-	srcData *bytes.Reader
-	srcPath string
+	path string
+	meta map[string]interface{}
+
+	srcData   []byte
+	srcReader *bytes.Reader
+	srcPath   string
 }
 
 func newFileFromData(path string, srcData []byte) *file {
 	return &file{
-		path:    path,
-		meta:    make(map[string]interface{}),
-		srcData: bytes.NewReader(srcData),
+		path:      path,
+		meta:      make(map[string]interface{}),
+		srcData:   srcData,
+		srcReader: bytes.NewReader(srcData),
 	}
 }
 
@@ -54,8 +57,8 @@ func newFileFromPath(path, srcPath string) *file {
 }
 
 func (f *file) rewind() {
-	if f.srcData != nil {
-		f.srcData.Seek(0, os.SEEK_SET)
+	if f.srcReader != nil {
+		f.srcReader.Seek(0, os.SEEK_SET)
 	}
 }
 
@@ -76,25 +79,15 @@ func (f *file) export(dstPath string) error {
 	}
 	defer fh.Close()
 
-	var buff [1024]byte
-	for {
-		count, err := f.Read(buff[:])
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		if _, err := fh.Write(buff[:count]); err != nil {
-			return err
-		}
+	if _, err := f.WriteTo(fh); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (f *file) cache() error {
-	if f.srcData != nil {
+	if f.srcReader != nil {
 		return nil
 	}
 
@@ -103,7 +96,7 @@ func (f *file) cache() error {
 		return err
 	}
 
-	f.srcData = bytes.NewReader(data)
+	f.Rewrite(data)
 	return nil
 }
 
@@ -115,6 +108,10 @@ func (f *file) Path() string {
 	return f.path
 }
 
+func (f *file) Rename(path string) {
+	f.path = path
+}
+
 func (f *file) Keys() (keys []string) {
 	for key := range f.meta {
 		keys = append(keys, key)
@@ -123,12 +120,9 @@ func (f *file) Keys() (keys []string) {
 	return keys
 }
 
-func (f *file) Value(key string, def interface{}) interface{} {
-	if value, ok := f.meta[key]; ok {
-		return value
-	}
-
-	return def
+func (f *file) Value(key string) (interface{}, bool) {
+	value, ok := f.meta[key]
+	return value, ok
 }
 
 func (f *file) SetValue(key string, value interface{}) {
@@ -140,5 +134,22 @@ func (f *file) Read(p []byte) (int, error) {
 		return 0, err
 	}
 
-	return f.srcData.Read(p)
+	return f.srcReader.Read(p)
+}
+
+func (f *file) WriteTo(w io.Writer) (int64, error) {
+	if err := f.cache(); err != nil {
+		return 0, err
+	}
+
+	return f.srcReader.WriteTo(w)
+}
+
+func (f *file) Rewrite(data []byte) {
+	f.srcData = data
+	f.srcReader = bytes.NewReader(data)
+}
+
+func (f *file) Bytes() []byte {
+	return f.srcData
 }

@@ -22,7 +22,10 @@
 
 package goldsmith
 
-import "runtime"
+import (
+	"io"
+	"runtime"
+)
 
 type Goldsmith interface {
 	Chain(p Plugin) Goldsmith
@@ -46,12 +49,17 @@ func NewThrottled(srcDir, dstDir string, targetFileCount uint) Goldsmith {
 
 type File interface {
 	Path() string
+	Rename(path string)
 
 	Keys() []string
-	Value(key string, def interface{}) interface{}
+	Value(key string) (interface{}, bool)
 	SetValue(key string, value interface{})
 
 	Read(p []byte) (int, error)
+	WriteTo(w io.Writer) (int64, error)
+
+	Rewrite(data []byte)
+	Bytes() []byte
 }
 
 type Context interface {
