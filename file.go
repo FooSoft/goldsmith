@@ -71,14 +71,13 @@ func (f *file) export(dstPath string) error {
 		return err
 	}
 
-	f.rewind()
-
 	fh, err := os.Create(dstPath)
 	if err != nil {
 		return err
 	}
 	defer fh.Close()
 
+	f.rewind()
 	if _, err := f.WriteTo(fh); err != nil {
 		return err
 	}
