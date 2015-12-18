@@ -31,6 +31,10 @@ import (
 	"time"
 )
 
+type stage struct {
+	input, output chan *file
+}
+
 type goldsmith struct {
 	srcDir, dstDir string
 	stages         []*stage
@@ -69,7 +73,7 @@ func (gs *goldsmith) queueFiles(target uint) {
 				panic(err)
 			}
 
-			s.CopyFile(relPath, path)
+			gs.CopyFile(relPath, path)
 		}
 	}()
 }
@@ -124,32 +128,12 @@ func (gs *goldsmith) exportFile(f *file) error {
 		return err
 	}
 
-	gs.refFile(f.path)
+	gs.RefFile(f.path)
 	return nil
 }
 
-func (gs *goldsmith) refFile(path string) {
-	gs.mtx.Lock()
-	defer gs.mtx.Unlock()
-
-	if gs.refs == nil {
-		gs.refs = make(map[string]bool)
-	}
-
-	path = cleanPath(path)
-
-	for {
-		gs.refs[path] = true
-		if path == "." {
-			break
-		}
-
-		path = filepath.Dir(path)
-	}
-}
-
 func (gs *goldsmith) newStage() *stage {
-	s := &stage{gs: gs, output: make(chan *file)}
+	s := &stage{output: make(chan *file)}
 	if len(gs.stages) > 0 {
 		s.input = gs.stages[len(gs.stages)-1].output
 	}
@@ -180,12 +164,12 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 			batch = append(batch, f)
 			mtx.Unlock()
 
-			atomic.AddInt64(&s.gs.stalled, 1)
+			atomic.AddInt64(&gs.stalled, 1)
 		}
 	}
 
 	if init != nil {
-		if err := init.Initialize(s); err != nil {
+		if err := init.Initialize(gs); err != nil {
 			gs.fault(s, nil, err)
 			return
 		}
@@ -200,7 +184,7 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 			wg.Add(1)
 			go func(f *file) {
 				defer wg.Done()
-				if err := proc.Process(s, f); err != nil {
+				if err := proc.Process(gs, f); err != nil {
 					gs.fault(s, f, err)
 				}
 				dispatch(f)
@@ -211,12 +195,12 @@ func (gs *goldsmith) chain(s *stage, p Plugin) {
 	wg.Wait()
 
 	if fin != nil {
-		if err := fin.Finalize(s, batch); err != nil {
+		if err := fin.Finalize(gs, batch); err != nil {
 			gs.fault(s, nil, err)
 		}
 
 		for _, f := range batch {
-			atomic.AddInt64(&s.gs.stalled, -1)
+			atomic.AddInt64(&gs.stalled, -1)
 			s.output <- f.(*file)
 		}
 	}
@@ -243,4 +227,42 @@ func (gs *goldsmith) Complete() bool {
 	gs.tainted = false
 
 	return tainted
+}
+
+func (gs *goldsmith) NewFile(path string, data []byte) File {
+	atomic.AddInt64(&gs.active, 1)
+	return newFileFromData(path, data)
+}
+
+func (gs *goldsmith) CopyFile(dst, src string) File {
+	atomic.AddInt64(&gs.active, 1)
+	return newFileFromPath(dst, src)
+}
+
+func (gs *goldsmith) RefFile(path string) {
+	gs.mtx.Lock()
+	defer gs.mtx.Unlock()
+
+	if gs.refs == nil {
+		gs.refs = make(map[string]bool)
+	}
+
+	path = cleanPath(path)
+
+	for {
+		gs.refs[path] = true
+		if path == "." {
+			break
+		}
+
+		path = filepath.Dir(path)
+	}
+}
+
+func (gs *goldsmith) SrcDir() string {
+	return gs.srcDir
+}
+
+func (gs *goldsmith) DstDir() string {
+	return gs.dstDir
 }

@@ -22,10 +22,7 @@
 
 package goldsmith
 
-import (
-	"io"
-	"runtime"
-)
+import "runtime"
 
 type Goldsmith interface {
 	Chain(p Plugin) Goldsmith
@@ -53,7 +50,7 @@ type File interface {
 }
 
 type Context interface {
-	NewFile(path string, r io.Reader) File
+	NewFile(path string, data []byte) File
 	CopyFile(dst, src string) File
 	RefFile(path string)
 
@@ -61,7 +58,9 @@ type Context interface {
 	DstDir() string
 }
 
-type Plugin interface{}
+type Plugin interface {
+	Name() string
+}
 
 type Accepter interface {
 	Accept(file File) bool
