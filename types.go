@@ -96,5 +96,5 @@ type Finalizer interface {
 }
 
 type Processor interface {
-	Process(ctx Context, f File) error
+	Process(ctx Context, f File) (bool, error)
 }

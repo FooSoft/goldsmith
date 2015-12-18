@@ -86,13 +86,15 @@ func (s *stage) chain(p Plugin) {
 			wg.Add(1)
 			go func(f *file) {
 				defer wg.Done()
-
 				f.rewind()
-				if err := proc.Process(s, f); err != nil {
+				keep, err := proc.Process(s, f)
+				if err != nil {
 					s.gs.fault(s, "Processing", f, err)
+				} else if keep {
+					dispatch(f)
+				} else {
+					atomic.AddInt64(&s.gs.active, -1)
 				}
-
-				dispatch(f)
 			}(f)
 		}
 	}
