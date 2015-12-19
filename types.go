@@ -79,20 +79,20 @@ type Context interface {
 	DstDir() string
 }
 
+const (
+	PLUGIN_FLAG_BATCH = 1 << iota
+)
+
 type Plugin interface {
-	Name() string
+	Initialize(ctx Context) (string, uint, error)
 }
 
 type Accepter interface {
 	Accept(file File) bool
 }
 
-type Initializer interface {
-	Initialize(ctx Context) error
-}
-
 type Finalizer interface {
-	Finalize(ctx Context, fs []File) error
+	Finalize(ctx Context) error
 }
 
 type Processor interface {

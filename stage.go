@@ -28,7 +28,6 @@ import (
 )
 
 type stage struct {
-	name          string
 	gs            *goldsmith
 	input, output chan *file
 }
@@ -45,9 +44,13 @@ func newStage(gs *goldsmith) *stage {
 
 func (s *stage) chain(p Plugin) {
 	defer close(s.output)
-	s.name = p.Name()
 
-	init, _ := p.(Initializer)
+	name, flags, err := p.Initialize(s)
+	if err != nil {
+		s.gs.fault(name, nil, err)
+		return
+	}
+
 	accept, _ := p.(Accepter)
 	proc, _ := p.(Processor)
 	fin, _ := p.(Finalizer)
@@ -59,21 +62,13 @@ func (s *stage) chain(p Plugin) {
 	)
 
 	dispatch := func(f *file) {
-		if fin == nil {
-			s.output <- f
-		} else {
+		if flags&PLUGIN_FLAG_BATCH == PLUGIN_FLAG_BATCH {
+			atomic.AddInt64(&s.gs.idle, 1)
 			mtx.Lock()
 			batch = append(batch, f)
 			mtx.Unlock()
-
-			atomic.AddInt64(&s.gs.stalled, 1)
-		}
-	}
-
-	if init != nil {
-		if err := init.Initialize(s); err != nil {
-			s.gs.fault(s, "Initialization", nil, err)
-			return
+		} else {
+			s.output <- f
 		}
 	}
 
@@ -89,7 +84,7 @@ func (s *stage) chain(p Plugin) {
 				f.rewind()
 				keep, err := proc.Process(s, f)
 				if err != nil {
-					s.gs.fault(s, "Processing", f, err)
+					s.gs.fault(name, f, err)
 				} else if keep {
 					dispatch(f)
 				} else {
@@ -102,14 +97,14 @@ func (s *stage) chain(p Plugin) {
 	wg.Wait()
 
 	if fin != nil {
-		if err := fin.Finalize(s, batch); err != nil {
-			s.gs.fault(s, "Finalization", nil, err)
+		if err := fin.Finalize(s); err != nil {
+			s.gs.fault(name, nil, err)
 		}
+	}
 
-		for _, f := range batch {
-			atomic.AddInt64(&s.gs.stalled, -1)
-			s.output <- f.(*file)
-		}
+	for _, f := range batch {
+		atomic.AddInt64(&s.gs.idle, -1)
+		s.output <- f.(*file)
 	}
 }
 

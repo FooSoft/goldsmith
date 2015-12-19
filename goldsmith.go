@@ -35,9 +35,9 @@ import (
 type goldsmith struct {
 	srcDir, dstDir string
 
-	stages  []*stage
-	active  int64
-	stalled int64
+	stages []*stage
+	active int64
+	idle   int64
 
 	refs   map[string]bool
 	refMtx sync.Mutex
@@ -57,7 +57,7 @@ func (gs *goldsmith) queueFiles(target uint) {
 
 		for path := range files {
 			for {
-				if gs.active-gs.stalled >= int64(target) {
+				if gs.active-gs.idle >= int64(target) {
 					time.Sleep(time.Millisecond)
 				} else {
 					break
@@ -149,14 +149,15 @@ func (gs *goldsmith) referenceFile(path string) {
 	}
 }
 
-func (gs *goldsmith) fault(s *stage, step string, f *file, err error) {
+func (gs *goldsmith) fault(name string, f *file, err error) {
 	gs.faultMtx.Lock()
 	defer gs.faultMtx.Unlock()
 
 	color.Red("Fault Detected\n")
-	color.Yellow("\tPlugin:\t%s\n", color.WhiteString(s.name))
-	color.Yellow("\tStep:\t%s\n", color.WhiteString(step))
-	color.Yellow("\tFile:\t%s\n", color.WhiteString(f.path))
+	color.Yellow("\tPlugin:\t%s\n", color.WhiteString(name))
+	if f != nil {
+		color.Yellow("\tFile:\t%s\n", color.WhiteString(f.path))
+	}
 	color.Yellow("\tError:\t%s\n\n", color.WhiteString(err.Error()))
 
 	gs.tainted = true
