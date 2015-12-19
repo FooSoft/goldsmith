@@ -107,6 +107,12 @@ func (f *file) Meta() map[string]interface{} {
 	return f.meta
 }
 
+func (f *file) Apply(m map[string]interface{}) {
+	for key, value := range m {
+		f.meta[key] = value
+	}
+}
+
 func (f *file) Read(p []byte) (int, error) {
 	if err := f.cache(); err != nil {
 		return 0, err

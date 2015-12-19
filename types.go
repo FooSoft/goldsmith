@@ -46,13 +46,10 @@ func New(srcDir, dstDir string) Goldsmith {
 
 type File interface {
 	Path() string
-	Rename(path string)
-
 	Meta() map[string]interface{}
-
+	Apply(m map[string]interface{})
 	Read(p []byte) (int, error)
 	WriteTo(w io.Writer) (int64, error)
-	Rewrite(data []byte)
 }
 
 func NewFileFromData(path string, data []byte) File {
