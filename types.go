@@ -83,8 +83,8 @@ const (
 	PLUGIN_FLAG_BATCH = 1 << iota
 )
 
-type Plugin interface {
-	Initialize(ctx Context) (string, uint, error)
+type Initializer interface {
+	Initialize() (string, uint, error)
 }
 
 type Accepter interface {
@@ -97,4 +97,8 @@ type Finalizer interface {
 
 type Processor interface {
 	Process(ctx Context, f File) (bool, error)
+}
+
+type Plugin interface {
+	Initializer
 }

@@ -76,11 +76,8 @@ func (gs *goldsmith) queueFiles(target uint) {
 }
 
 func (gs *goldsmith) cleanupFiles() {
-	var (
-		files = make(chan string)
-		dirs  = make(chan string)
-	)
-
+	files := make(chan string)
+	dirs := make(chan string)
 	go scanDir(gs.dstDir, files, dirs)
 
 	for files != nil || dirs != nil {
@@ -133,10 +130,6 @@ func (gs *goldsmith) referenceFile(path string) {
 	gs.refMtx.Lock()
 	defer gs.refMtx.Unlock()
 
-	if gs.refs == nil {
-		gs.refs = make(map[string]bool)
-	}
-
 	path = cleanPath(path)
 
 	for {
@@ -155,12 +148,13 @@ func (gs *goldsmith) fault(name string, f *file, err error) {
 
 	color.Red("Fault Detected\n")
 	color.Yellow("\tPlugin:\t%s\n", color.WhiteString(name))
+	color.Yellow("\tError:\t%s\n\n", color.WhiteString(err.Error()))
 	if f != nil {
 		color.Yellow("\tFile:\t%s\n", color.WhiteString(f.path))
 	}
-	color.Yellow("\tError:\t%s\n\n", color.WhiteString(err.Error()))
 
 	gs.tainted = true
+
 }
 
 //

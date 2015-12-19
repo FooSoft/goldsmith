@@ -45,7 +45,7 @@ func newStage(gs *goldsmith) *stage {
 func (s *stage) chain(p Plugin) {
 	defer close(s.output)
 
-	name, flags, err := p.Initialize(s)
+	name, flags, err := p.Initialize()
 	if err != nil {
 		s.gs.fault(name, nil, err)
 		return
