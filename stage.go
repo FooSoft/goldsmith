@@ -51,7 +51,7 @@ func (s *stage) chain(p Plugin) {
 	fin, _ := p.(Finalizer)
 
 	if init != nil {
-		if err := init.Initialize(); err != nil {
+		if err := init.Initialize(s); err != nil {
 			s.gs.fault(nil, err)
 			return
 		}
@@ -63,7 +63,7 @@ func (s *stage) chain(p Plugin) {
 		go func() {
 			defer wg.Done()
 			for f := range s.input {
-				if proc == nil || accept != nil && !accept.Accept(f) {
+				if proc == nil || accept != nil && !accept.Accept(s, f) {
 					s.output <- f
 				} else {
 					f.rewind()

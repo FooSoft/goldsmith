@@ -87,11 +87,11 @@ func (e *Error) Error() string {
 }
 
 type Initializer interface {
-	Initialize() error
+	Initialize(ctx Context) error
 }
 
 type Accepter interface {
-	Accept(file File) bool
+	Accept(ctx Context, file File) bool
 }
 
 type Finalizer interface {
