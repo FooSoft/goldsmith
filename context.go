@@ -23,6 +23,7 @@
 package goldsmith
 
 import (
+	"os"
 	"runtime"
 	"sync"
 )
@@ -66,7 +67,9 @@ func (ctx *context) chain(p Plugin) {
 				if proc == nil || accept != nil && !accept.Accept(ctx, f) {
 					ctx.output <- f
 				} else {
-					f.rewind()
+					if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+						ctx.gs.fault(f, err)
+					}
 					if err := proc.Process(ctx, f); err != nil {
 						ctx.gs.fault(f, err)
 					}

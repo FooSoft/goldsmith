@@ -38,14 +38,6 @@ type file struct {
 	asset  string
 }
 
-func (f *file) rewind() {
-	if f.reader != nil {
-		if _, err := f.reader.Seek(0, os.SEEK_SET); err != nil {
-			panic(err)
-		}
-	}
-}
-
 func (f *file) export(dstPath string) error {
 	if err := os.MkdirAll(path.Dir(dstPath), 0755); err != nil {
 		return err
@@ -68,7 +60,9 @@ func (f *file) export(dstPath string) error {
 			return err
 		}
 	} else {
-		f.rewind()
+		if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+			return err
+		}
 		if _, err := f.WriteTo(fw); err != nil {
 			return err
 		}
@@ -123,4 +117,16 @@ func (f *file) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	return f.reader.WriteTo(w)
+}
+
+func (f *file) Seek(offset int64, whence int) (int64, error) {
+	if f.reader == nil && offset == 0 && (whence == os.SEEK_SET || whence == os.SEEK_CUR) {
+		return 0, nil
+	}
+
+	if err := f.cache(); err != nil {
+		return 0, err
+	}
+
+	return f.reader.Seek(offset, whence)
 }

@@ -51,6 +51,7 @@ type File interface {
 
 	Read(p []byte) (int, error)
 	WriteTo(w io.Writer) (int64, error)
+	Seek(offset int64, whence int) (int64, error)
 }
 
 func NewFileFromData(path string, data []byte) File {
