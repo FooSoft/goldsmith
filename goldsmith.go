@@ -30,7 +30,7 @@ import (
 
 type goldsmith struct {
 	srcDir, dstDir string
-	stages         []*stage
+	contexts       []*context
 
 	refs   map[string]bool
 	refMtx sync.Mutex
@@ -43,10 +43,10 @@ func (gs *goldsmith) queueFiles() {
 	files := make(chan string)
 	go scanDir(gs.srcDir, files, nil)
 
-	s := newStage(gs)
+	ctx := newContext(gs)
 
 	go func() {
-		defer close(s.output)
+		defer close(ctx.output)
 		for path := range files {
 			relPath, err := filepath.Rel(gs.srcDir, path)
 			if err != nil {
@@ -54,7 +54,7 @@ func (gs *goldsmith) queueFiles() {
 			}
 
 			f := NewFileFromAsset(relPath, path)
-			s.DispatchFile(f)
+			ctx.DispatchFile(f)
 		}
 	}()
 }
@@ -135,14 +135,14 @@ func (gs *goldsmith) fault(f *file, err error) {
 //
 
 func (gs *goldsmith) Chain(p Plugin) Goldsmith {
-	s := newStage(gs)
-	go s.chain(p)
+	ctx := newContext(gs)
+	go ctx.chain(p)
 	return gs
 }
 
 func (gs *goldsmith) Complete() []error {
-	s := gs.stages[len(gs.stages)-1]
-	for f := range s.output {
+	ctx := gs.contexts[len(gs.contexts)-1]
+	for f := range ctx.output {
 		gs.exportFile(f)
 	}
 

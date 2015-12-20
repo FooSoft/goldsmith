@@ -27,23 +27,23 @@ import (
 	"sync"
 )
 
-type stage struct {
+type context struct {
 	gs            *goldsmith
 	input, output chan *file
 }
 
-func newStage(gs *goldsmith) *stage {
-	s := &stage{gs: gs, output: make(chan *file)}
-	if len(gs.stages) > 0 {
-		s.input = gs.stages[len(gs.stages)-1].output
+func newContext(gs *goldsmith) *context {
+	ctx := &context{gs: gs, output: make(chan *file)}
+	if len(gs.contexts) > 0 {
+		ctx.input = gs.contexts[len(gs.contexts)-1].output
 	}
 
-	gs.stages = append(gs.stages, s)
-	return s
+	gs.contexts = append(gs.contexts, ctx)
+	return ctx
 }
 
-func (s *stage) chain(p Plugin) {
-	defer close(s.output)
+func (ctx *context) chain(p Plugin) {
+	defer close(ctx.output)
 
 	init, _ := p.(Initializer)
 	accept, _ := p.(Accepter)
@@ -51,8 +51,8 @@ func (s *stage) chain(p Plugin) {
 	fin, _ := p.(Finalizer)
 
 	if init != nil {
-		if err := init.Initialize(s); err != nil {
-			s.gs.fault(nil, err)
+		if err := init.Initialize(ctx); err != nil {
+			ctx.gs.fault(nil, err)
 			return
 		}
 	}
@@ -62,13 +62,13 @@ func (s *stage) chain(p Plugin) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for f := range s.input {
-				if proc == nil || accept != nil && !accept.Accept(s, f) {
-					s.output <- f
+			for f := range ctx.input {
+				if proc == nil || accept != nil && !accept.Accept(ctx, f) {
+					ctx.output <- f
 				} else {
 					f.rewind()
-					if err := proc.Process(s, f); err != nil {
-						s.gs.fault(f, err)
+					if err := proc.Process(ctx, f); err != nil {
+						ctx.gs.fault(f, err)
 					}
 				}
 			}
@@ -77,8 +77,8 @@ func (s *stage) chain(p Plugin) {
 	wg.Wait()
 
 	if fin != nil {
-		if err := fin.Finalize(s); err != nil {
-			s.gs.fault(nil, err)
+		if err := fin.Finalize(ctx); err != nil {
+			ctx.gs.fault(nil, err)
 		}
 	}
 }
@@ -87,18 +87,18 @@ func (s *stage) chain(p Plugin) {
 //	Context Implementation
 //
 
-func (s *stage) DispatchFile(f File) {
-	s.output <- f.(*file)
+func (ctx *context) DispatchFile(f File) {
+	ctx.output <- f.(*file)
 }
 
-func (s *stage) ReferenceFile(path string) {
-	s.gs.referenceFile(path)
+func (ctx *context) ReferenceFile(path string) {
+	ctx.gs.referenceFile(path)
 }
 
-func (s *stage) SrcDir() string {
-	return s.gs.srcDir
+func (ctx *context) SrcDir() string {
+	return ctx.gs.srcDir
 }
 
-func (s *stage) DstDir() string {
-	return s.gs.dstDir
+func (ctx *context) DstDir() string {
+	return ctx.gs.dstDir
 }
