@@ -23,8 +23,8 @@
 package goldsmith
 
 import (
+	"runtime"
 	"sync"
-	"sync/atomic"
 )
 
 type stage struct {
@@ -45,66 +45,41 @@ func newStage(gs *goldsmith) *stage {
 func (s *stage) chain(p Plugin) {
 	defer close(s.output)
 
-	name, flags, err := p.Initialize()
-	if err != nil {
-		s.gs.fault(name, nil, err)
-		return
-	}
-
+	init, _ := p.(Initializer)
 	accept, _ := p.(Accepter)
 	proc, _ := p.(Processor)
 	fin, _ := p.(Finalizer)
 
-	var (
-		wg    sync.WaitGroup
-		mtx   sync.Mutex
-		batch []File
-	)
-
-	dispatch := func(f *file) {
-		if flags&PLUGIN_FLAG_BATCH == PLUGIN_FLAG_BATCH {
-			atomic.AddInt64(&s.gs.idle, 1)
-			mtx.Lock()
-			batch = append(batch, f)
-			mtx.Unlock()
-		} else {
-			s.output <- f
+	if init != nil {
+		if err := init.Initialize(); err != nil {
+			s.gs.fault(nil, err)
+			return
 		}
 	}
 
-	for f := range s.input {
-		if accept != nil && !accept.Accept(f) {
-			s.output <- f
-		} else if proc == nil {
-			dispatch(f)
-		} else {
-			wg.Add(1)
-			go func(f *file) {
-				defer wg.Done()
-				f.rewind()
-				keep, err := proc.Process(s, f)
-				if err != nil {
-					s.gs.fault(name, f, err)
-				} else if keep {
-					dispatch(f)
+	var wg sync.WaitGroup
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for f := range s.input {
+				if proc == nil || accept != nil && !accept.Accept(f) {
+					s.output <- f
 				} else {
-					atomic.AddInt64(&s.gs.active, -1)
+					f.rewind()
+					if err := proc.Process(s, f); err != nil {
+						s.gs.fault(f, err)
+					}
 				}
-			}(f)
-		}
+			}
+		}()
 	}
-
 	wg.Wait()
 
 	if fin != nil {
 		if err := fin.Finalize(s); err != nil {
-			s.gs.fault(name, nil, err)
+			s.gs.fault(nil, err)
 		}
-	}
-
-	for _, f := range batch {
-		atomic.AddInt64(&s.gs.idle, -1)
-		s.output <- f.(*file)
 	}
 }
 
@@ -113,7 +88,6 @@ func (s *stage) chain(p Plugin) {
 //
 
 func (s *stage) DispatchFile(f File) {
-	atomic.AddInt64(&s.gs.active, 1)
 	s.output <- f.(*file)
 }
 

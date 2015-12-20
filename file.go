@@ -87,7 +87,7 @@ func (f *file) cache() error {
 		return err
 	}
 
-	f.Rewrite(data)
+	f.reader = bytes.NewReader(data)
 	return nil
 }
 
@@ -97,10 +97,6 @@ func (f *file) cache() error {
 
 func (f *file) Path() string {
 	return f.path
-}
-
-func (f *file) Rename(path string) {
-	f.path = path
 }
 
 func (f *file) Meta() map[string]interface{} {
@@ -127,8 +123,4 @@ func (f *file) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	return f.reader.WriteTo(w)
-}
-
-func (f *file) Rewrite(data []byte) {
-	f.reader = bytes.NewReader(data)
 }

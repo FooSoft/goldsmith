@@ -25,12 +25,11 @@ package goldsmith
 import (
 	"bytes"
 	"io"
-	"runtime"
 )
 
 type Goldsmith interface {
 	Chain(p Plugin) Goldsmith
-	Complete() bool
+	Complete() []error
 }
 
 func New(srcDir, dstDir string) Goldsmith {
@@ -40,14 +39,16 @@ func New(srcDir, dstDir string) Goldsmith {
 		refs:   make(map[string]bool),
 	}
 
-	gs.queueFiles(uint(runtime.NumCPU()))
+	gs.queueFiles()
 	return gs
 }
 
 type File interface {
 	Path() string
+
 	Meta() map[string]interface{}
 	Apply(m map[string]interface{})
+
 	Read(p []byte) (int, error)
 	WriteTo(w io.Writer) (int64, error)
 }
@@ -76,12 +77,17 @@ type Context interface {
 	DstDir() string
 }
 
-const (
-	PLUGIN_FLAG_BATCH = 1 << iota
-)
+type Error struct {
+	path string
+	err  error
+}
+
+func (e *Error) Error() string {
+	return e.err.Error()
+}
 
 type Initializer interface {
-	Initialize() (string, uint, error)
+	Initialize() error
 }
 
 type Accepter interface {
@@ -93,9 +99,7 @@ type Finalizer interface {
 }
 
 type Processor interface {
-	Process(ctx Context, f File) (bool, error)
+	Process(ctx Context, f File) error
 }
 
-type Plugin interface {
-	Initializer
-}
+type Plugin interface{}

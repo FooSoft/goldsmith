@@ -26,27 +26,20 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"sync/atomic"
-	"time"
-
-	"github.com/fatih/color"
 )
 
 type goldsmith struct {
 	srcDir, dstDir string
-
-	stages []*stage
-	active int64
-	idle   int64
+	stages         []*stage
 
 	refs   map[string]bool
 	refMtx sync.Mutex
 
-	tainted  bool
-	faultMtx sync.Mutex
+	errors   []error
+	errorMtx sync.Mutex
 }
 
-func (gs *goldsmith) queueFiles(target uint) {
+func (gs *goldsmith) queueFiles() {
 	files := make(chan string)
 	go scanDir(gs.srcDir, files, nil)
 
@@ -54,16 +47,7 @@ func (gs *goldsmith) queueFiles(target uint) {
 
 	go func() {
 		defer close(s.output)
-
 		for path := range files {
-			for {
-				if gs.active-gs.idle >= int64(target) {
-					time.Sleep(time.Millisecond)
-				} else {
-					break
-				}
-			}
-
 			relPath, err := filepath.Rel(gs.srcDir, path)
 			if err != nil {
 				panic(err)
@@ -115,8 +99,6 @@ func (gs *goldsmith) cleanupFiles() {
 }
 
 func (gs *goldsmith) exportFile(f *file) error {
-	defer atomic.AddInt64(&gs.active, -1)
-
 	absPath := filepath.Join(gs.dstDir, f.path)
 	if err := f.export(absPath); err != nil {
 		return err
@@ -142,19 +124,10 @@ func (gs *goldsmith) referenceFile(path string) {
 	}
 }
 
-func (gs *goldsmith) fault(name string, f *file, err error) {
-	gs.faultMtx.Lock()
-	defer gs.faultMtx.Unlock()
-
-	color.Red("Fault Detected\n")
-	color.Yellow("\tPlugin:\t%s\n", color.WhiteString(name))
-	color.Yellow("\tError:\t%s\n\n", color.WhiteString(err.Error()))
-	if f != nil {
-		color.Yellow("\tFile:\t%s\n", color.WhiteString(f.path))
-	}
-
-	gs.tainted = true
-
+func (gs *goldsmith) fault(f *file, err error) {
+	gs.errorMtx.Lock()
+	gs.errors = append(gs.errors, &Error{f.path, err})
+	gs.errorMtx.Unlock()
 }
 
 //
@@ -167,12 +140,12 @@ func (gs *goldsmith) Chain(p Plugin) Goldsmith {
 	return gs
 }
 
-func (gs *goldsmith) Complete() bool {
+func (gs *goldsmith) Complete() []error {
 	s := gs.stages[len(gs.stages)-1]
 	for f := range s.output {
 		gs.exportFile(f)
 	}
 
 	gs.cleanupFiles()
-	return gs.tainted
+	return gs.errors
 }
