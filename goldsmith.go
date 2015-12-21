@@ -126,7 +126,7 @@ func (gs *goldsmith) referenceFile(path string) {
 
 func (gs *goldsmith) fault(f *file, err error) {
 	gs.errorMtx.Lock()
-	gs.errors = append(gs.errors, &Error{f.path, err})
+	gs.errors = append(gs.errors, &Error{f, err})
 	gs.errorMtx.Unlock()
 }
 
