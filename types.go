@@ -79,12 +79,12 @@ type Context interface {
 }
 
 type Error struct {
-	path string
-	err  error
+	Err  error
+	Path string
 }
 
-func (e *Error) Error() string {
-	return e.err.Error()
+func (e Error) Error() string {
+	return e.Err.Error()
 }
 
 type Initializer interface {
