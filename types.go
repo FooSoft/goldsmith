@@ -79,7 +79,7 @@ type Context interface {
 }
 
 type Error struct {
-	file File
+	path string
 	err  error
 }
 
