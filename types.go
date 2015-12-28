@@ -92,15 +92,15 @@ type Initializer interface {
 }
 
 type Accepter interface {
-	Accept(ctx Context, file File) bool
-}
-
-type Finalizer interface {
-	Finalize(ctx Context) error
+	Accept(ctx Context, f File) bool
 }
 
 type Processor interface {
 	Process(ctx Context, f File) error
+}
+
+type Finalizer interface {
+	Finalize(ctx Context) error
 }
 
 type Plugin interface{}
