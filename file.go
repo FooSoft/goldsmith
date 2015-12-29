@@ -32,7 +32,7 @@ import (
 
 type file struct {
 	path string
-	meta map[string]interface{}
+	Meta map[string]interface{}
 
 	reader *bytes.Reader
 	asset  string
@@ -93,13 +93,19 @@ func (f *file) Path() string {
 	return f.path
 }
 
-func (f *file) Meta() map[string]interface{} {
-	return f.meta
+func (f *file) Value(key string) (interface{}, bool) {
+	value, ok := f.Meta[key]
+	return value, ok
 }
 
-func (f *file) Apply(m map[string]interface{}) {
-	for key, value := range m {
-		f.meta[key] = value
+func (f *file) SetValue(key string, value interface{}) {
+	f.Meta[key] = value
+}
+
+func (f *file) CopyValues(src File) {
+	rf := src.(*file)
+	for name, value := range rf.Meta {
+		f.SetValue(name, value)
 	}
 }
 
