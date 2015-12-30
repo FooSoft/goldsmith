@@ -32,7 +32,7 @@ import (
 
 type file struct {
 	path string
-	Meta map[string]interface{}
+	Meta map[string]Meta
 
 	reader *bytes.Reader
 	asset  string
@@ -93,12 +93,12 @@ func (f *file) Path() string {
 	return f.path
 }
 
-func (f *file) Value(key string) (interface{}, bool) {
+func (f *file) Value(key string) (Meta, bool) {
 	value, ok := f.Meta[key]
 	return value, ok
 }
 
-func (f *file) SetValue(key string, value interface{}) {
+func (f *file) SetValue(key string, value Meta) {
 	f.Meta[key] = value
 }
 
