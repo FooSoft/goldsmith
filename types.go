@@ -46,8 +46,8 @@ func New(srcDir, dstDir string) Goldsmith {
 type File interface {
 	Path() string
 
-	Value(key string) (Meta, bool)
-	SetValue(key string, value Meta)
+	Value(key string) (interface{}, bool)
+	SetValue(key string, value interface{})
 	CopyValues(src File)
 
 	Read(p []byte) (int, error)
@@ -58,7 +58,7 @@ type File interface {
 func NewFileFromData(path string, data []byte) File {
 	return &file{
 		path:   path,
-		Meta:   make(map[string]Meta),
+		Meta:   make(map[string]interface{}),
 		reader: bytes.NewReader(data),
 	}
 }
@@ -66,7 +66,7 @@ func NewFileFromData(path string, data []byte) File {
 func NewFileFromAsset(path, asset string) File {
 	return &file{
 		path:  path,
-		Meta:  make(map[string]Meta),
+		Meta:  make(map[string]interface{}),
 		asset: asset,
 	}
 }
@@ -105,5 +105,3 @@ type Finalizer interface {
 }
 
 type Plugin interface{}
-
-type Meta interface{}
