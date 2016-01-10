@@ -39,24 +39,14 @@ type goldsmith struct {
 	errorMtx sync.Mutex
 }
 
-func (gs *goldsmith) queueFiles() {
-	files := make(chan string)
-	go scanDir(gs.srcDir, files, nil)
+func (gs *goldsmith) pushContext(plug Plugin) *context {
+	ctx := &context{gs: gs, plug: plug, output: make(chan *file)}
+	if len(gs.contexts) > 0 {
+		ctx.input = gs.contexts[len(gs.contexts)-1].output
+	}
 
-	ctx := newContext(gs)
-
-	go func() {
-		defer close(ctx.output)
-		for path := range files {
-			relPath, err := filepath.Rel(gs.srcDir, path)
-			if err != nil {
-				panic(err)
-			}
-
-			f := NewFileFromAsset(relPath, path)
-			ctx.DispatchFile(f)
-		}
-	}()
+	gs.contexts = append(gs.contexts, ctx)
+	return ctx
 }
 
 func (gs *goldsmith) cleanupFiles() {
@@ -139,12 +129,17 @@ func (gs *goldsmith) fault(f *file, err error) {
 //
 
 func (gs *goldsmith) Chain(p Plugin) Goldsmith {
-	ctx := newContext(gs)
-	go ctx.chain(p)
+	gs.pushContext(p)
 	return gs
 }
 
-func (gs *goldsmith) Complete() []error {
+func (gs *goldsmith) End(dstDir string) []error {
+	gs.dstDir = dstDir
+
+	for _, ctx := range gs.contexts {
+		go ctx.chain()
+	}
+
 	ctx := gs.contexts[len(gs.contexts)-1]
 	for f := range ctx.output {
 		gs.exportFile(f)

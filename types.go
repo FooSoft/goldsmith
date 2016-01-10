@@ -29,17 +29,12 @@ import (
 
 type Goldsmith interface {
 	Chain(p Plugin) Goldsmith
-	Complete() []error
+	End(dstDir string) []error
 }
 
-func New(srcDir, dstDir string) Goldsmith {
-	gs := &goldsmith{
-		srcDir: srcDir,
-		dstDir: dstDir,
-		refs:   make(map[string]bool),
-	}
-
-	gs.queueFiles()
+func Begin(srcDir string) Goldsmith {
+	gs := &goldsmith{srcDir: srcDir, refs: make(map[string]bool)}
+	gs.Chain(new(loader))
 	return gs
 }
 
