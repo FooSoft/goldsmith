@@ -39,7 +39,7 @@ type file struct {
 }
 
 func (f *file) export(dstPath string) error {
-	if f.reader == nil && fileCached(f.asset, dstPath) {
+	if len(f.asset) > 0 && fileCached(f.asset, dstPath) {
 		return nil
 	}
 
