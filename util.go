@@ -66,3 +66,17 @@ func scanDir(root string, files, dirs chan string) {
 		return nil
 	})
 }
+
+func fileCached(srcPath, dstPath string) bool {
+	srcStat, err := os.Stat(srcPath)
+	if err != nil {
+		return false
+	}
+
+	dstStat, err := os.Stat(dstPath)
+	if err != nil {
+		return false
+	}
+
+	return dstStat.ModTime().Unix() >= srcStat.ModTime().Unix()
+}

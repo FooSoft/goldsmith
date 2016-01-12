@@ -39,6 +39,10 @@ type file struct {
 }
 
 func (f *file) export(dstPath string) error {
+	if f.reader == nil && fileCached(f.asset, dstPath) {
+		return nil
+	}
+
 	if err := os.MkdirAll(path.Dir(dstPath), 0755); err != nil {
 		return err
 	}
