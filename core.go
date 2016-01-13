@@ -40,7 +40,12 @@ type goldsmith struct {
 }
 
 func (gs *goldsmith) pushContext(plug Plugin) *context {
-	ctx := &context{gs: gs, plug: plug, output: make(chan *file)}
+	ctx := &context{
+		gs:     gs,
+		plug:   plug,
+		output: make(chan *file),
+	}
+
 	if len(gs.contexts) > 0 {
 		ctx.input = gs.contexts[len(gs.contexts)-1].output
 	}
@@ -75,11 +80,7 @@ func (gs *goldsmith) cleanupFiles() {
 			continue
 		}
 
-		relPath, err := filepath.Rel(gs.dstDir, path)
-		if err != nil {
-			panic(err)
-		}
-
+		relPath, _ := filepath.Rel(gs.dstDir, path)
 		if contained, _ := gs.refs[relPath]; contained {
 			continue
 		}
@@ -116,12 +117,14 @@ func (gs *goldsmith) referenceFile(path string) {
 
 func (gs *goldsmith) fault(f *file, err error) {
 	gs.errorMtx.Lock()
+	defer gs.errorMtx.Unlock()
+
 	ferr := &Error{Err: err}
 	if f != nil {
 		ferr.Path = f.path
 	}
+
 	gs.errors = append(gs.errors, ferr)
-	gs.errorMtx.Unlock()
 }
 
 //

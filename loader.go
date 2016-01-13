@@ -31,11 +31,7 @@ func (*loader) Initialize(ctx Context) error {
 	go scanDir(ctx.SrcDir(), files, nil)
 
 	for path := range files {
-		relPath, err := filepath.Rel(ctx.SrcDir(), path)
-		if err != nil {
-			return err
-		}
-
+		relPath, _ := filepath.Rel(ctx.SrcDir(), path)
 		f := NewFileFromAsset(relPath, path)
 		ctx.DispatchFile(f)
 	}
