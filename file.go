@@ -28,6 +28,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 type file struct {
@@ -38,7 +39,8 @@ type file struct {
 	asset  string
 }
 
-func (f *file) export(dstPath string) error {
+func (f *file) export(dstDir string) error {
+	dstPath := filepath.Join(dstDir, f.path)
 	if len(f.asset) > 0 && fileCached(f.asset, dstPath) {
 		return nil
 	}

@@ -31,9 +31,7 @@ import (
 type goldsmith struct {
 	srcDir, dstDir string
 	contexts       []*context
-
-	refs   map[string]bool
-	refMtx sync.Mutex
+	refs           map[string]bool
 
 	errors   []error
 	errorMtx sync.Mutex
@@ -90,29 +88,21 @@ func (gs *goldsmith) cleanupFiles() {
 }
 
 func (gs *goldsmith) exportFile(f *file) error {
-	absPath := filepath.Join(gs.dstDir, f.path)
-	if err := f.export(absPath); err != nil {
+	if err := f.export(gs.dstDir); err != nil {
 		return err
 	}
 
-	gs.referenceFile(f.path)
-	return nil
-}
-
-func (gs *goldsmith) referenceFile(path string) {
-	gs.refMtx.Lock()
-	defer gs.refMtx.Unlock()
-
-	path = cleanPath(path)
-
+	pathSeg := cleanPath(f.path)
 	for {
-		gs.refs[path] = true
-		if path == "." {
+		gs.refs[pathSeg] = true
+		if pathSeg == "." {
 			break
 		}
 
-		path = filepath.Dir(path)
+		pathSeg = filepath.Dir(pathSeg)
 	}
+
+	return nil
 }
 
 func (gs *goldsmith) fault(f *file, err error) {

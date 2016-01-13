@@ -87,10 +87,6 @@ func (ctx *context) DispatchFile(f File) {
 	ctx.output <- f.(*file)
 }
 
-func (ctx *context) ReferenceFile(path string) {
-	ctx.gs.referenceFile(path)
-}
-
 func (ctx *context) SrcDir() string {
 	return ctx.gs.srcDir
 }

@@ -68,7 +68,6 @@ func NewFileFromAsset(path, asset string) File {
 
 type Context interface {
 	DispatchFile(f File)
-	ReferenceFile(path string)
 
 	SrcDir() string
 	DstDir() string
