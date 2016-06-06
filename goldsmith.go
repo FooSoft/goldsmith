@@ -40,6 +40,7 @@ func Begin(srcDir string) Goldsmith {
 
 type File interface {
 	Path() string
+	Dir() string
 
 	Value(key string) (interface{}, bool)
 	SetValue(key string, value interface{})

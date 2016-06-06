@@ -99,6 +99,10 @@ func (f *file) Path() string {
 	return f.path
 }
 
+func (f *file) Dir() string {
+	return path.Dir(f.path)
+}
+
 func (f *file) Value(key string) (interface{}, bool) {
 	value, ok := f.Meta[key]
 	return value, ok
