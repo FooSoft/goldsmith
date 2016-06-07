@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Alex Yatskov <alex@foosoft.net>
+ * Copyright (c) 2016 Alex Yatskov <alex@foosoft.net>
  * Author: Alex Yatskov <alex@foosoft.net>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -22,61 +22,19 @@
 
 package goldsmith
 
-import (
-	"os"
-	"path/filepath"
-)
+import "path/filepath"
 
-func cleanPath(path string) string {
-	if filepath.IsAbs(path) {
-		var err error
-		if path, err = filepath.Rel("/", path); err != nil {
-			panic(err)
-		}
+type loader struct{}
+
+func (*loader) Initialize(ctx Context) error {
+	files := make(chan string)
+	go scanDir(ctx.SrcDir(), files, nil)
+
+	for path := range files {
+		relPath, _ := filepath.Rel(ctx.SrcDir(), path)
+		f := NewFileFromAsset(relPath, path)
+		ctx.DispatchFile(f)
 	}
 
-	return filepath.Clean(path)
-}
-
-func scanDir(root string, files, dirs chan string) {
-	defer func() {
-		if files != nil {
-			close(files)
-		}
-		if dirs != nil {
-			close(dirs)
-		}
-	}()
-
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			if dirs != nil {
-				dirs <- path
-			}
-		} else {
-			if files != nil {
-				files <- path
-			}
-		}
-
-		return nil
-	})
-}
-
-func fileCached(srcPath, dstPath string) bool {
-	srcStat, err := os.Stat(srcPath)
-	if err != nil {
-		return false
-	}
-
-	dstStat, err := os.Stat(dstPath)
-	if err != nil {
-		return false
-	}
-
-	return dstStat.ModTime().Unix() >= srcStat.ModTime().Unix()
+	return nil
 }

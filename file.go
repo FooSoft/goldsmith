@@ -28,17 +28,23 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 type file struct {
 	path string
-	meta map[string]interface{}
+	Meta map[string]interface{}
 
 	reader *bytes.Reader
 	asset  string
 }
 
-func (f *file) export(dstPath string) error {
+func (f *file) export(dstDir string) error {
+	dstPath := filepath.Join(dstDir, f.path)
+	if len(f.asset) > 0 && fileCached(f.asset, dstPath) {
+		return nil
+	}
+
 	if err := os.MkdirAll(path.Dir(dstPath), 0755); err != nil {
 		return err
 	}
@@ -93,13 +99,23 @@ func (f *file) Path() string {
 	return f.path
 }
 
-func (f *file) Meta() map[string]interface{} {
-	return f.meta
+func (f *file) Dir() string {
+	return path.Dir(f.path)
 }
 
-func (f *file) Apply(m map[string]interface{}) {
-	for key, value := range m {
-		f.meta[key] = value
+func (f *file) Value(key string) (interface{}, bool) {
+	value, ok := f.Meta[key]
+	return value, ok
+}
+
+func (f *file) SetValue(key string, value interface{}) {
+	f.Meta[key] = value
+}
+
+func (f *file) CopyValues(src File) {
+	rf := src.(*file)
+	for name, value := range rf.Meta {
+		f.SetValue(name, value)
 	}
 }
 

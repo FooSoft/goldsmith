@@ -23,129 +23,80 @@
 package goldsmith
 
 import (
-	"os"
-	"path/filepath"
-	"sync"
+	"bytes"
+	"io"
 )
 
-type goldsmith struct {
-	srcDir, dstDir string
-	contexts       []*context
-
-	refs   map[string]bool
-	refMtx sync.Mutex
-
-	errors   []error
-	errorMtx sync.Mutex
+type Goldsmith interface {
+	Chain(p Plugin) Goldsmith
+	End(dstDir string) []error
 }
 
-func (gs *goldsmith) queueFiles() {
-	files := make(chan string)
-	go scanDir(gs.srcDir, files, nil)
-
-	ctx := newContext(gs)
-
-	go func() {
-		defer close(ctx.output)
-		for path := range files {
-			relPath, err := filepath.Rel(gs.srcDir, path)
-			if err != nil {
-				panic(err)
-			}
-
-			f := NewFileFromAsset(relPath, path)
-			ctx.DispatchFile(f)
-		}
-	}()
-}
-
-func (gs *goldsmith) cleanupFiles() {
-	files := make(chan string)
-	dirs := make(chan string)
-	go scanDir(gs.dstDir, files, dirs)
-
-	for files != nil || dirs != nil {
-		var (
-			path string
-			ok   bool
-		)
-
-		select {
-		case path, ok = <-files:
-			if !ok {
-				files = nil
-				continue
-			}
-		case path, ok = <-dirs:
-			if !ok {
-				dirs = nil
-				continue
-			}
-		default:
-			continue
-		}
-
-		relPath, err := filepath.Rel(gs.dstDir, path)
-		if err != nil {
-			panic(err)
-		}
-
-		if contained, _ := gs.refs[relPath]; contained {
-			continue
-		}
-
-		os.RemoveAll(path)
-	}
-}
-
-func (gs *goldsmith) exportFile(f *file) error {
-	absPath := filepath.Join(gs.dstDir, f.path)
-	if err := f.export(absPath); err != nil {
-		return err
-	}
-
-	gs.referenceFile(f.path)
-	return nil
-}
-
-func (gs *goldsmith) referenceFile(path string) {
-	gs.refMtx.Lock()
-	defer gs.refMtx.Unlock()
-
-	path = cleanPath(path)
-
-	for {
-		gs.refs[path] = true
-		if path == "." {
-			break
-		}
-
-		path = filepath.Dir(path)
-	}
-}
-
-func (gs *goldsmith) fault(f *file, err error) {
-	gs.errorMtx.Lock()
-	gs.errors = append(gs.errors, &Error{f, err})
-	gs.errorMtx.Unlock()
-}
-
-//
-//	Goldsmith Implementation
-//
-
-func (gs *goldsmith) Chain(p Plugin) Goldsmith {
-	ctx := newContext(gs)
-	go ctx.chain(p)
+func Begin(srcDir string) Goldsmith {
+	gs := &goldsmith{srcDir: srcDir, refs: make(map[string]bool)}
+	gs.Chain(new(loader))
 	return gs
 }
 
-func (gs *goldsmith) Complete() []error {
-	ctx := gs.contexts[len(gs.contexts)-1]
-	for f := range ctx.output {
-		gs.exportFile(f)
-	}
+type File interface {
+	Path() string
+	Dir() string
 
-	gs.cleanupFiles()
-	return gs.errors
+	Value(key string) (interface{}, bool)
+	SetValue(key string, value interface{})
+	CopyValues(src File)
+
+	Read(p []byte) (int, error)
+	WriteTo(w io.Writer) (int64, error)
+	Seek(offset int64, whence int) (int64, error)
 }
+
+func NewFileFromData(path string, data []byte) File {
+	return &file{
+		path:   path,
+		Meta:   make(map[string]interface{}),
+		reader: bytes.NewReader(data),
+	}
+}
+
+func NewFileFromAsset(path, asset string) File {
+	return &file{
+		path:  path,
+		Meta:  make(map[string]interface{}),
+		asset: asset,
+	}
+}
+
+type Context interface {
+	DispatchFile(f File)
+
+	SrcDir() string
+	DstDir() string
+}
+
+type Error struct {
+	Err  error
+	Path string
+}
+
+func (e Error) Error() string {
+	return e.Err.Error()
+}
+
+type Initializer interface {
+	Initialize(ctx Context) error
+}
+
+type Accepter interface {
+	Accept(ctx Context, f File) bool
+}
+
+type Processor interface {
+	Process(ctx Context, f File) error
+}
+
+type Finalizer interface {
+	Finalize(ctx Context) error
+}
+
+type Plugin interface{}

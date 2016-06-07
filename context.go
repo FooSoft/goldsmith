@@ -30,26 +30,17 @@ import (
 
 type context struct {
 	gs            *goldsmith
+	plug          Plugin
 	input, output chan *file
 }
 
-func newContext(gs *goldsmith) *context {
-	ctx := &context{gs: gs, output: make(chan *file)}
-	if len(gs.contexts) > 0 {
-		ctx.input = gs.contexts[len(gs.contexts)-1].output
-	}
-
-	gs.contexts = append(gs.contexts, ctx)
-	return ctx
-}
-
-func (ctx *context) chain(p Plugin) {
+func (ctx *context) chain() {
 	defer close(ctx.output)
 
-	init, _ := p.(Initializer)
-	accept, _ := p.(Accepter)
-	proc, _ := p.(Processor)
-	fin, _ := p.(Finalizer)
+	init, _ := ctx.plug.(Initializer)
+	accept, _ := ctx.plug.(Accepter)
+	proc, _ := ctx.plug.(Processor)
+	fin, _ := ctx.plug.(Finalizer)
 
 	if init != nil {
 		if err := init.Initialize(ctx); err != nil {
@@ -58,26 +49,28 @@ func (ctx *context) chain(p Plugin) {
 		}
 	}
 
-	var wg sync.WaitGroup
-	for i := 0; i < runtime.NumCPU(); i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for f := range ctx.input {
-				if proc == nil || accept != nil && !accept.Accept(ctx, f) {
-					ctx.output <- f
-				} else {
-					if _, err := f.Seek(0, os.SEEK_SET); err != nil {
-						ctx.gs.fault(f, err)
-					}
-					if err := proc.Process(ctx, f); err != nil {
-						ctx.gs.fault(f, err)
+	if ctx.input != nil {
+		var wg sync.WaitGroup
+		for i := 0; i < runtime.NumCPU(); i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for f := range ctx.input {
+					if proc == nil || accept != nil && !accept.Accept(ctx, f) {
+						ctx.output <- f
+					} else {
+						if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+							ctx.gs.fault(f, err)
+						}
+						if err := proc.Process(ctx, f); err != nil {
+							ctx.gs.fault(f, err)
+						}
 					}
 				}
-			}
-		}()
+			}()
+		}
+		wg.Wait()
 	}
-	wg.Wait()
 
 	if fin != nil {
 		if err := fin.Finalize(ctx); err != nil {
@@ -92,10 +85,6 @@ func (ctx *context) chain(p Plugin) {
 
 func (ctx *context) DispatchFile(f File) {
 	ctx.output <- f.(*file)
-}
-
-func (ctx *context) ReferenceFile(path string) {
-	ctx.gs.referenceFile(path)
 }
 
 func (ctx *context) SrcDir() string {
