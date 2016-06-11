@@ -25,6 +25,8 @@ package goldsmith
 import (
 	"bytes"
 	"io"
+	"os"
+	"time"
 )
 
 type Goldsmith interface {
@@ -40,7 +42,11 @@ func Begin(srcDir string) Goldsmith {
 
 type File interface {
 	Path() string
+	Name() string
 	Dir() string
+	Ext() string
+	Size() int64
+	ModTime() time.Time
 
 	Value(key string) (interface{}, bool)
 	SetValue(key string, value interface{})
@@ -53,18 +59,29 @@ type File interface {
 
 func NewFileFromData(path string, data []byte) File {
 	return &file{
-		path:   path,
-		Meta:   make(map[string]interface{}),
-		reader: bytes.NewReader(data),
+		path:    path,
+		Meta:    make(map[string]interface{}),
+		reader:  bytes.NewReader(data),
+		size:    int64(len(data)),
+		modTime: time.Now(),
 	}
 }
 
-func NewFileFromAsset(path, asset string) File {
-	return &file{
-		path:  path,
-		Meta:  make(map[string]interface{}),
-		asset: asset,
+func NewFileFromAsset(path, asset string) (File, error) {
+	info, err := os.Stat(asset)
+	if err != nil {
+		return nil, err
 	}
+
+	f := &file{
+		path:    path,
+		Meta:    make(map[string]interface{}),
+		size:    info.Size(),
+		modTime: info.ModTime(),
+		asset:   asset,
+	}
+
+	return f, nil
 }
 
 type Context interface {

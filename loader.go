@@ -36,7 +36,15 @@ func (*loader) Initialize(ctx Context) error {
 		}
 
 		relPath, _ := filepath.Rel(ctx.SrcDir(), info.path)
-		f := NewFileFromAsset(relPath, info.path)
+
+		f := &file{
+			path:    relPath,
+			Meta:    make(map[string]interface{}),
+			modTime: info.ModTime(),
+			size:    info.Size(),
+			asset:   info.path,
+		}
+
 		ctx.DispatchFile(f)
 	}
 

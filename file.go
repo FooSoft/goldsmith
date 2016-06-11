@@ -29,14 +29,18 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 )
 
 type file struct {
 	path string
 	Meta map[string]interface{}
 
-	reader *bytes.Reader
-	asset  string
+	reader  *bytes.Reader
+	size    int64
+	modTime time.Time
+
+	asset string
 }
 
 func (f *file) export(dstDir string) error {
@@ -99,8 +103,24 @@ func (f *file) Path() string {
 	return f.path
 }
 
+func (f *file) Name() string {
+	return path.Base(f.path)
+}
+
 func (f *file) Dir() string {
 	return path.Dir(f.path)
+}
+
+func (f *file) Ext() string {
+	return path.Ext(f.path)
+}
+
+func (f *file) Size() int64 {
+	return f.size
+}
+
+func (f *file) ModTime() time.Time {
+	return f.modTime
 }
 
 func (f *file) Value(key string) (interface{}, bool) {
