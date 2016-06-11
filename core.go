@@ -53,37 +53,16 @@ func (gs *goldsmith) pushContext(plug Plugin) *context {
 }
 
 func (gs *goldsmith) cleanupFiles() {
-	files := make(chan string)
-	dirs := make(chan string)
-	go scanDir(gs.dstDir, files, dirs)
+	infos := make(chan fileInfo)
+	go scanDir(gs.dstDir, infos)
 
-	for files != nil || dirs != nil {
-		var (
-			path string
-			ok   bool
-		)
-
-		select {
-		case path, ok = <-files:
-			if !ok {
-				files = nil
-				continue
-			}
-		case path, ok = <-dirs:
-			if !ok {
-				dirs = nil
-				continue
-			}
-		default:
-			continue
-		}
-
-		relPath, _ := filepath.Rel(gs.dstDir, path)
+	for info := range infos {
+		relPath, _ := filepath.Rel(gs.dstDir, info.path)
 		if contained, _ := gs.refs[relPath]; contained {
 			continue
 		}
 
-		os.RemoveAll(path)
+		os.RemoveAll(info.path)
 	}
 }
 

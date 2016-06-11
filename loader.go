@@ -27,12 +27,16 @@ import "path/filepath"
 type loader struct{}
 
 func (*loader) Initialize(ctx Context) error {
-	files := make(chan string)
-	go scanDir(ctx.SrcDir(), files, nil)
+	infos := make(chan fileInfo)
+	go scanDir(ctx.SrcDir(), infos)
 
-	for path := range files {
-		relPath, _ := filepath.Rel(ctx.SrcDir(), path)
-		f := NewFileFromAsset(relPath, path)
+	for info := range infos {
+		if info.IsDir() {
+			continue
+		}
+
+		relPath, _ := filepath.Rel(ctx.SrcDir(), info.path)
+		f := NewFileFromAsset(relPath, info.path)
 		ctx.DispatchFile(f)
 	}
 

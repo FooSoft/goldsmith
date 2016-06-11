@@ -27,6 +27,11 @@ import (
 	"path/filepath"
 )
 
+type fileInfo struct {
+	os.FileInfo
+	path string
+}
+
 func cleanPath(path string) string {
 	if filepath.IsAbs(path) {
 		var err error
@@ -38,31 +43,15 @@ func cleanPath(path string) string {
 	return filepath.Clean(path)
 }
 
-func scanDir(root string, files, dirs chan string) {
-	defer func() {
-		if files != nil {
-			close(files)
-		}
-		if dirs != nil {
-			close(dirs)
-		}
-	}()
+func scanDir(root string, infos chan fileInfo) {
+	defer close(infos)
 
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if info.IsDir() {
-			if dirs != nil {
-				dirs <- path
-			}
-		} else {
-			if files != nil {
-				files <- path
-			}
-		}
-
+		infos <- fileInfo{FileInfo: info, path: path}
 		return nil
 	})
 }
