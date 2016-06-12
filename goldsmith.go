@@ -24,6 +24,7 @@ package goldsmith
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"time"
@@ -71,6 +72,10 @@ func NewFileFromAsset(path, asset string) (File, error) {
 	info, err := os.Stat(asset)
 	if err != nil {
 		return nil, err
+	}
+
+	if info.IsDir() {
+		return nil, errors.New("assets must be files")
 	}
 
 	f := &file{

@@ -45,8 +45,11 @@ type file struct {
 
 func (f *file) export(dstDir string) error {
 	dstPath := filepath.Join(dstDir, f.path)
-	if len(f.asset) > 0 && fileCached(f.asset, dstPath) {
-		return nil
+	if len(f.asset) > 0 {
+		dstInfo, err := os.Stat(dstPath)
+		if err == nil && dstInfo.ModTime().Unix() >= f.ModTime().Unix() {
+			return nil
+		}
 	}
 
 	if err := os.MkdirAll(path.Dir(dstPath), 0755); err != nil {
