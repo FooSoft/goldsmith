@@ -4,8 +4,8 @@ Goldsmith is a static website generator developed in Golang with flexibility, ex
 design considerations. With Goldsmith you can easily build and deploy any type of site, whether it is a personal blog,
 image gallery, or a corporate homepage; the tool no assumptions are made about your layout or file structure. Goldsmith
 is trivially extensible via a plugin architecture which makes it simple to perform complex data transformations
-concurrently. A growing set of core plugins, [Goldsmith-Plugins](../goldsmith-plugins/), is provided to make it easier
-to get started with this tool to generate static websites.
+concurrently. A growing set of core plugins, [Goldsmith-Plugins](https://foosoft.net/projects/goldsmith-plugins/), is provided to make it
+easier to get started with this tool to generate static websites.
 
 ## Motivation ##
 
@@ -67,7 +67,7 @@ conceptually, I will show some code samples which show how this tool can be used
     ```
 
 *   Now let's also convert our [Markdown](https://daringfireball.net/projects/markdown/) files to HTML using the
-    [markdown plugin](../goldsmith-plugins/markdown):
+    [markdown plugin](https://foosoft.net/projects/goldsmith-plugins/markdown):
     ```
     goldsmith.Begin(srcDir).
         Chain(markdown.NewCommon()).
@@ -75,7 +75,7 @@ conceptually, I will show some code samples which show how this tool can be used
     ```
 
 *   If we are using *front matter* in our Markdown files, we can easily extract it by using the
-    [frontmatter plugin](../goldsmith-plugins/frontmatter):
+    [frontmatter plugin](https://foosoft.net/projects/goldsmith-plugins/frontmatter):
     ```
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
@@ -84,7 +84,7 @@ conceptually, I will show some code samples which show how this tool can be used
     ```
 
 *   Next we want to run our generated HTML through a template to add a header, footer, and a menu; for this we
-    can use the [layout plugin](../goldsmith-plugins/layout):
+    can use the [layout plugin](https://foosoft.net/projects/goldsmith-plugins/layout):
     ```
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
@@ -100,7 +100,7 @@ conceptually, I will show some code samples which show how this tool can be used
     ```
 
 *   Finally, let's [minify](https://en.wikipedia.org/wiki/Minification_(programming)) our files to reduce data transfer
-    and load times for our site's visitors using the [minify plugin](../goldsmith-plugins/minify).
+    and load times for our site's visitors using the [minify plugin](https://foosoft.net/projects/goldsmith-plugins/minify).
     ```
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
