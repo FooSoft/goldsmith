@@ -37,11 +37,12 @@ type goldsmith struct {
 	errorMtx sync.Mutex
 }
 
-func (gs *goldsmith) pushContext(plug Plugin) *context {
+func (gs *goldsmith) pushContext(plug Plugin, filters []string) *context {
 	ctx := &context{
-		gs:     gs,
-		plug:   plug,
-		output: make(chan *file),
+		gs:      gs,
+		plug:    plug,
+		filters: filters,
+		output:  make(chan *file),
 	}
 
 	if len(gs.contexts) > 0 {
@@ -100,8 +101,8 @@ func (gs *goldsmith) fault(f *file, err error) {
 //	Goldsmith Implementation
 //
 
-func (gs *goldsmith) Chain(p Plugin) Goldsmith {
-	gs.pushContext(p)
+func (gs *goldsmith) Chain(p Plugin, filters ...string) Goldsmith {
+	gs.pushContext(p, filters)
 	return gs
 }
 

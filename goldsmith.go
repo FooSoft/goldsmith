@@ -31,13 +31,13 @@ import (
 )
 
 type Goldsmith interface {
-	Chain(p Plugin) Goldsmith
+	Chain(p Plugin, filters ...string) Goldsmith
 	End(dstDir string) []error
 }
 
-func Begin(srcDir string) Goldsmith {
+func Begin(srcDir string, filters ...string) Goldsmith {
 	gs := &goldsmith{srcDir: srcDir, refs: make(map[string]bool)}
-	gs.Chain(new(loader))
+	gs.Chain(new(loader), filters...)
 	return gs
 }
 

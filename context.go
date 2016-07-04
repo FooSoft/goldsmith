@@ -26,24 +26,27 @@ import (
 	"os"
 	"runtime"
 	"sync"
+
+	"github.com/bmatcuk/doublestar"
 )
 
 type context struct {
 	gs            *goldsmith
 	plug          Plugin
+	filters       []string
 	input, output chan *file
 }
 
 func (ctx *context) chain() {
 	defer close(ctx.output)
 
-	init, _ := ctx.plug.(Initializer)
-	accept, _ := ctx.plug.(Accepter)
-	proc, _ := ctx.plug.(Processor)
-	fin, _ := ctx.plug.(Finalizer)
+	initializer, _ := ctx.plug.(Initializer)
+	accepter, _ := ctx.plug.(Accepter)
+	processor, _ := ctx.plug.(Processor)
+	finalizer, _ := ctx.plug.(Finalizer)
 
-	if init != nil {
-		if err := init.Initialize(ctx); err != nil {
+	if initializer != nil {
+		if err := initializer.Initialize(ctx); err != nil {
 			ctx.gs.fault(nil, err)
 			return
 		}
@@ -56,15 +59,26 @@ func (ctx *context) chain() {
 			go func() {
 				defer wg.Done()
 				for f := range ctx.input {
-					if proc == nil || accept != nil && !accept.Accept(ctx, f) {
-						ctx.output <- f
-					} else {
+					accept := processor != nil && (accepter == nil || accepter.Accept(ctx, f))
+					if accept && len(ctx.filters) > 0 {
+						accept = false
+						for _, filter := range ctx.filters {
+							if match, _ := doublestar.PathMatch(filter, f.Path()); match {
+								accept = true
+								break
+							}
+						}
+					}
+
+					if accept {
 						if _, err := f.Seek(0, os.SEEK_SET); err != nil {
 							ctx.gs.fault(f, err)
 						}
-						if err := proc.Process(ctx, f); err != nil {
+						if err := processor.Process(ctx, f); err != nil {
 							ctx.gs.fault(f, err)
 						}
+					} else {
+						ctx.output <- f
 					}
 				}
 			}()
@@ -72,8 +86,8 @@ func (ctx *context) chain() {
 		wg.Wait()
 	}
 
-	if fin != nil {
-		if err := fin.Finalize(ctx); err != nil {
+	if finalizer != nil {
+		if err := finalizer.Finalize(ctx); err != nil {
 			ctx.gs.fault(nil, err)
 		}
 	}
