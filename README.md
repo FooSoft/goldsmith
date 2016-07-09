@@ -1,6 +1,6 @@
 # Goldsmith #
 
-Goldsmith is a static website generator developed in Golang with flexibility, extensibility, and performance as primary
+Goldsmith is a static website generator developed in Go with flexibility, extensibility, and performance as primary
 design considerations. With Goldsmith you can easily build and deploy any type of site, whether it is a personal blog,
 image gallery, or a corporate homepage; the tool no assumptions are made about your layout or file structure. Goldsmith
 is trivially extensible via a plugin architecture which makes it simple to perform complex data transformations
