@@ -40,35 +40,40 @@ type context struct {
 func (ctx *context) chain() {
 	defer close(ctx.output)
 
-	initializer, _ := ctx.plug.(Initializer)
-	accepter, _ := ctx.plug.(Accepter)
-	processor, _ := ctx.plug.(Processor)
-	finalizer, _ := ctx.plug.(Finalizer)
-
-	if initializer != nil {
-		if err := initializer.Initialize(ctx); err != nil {
+	var filters []string
+	if initializer, ok := ctx.plug.(Initializer); ok {
+		var err error
+		filters, err = initializer.Initialize(ctx)
+		if err != nil {
 			ctx.gs.fault(nil, err)
 			return
 		}
 	}
 
 	if ctx.input != nil {
+		processor, _ := ctx.plug.(Processor)
+
 		var wg sync.WaitGroup
 		for i := 0; i < runtime.NumCPU(); i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				for f := range ctx.input {
-					accept := processor != nil && (accepter == nil || accepter.Accept(ctx, f))
-					if accept && len(ctx.filters) > 0 {
-						accept = false
-						for _, filter := range ctx.filters {
-							if match, _ := doublestar.PathMatch(filter, f.Path()); match {
-								accept = true
-								break
+					accept := processor != nil
+					matcher := func(patterns []string) {
+						if accept && len(patterns) > 0 {
+							accept = false
+							for _, pattern := range patterns {
+								if match, _ := doublestar.PathMatch(pattern, f.Path()); match {
+									accept = true
+									break
+								}
 							}
 						}
 					}
+
+					matcher(filters)
+					matcher(ctx.filters)
 
 					if accept {
 						if _, err := f.Seek(0, os.SEEK_SET); err != nil {
@@ -86,7 +91,7 @@ func (ctx *context) chain() {
 		wg.Wait()
 	}
 
-	if finalizer != nil {
+	if finalizer, ok := ctx.plug.(Finalizer); ok {
 		if err := finalizer.Finalize(ctx); err != nil {
 			ctx.gs.fault(nil, err)
 		}

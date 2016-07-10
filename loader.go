@@ -26,7 +26,7 @@ import "path/filepath"
 
 type loader struct{}
 
-func (*loader) Initialize(ctx Context) error {
+func (*loader) Initialize(ctx Context) ([]string, error) {
 	infos := make(chan fileInfo)
 	go scanDir(ctx.SrcDir(), infos)
 
@@ -48,5 +48,5 @@ func (*loader) Initialize(ctx Context) error {
 		ctx.DispatchFile(f)
 	}
 
-	return nil
+	return nil, nil
 }

@@ -106,11 +106,7 @@ func (e Error) Error() string {
 }
 
 type Initializer interface {
-	Initialize(ctx Context) error
-}
-
-type Accepter interface {
-	Accept(ctx Context, f File) bool
+	Initialize(ctx Context) ([]string, error)
 }
 
 type Processor interface {
