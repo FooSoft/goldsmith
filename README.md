@@ -7,6 +7,8 @@ is trivially extensible via a plugin architecture which makes it simple to perfo
 concurrently. A growing set of core plugins, [Goldsmith-Plugins](https://foosoft.net/projects/goldsmith-plugins/), is provided to make it
 easier to get started with this tool to generate static websites.
 
+![](https://foosoft.net/projects/goldsmith/img/gold.png)
+
 ## Motivation ##
 
 Why in the world would one create yet another static site generator? At first, I didn't think I needed to; after all,
