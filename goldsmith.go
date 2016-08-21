@@ -25,6 +25,7 @@ package goldsmith
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -97,12 +98,18 @@ type Context interface {
 }
 
 type Error struct {
-	Err  error
+	Name string
 	Path string
+	Err  error
 }
 
 func (e Error) Error() string {
-	return e.Err.Error()
+	var path string
+	if len(e.Path) > 0 {
+		path = "@" + e.Path
+	}
+
+	return fmt.Sprintf("[%s%s]: %s", e.Name, path, e.Err.Error())
 }
 
 type Initializer interface {
@@ -117,4 +124,6 @@ type Finalizer interface {
 	Finalize(ctx Context) error
 }
 
-type Plugin interface{}
+type Plugin interface {
+	Name() string
+}

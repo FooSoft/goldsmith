@@ -45,7 +45,7 @@ func (ctx *context) chain() {
 		var err error
 		filters, err = initializer.Initialize(ctx)
 		if err != nil {
-			ctx.gs.fault(nil, err)
+			ctx.gs.fault(ctx.plug.Name(), nil, err)
 			return
 		}
 	}
@@ -77,10 +77,10 @@ func (ctx *context) chain() {
 
 					if accept {
 						if _, err := f.Seek(0, os.SEEK_SET); err != nil {
-							ctx.gs.fault(f, err)
+							ctx.gs.fault("core", f, err)
 						}
 						if err := processor.Process(ctx, f); err != nil {
-							ctx.gs.fault(f, err)
+							ctx.gs.fault(ctx.plug.Name(), f, err)
 						}
 					} else {
 						ctx.output <- f
@@ -93,7 +93,7 @@ func (ctx *context) chain() {
 
 	if finalizer, ok := ctx.plug.(Finalizer); ok {
 		if err := finalizer.Finalize(ctx); err != nil {
-			ctx.gs.fault(nil, err)
+			ctx.gs.fault(ctx.plug.Name(), nil, err)
 		}
 	}
 }

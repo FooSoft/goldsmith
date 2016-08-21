@@ -26,6 +26,10 @@ import "path/filepath"
 
 type loader struct{}
 
+func (*loader) Name() string {
+	return "loader"
+}
+
 func (*loader) Initialize(ctx Context) ([]string, error) {
 	infos := make(chan fileInfo)
 	go scanDir(ctx.SrcDir(), infos)

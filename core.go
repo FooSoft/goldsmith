@@ -85,11 +85,11 @@ func (gs *goldsmith) exportFile(f *file) error {
 	return nil
 }
 
-func (gs *goldsmith) fault(f *file, err error) {
+func (gs *goldsmith) fault(name string, f *file, err error) {
 	gs.errorMtx.Lock()
 	defer gs.errorMtx.Unlock()
 
-	ferr := &Error{Err: err}
+	ferr := &Error{Name: name, Err: err}
 	if f != nil {
 		ferr.Path = f.path
 	}
