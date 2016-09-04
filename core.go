@@ -32,6 +32,7 @@ type goldsmith struct {
 	srcDir, dstDir string
 	contexts       []*context
 	refs           map[string]bool
+	complete       bool
 
 	errors   []error
 	errorMtx sync.Mutex
@@ -102,11 +103,19 @@ func (gs *goldsmith) fault(name string, f *file, err error) {
 //
 
 func (gs *goldsmith) Chain(p Plugin, filters ...string) Goldsmith {
+	if gs.complete {
+		panic("attempted reuse of goldsmith instance")
+	}
+
 	gs.pushContext(p, filters)
 	return gs
 }
 
 func (gs *goldsmith) End(dstDir string) []error {
+	if gs.complete {
+		panic("attempted reuse of goldsmith instance")
+	}
+
 	gs.dstDir = dstDir
 
 	for _, ctx := range gs.contexts {
@@ -119,5 +128,7 @@ func (gs *goldsmith) End(dstDir string) []error {
 	}
 
 	gs.cleanupFiles()
+	gs.complete = true
+
 	return gs.errors
 }
