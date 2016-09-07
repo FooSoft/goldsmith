@@ -6,6 +6,11 @@ image gallery, or a corporate homepage; the tool no assumptions are made about y
 is trivially extensible via a plugin architecture which makes it simple to perform complex data transformations
 concurrently.
 
+Naturally, I use Goldsmith to generate my personal website, [FooSoft Productions](https://foosoft.net/). If you would
+like to know how a Bootstrap site can be put together with this static generator, you can check out the [source content
+files](https://github.com/FooSoft/website) as well as the [plugin
+chain](https://github.com/FooSoft/webtools/blob/master/webbuild/main.go) that makes everything happen.
+
 ![](https://foosoft.net/projects/goldsmith/img/gold.png)
 
 ## Motivation ##
