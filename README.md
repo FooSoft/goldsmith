@@ -1,11 +1,9 @@
-# Goldsmith #
 
 Goldsmith is a static website generator developed in Go with flexibility, extensibility, and performance as primary
 design considerations. With Goldsmith you can easily build and deploy any type of site, whether it is a personal blog,
 image gallery, or a corporate homepage; the tool no assumptions are made about your layout or file structure. Goldsmith
 is trivially extensible via a plugin architecture which makes it simple to perform complex data transformations
-concurrently. A growing set of core plugins, [Goldsmith-Plugins](https://foosoft.net/projects/goldsmith-plugins/), is provided to make it
-easier to get started with this tool to generate static websites.
+concurrently.
 
 ![](https://foosoft.net/projects/goldsmith/img/gold.png)
 
@@ -39,7 +37,7 @@ tool for almost a year, I began to see its limits.
 *   The extension system is complicated; it's difficult to write and debug plugins.
 *   Quality of existing plugins varies greatly; I found many subtle issues.
 *   No support for parallel processing (this is a big one if you process images).
-*   A full [Node.js](https://nodejs.org/) is stack (including dependencies) is required to build sites.
+*   A full Node.js is stack (including dependencies) is required to build sites.
 
 Rather than making do with what I had indefinitely, I decided to use the knowledge I've obtained from using various
 static site generators to build my own. The *Goldsmith* name is a reference to both the *Go* programming language I've
@@ -56,28 +54,49 @@ I originally built this tool to generate my personal homepage, but I believe it 
 enjoy the freedom of building a static site from ground up, especially users of Metalsmith. Why craft metal when you can
 be crafting gold?
 
+## Plugins ##
+
+A growing set of core plugins is provided to make it easier to get started with this tool to generate static websites.
+
+*   [Goldsmith-Abs](https://foosoft.net/projects/goldsmith/abs/): Convert HTML relative file references to absolute paths.
+*   [Goldsmith-Breadcrumbs](https://foosoft.net/projects/goldsmith/breadcrumbs/): Manage metadata required to build navigation breadcrumbs.
+*   [Goldsmith-Collection](https://foosoft.net/projects/goldsmith/collection/): Group related pages into named collections.
+*   [Goldsmith-Condition](https://foosoft.net/projects/goldsmith/condition/): Conditionally chain plugins based on various criteria.
+*   [Goldsmith-FrontMatter](https://foosoft.net/projects/goldsmith/frontmatter/): Extract frontmatter from files and store it in file metadata.
+*   [Goldsmith-Include](https://foosoft.net/projects/goldsmith/include/): Include additional paths for processing.
+*   [Goldsmith-Index](https://foosoft.net/projects/goldsmith/index/): Create index pages for displaying directory listings.
+*   [Goldsmith-Layout](https://foosoft.net/projects/goldsmith/layout/): Process partial HTML into complete pages with Go templates.
+*   [Goldsmith-LiveJs](https://foosoft.net/projects/goldsmith/livejs/): Automatically refresh your web browser page on content change.
+*   [Goldsmith-Markdown](https://foosoft.net/projects/goldsmith/markdown/): Process Markdown files to generate partial HTML documents.
+*   [Goldsmith-Minify](https://foosoft.net/projects/goldsmith/minify/): Reduce the data size of various web file formats.
+*   [Goldsmith-Tags](https://foosoft.net/projects/goldsmith/tags/): Generate metadata and index pages for tags.
+*   [Goldsmith-Thumbnail](https://foosoft.net/projects/goldsmith/thumbnail/): Generate thumbnails for a variety of image formats.
+
 ## Usage ##
 
-Goldsmith is at it's core, a pipeline-based file processor. Files are loaded from the source directory, processed by any
-number of plugins, and are finally output to the destination directory. Rather than explaining the process in detail
-conceptually, I will show some code samples which show how this tool can be used in practice.
+Goldsmith is a pipeline-based file processor. Files are loaded in from the source directory, processed by a number of
+plugins, and are finally output to the destination directory. Rather than explaining the process in detail conceptually,
+I will show some code samples which show how this tool can be used in practice.
 
 *   Start by copying files from a source directory to a destination directory (simplest possible use case):
+
     ```
     goldsmith.Begin(srcDir).
         End(dstDir)
     ```
 
-*   Now let's also convert our [Markdown](https://daringfireball.net/projects/markdown/) files to HTML using the
-    [markdown plugin](https://foosoft.net/projects/goldsmith-plugins/markdown):
+*   Now let's also convert our Markdown files to HTML using the [Goldsmith-Markdown](https://foosoft.net/projects/goldsmith-plugins/markdown)
+    plugin:
+
     ```
     goldsmith.Begin(srcDir).
         Chain(markdown.NewCommon()).
         End(dstDir)
     ```
 
-*   If we are using *front matter* in our Markdown files, we can easily extract it by using the
-    [frontmatter plugin](https://foosoft.net/projects/goldsmith-plugins/frontmatter):
+*   If we are using *frontmatter* in our Markdown files, we can easily extract it by using the
+    [Goldsmith-Frontmatter](https://foosoft.net/projects/goldsmith-plugins/frontmatter) plugin:
+
     ```
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
@@ -85,41 +104,76 @@ conceptually, I will show some code samples which show how this tool can be used
         End(dstDir)
     ```
 
-*   Next we want to run our generated HTML through a template to add a header, footer, and a menu; for this we
-    can use the [layout plugin](https://foosoft.net/projects/goldsmith-plugins/layout):
+*   Next we want to run our generated HTML through a template to add a header, footer, and a menu; for this we can use
+    the [Goldsmith-Layout](https://foosoft.net/projects/goldsmith-plugins/layout) plugin:
+
     ```
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
         Chain(markdown.NewCommon()).
-		Chain(layout.New(
-            layoutFiles,        // array of paths for files containing template definitions
-            templateNameVar,    // metadata variable that contains the name of the template to use
-            contentStoreVar,    // metadata variable configured in template to insert content
-            defTemplateName,    // name of a default template to use if one is not specified
-            userFuncs,          // mapping of functions which can be executed from templates
-		)).
+        Chain(layout.New("layoutDir/*.html")).
         End(dstDir)
     ```
 
-*   Finally, let's [minify](https://en.wikipedia.org/wiki/Minification_(programming)) our files to reduce data transfer
-    and load times for our site's visitors using the [minify plugin](https://foosoft.net/projects/goldsmith-plugins/minify).
+*   Finally, let's minify our files to reduce data transfer and load times for our site's visitors using the
+    [Goldsmith-Minify](https://foosoft.net/projects/goldsmith-plugins/minify) plugin:
+
     ```
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
         Chain(markdown.NewCommon()).
-		Chain(layout.New(layoutFiles, templateNameVar, contentStoreVar, defTemplateName, userFuncs)).
+        Chain(layout.New("layoutDir/*.html")).
 		Chain(minify.New()).
         End(dstDir)
     ```
 
-I hope this simple example effectively illustrates the conceptual simplicity of the Goldsmith pipeline-based processing
-method. Files are injected into the stream at Goldsmith initialization, processed in parallel through a series of
-plugins, and are finally written out to disk upon completion.
+*   Now that we have all of our plugins chained up, let's look at a complete example which uses the
+    [Goldsmith-DevServer](https://foosoft.net/projects/goldsmith-devserver) library to bootstrap a development sever with live reload:
+
+    ```
+    package main
+
+    import (
+        "log"
+
+        "github.com/FooSoft/goldsmith"
+        "github.com/FooSoft/goldsmith-devserver"
+        "github.com/FooSoft/goldsmith-plugins/frontmatter"
+        "github.com/FooSoft/goldsmith-plugins/layout"
+        "github.com/FooSoft/goldsmith-plugins/livejs"
+        "github.com/FooSoft/goldsmith-plugins/markdown"
+        "github.com/FooSoft/goldsmith-plugins/minify"
+    )
+
+    type builder struct{}
+
+    func (b *builder) Build(srcDir, dstDir string) {
+        errs := goldsmith.Begin(srcDir).
+            Chain(frontmatter.New()).
+            Chain(markdown.NewCommon()).
+            Chain(layout.New("layoutDir/*.html")).
+            Chain(livejs.New()).
+            Chain(minify.New()).
+            End(dstDir)
+
+        for _, err := range errs {
+            log.Print(err)
+        }
+    }
+
+    func main() {
+        devserver.DevServe(new(builder), 8080, "srcDir", "dstDir")
+    }
+    ```
+
+I hope that this short series of examples illustrated the inherent simplicity and flexibility of the Goldsmith
+pipeline-oriented approach to data processing. Files are injected into the stream at Goldsmith initialization, processed
+in parallel through a set of plugins, and are finally written out to disk upon completion.
 
 Files are guaranteed to flow through Goldsmith plugins in the same order, but not necessarily in the same sequence
 relative to each other. Timing differences can cause certain files to finish ahead of others; fortunately this, along
-with other threading characteristics of the tool is abstracted from the user. The execution, while appearing to be a
-mere series chained methods, will process files using all of your system's cores.
+with other threading characteristics of the tool, is abstracted from the user. The execution, while appearing to be a
+mere series chained methods, will process files taking full advantage of your processor's cores.
 
 ## License ##
 
