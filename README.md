@@ -59,19 +59,19 @@ be crafting gold?
 
 A growing set of core plugins is provided to make it easier to get started with this tool to generate static websites.
 
-*   **[Goldsmith-Abs](https://foosoft.net/projects/goldsmith-plugins/abs/)**: Convert HTML relative file references to absolute paths.
-*   **[Goldsmith-Breadcrumbs](https://foosoft.net/projects/goldsmith-plugins/breadcrumbs/)**: Manage metadata required to build navigation breadcrumbs.
-*   **[Goldsmith-Collection](https://foosoft.net/projects/goldsmith-plugins/collection/)**: Group related pages into named collections.
-*   **[Goldsmith-Condition](https://foosoft.net/projects/goldsmith-plugins/condition/)**: Conditionally chain plugins based on various criteria.
-*   **[Goldsmith-FrontMatter](https://foosoft.net/projects/goldsmith-plugins/frontmatter/)**: Extract front matter from files and store it in file metadata.
-*   **[Goldsmith-Include](https://foosoft.net/projects/goldsmith-plugins/include/)**: Include additional paths for processing.
-*   **[Goldsmith-Index](https://foosoft.net/projects/goldsmith-plugins/index/)**: Create index pages for displaying directory listings.
-*   **[Goldsmith-Layout](https://foosoft.net/projects/goldsmith-plugins/layout/)**: Process partial HTML into complete pages with Go templates.
-*   **[Goldsmith-LiveJs](https://foosoft.net/projects/goldsmith-plugins/livejs/)**: Automatically refresh your web browser page on content change.
-*   **[Goldsmith-Markdown](https://foosoft.net/projects/goldsmith-plugins/markdown/)**: Process Markdown files to generate partial HTML documents.
-*   **[Goldsmith-Minify](https://foosoft.net/projects/goldsmith-plugins/minify/)**: Reduce the data size of various web file formats.
-*   **[Goldsmith-Tags](https://foosoft.net/projects/goldsmith-plugins/tags/)**: Generate metadata and index pages for tags.
-*   **[Goldsmith-Thumbnail](https://foosoft.net/projects/goldsmith-plugins/thumbnail/)**: Generate thumbnails for a variety of image formats.
+*   **[Goldsmith-Abs](https://foosoft.net/projects/goldsmith/plugins/abs/)**: Convert HTML relative file references to absolute paths.
+*   **[Goldsmith-Breadcrumbs](https://foosoft.net/projects/goldsmith/plugins/breadcrumbs/)**: Manage metadata required to build navigation breadcrumbs.
+*   **[Goldsmith-Collection](https://foosoft.net/projects/goldsmith/plugins/collection/)**: Group related pages into named collections.
+*   **[Goldsmith-Condition](https://foosoft.net/projects/goldsmith/plugins/condition/)**: Conditionally chain plugins based on various criteria.
+*   **[Goldsmith-FrontMatter](https://foosoft.net/projects/goldsmith/plugins/frontmatter/)**: Extract front matter from files and store it in file metadata.
+*   **[Goldsmith-Include](https://foosoft.net/projects/goldsmith/plugins/include/)**: Include additional paths for processing.
+*   **[Goldsmith-Index](https://foosoft.net/projects/goldsmith/plugins/index/)**: Create index pages for displaying directory listings.
+*   **[Goldsmith-Layout](https://foosoft.net/projects/goldsmith/plugins/layout/)**: Process partial HTML into complete pages with Go templates.
+*   **[Goldsmith-LiveJs](https://foosoft.net/projects/goldsmith/plugins/livejs/)**: Automatically refresh your web browser page on content change.
+*   **[Goldsmith-Markdown](https://foosoft.net/projects/goldsmith/plugins/markdown/)**: Process Markdown files to generate partial HTML documents.
+*   **[Goldsmith-Minify](https://foosoft.net/projects/goldsmith/plugins/minify/)**: Reduce the data size of various web file formats.
+*   **[Goldsmith-Tags](https://foosoft.net/projects/goldsmith/plugins/tags/)**: Generate metadata and index pages for tags.
+*   **[Goldsmith-Thumbnail](https://foosoft.net/projects/goldsmith/plugins/thumbnail/)**: Generate thumbnails for a variety of image formats.
 
 ## Usage ##
 
@@ -86,8 +86,8 @@ I will show some code samples which show how this tool can be used in practice.
         End(dstDir)
     ```
 
-*   Now let's also convert our Markdown files to HTML using the [Goldsmith-Markdown](https://foosoft.net/projects/goldsmith-plugins/markdown)
-    plugin:
+*   Now let's also convert our Markdown files to HTML using the
+    [Goldsmith-Markdown](https://foosoft.net/projects/goldsmith/plugins/markdown/) plugin:
 
     ```
     goldsmith.Begin(srcDir).
@@ -96,7 +96,7 @@ I will show some code samples which show how this tool can be used in practice.
     ```
 
 *   If we are using *frontmatter* in our Markdown files, we can easily extract it by using the
-    [Goldsmith-Frontmatter](https://foosoft.net/projects/goldsmith-plugins/frontmatter) plugin:
+    [Goldsmith-Frontmatter](https://foosoft.net/projects/goldsmith/plugins/frontmatter/) plugin:
 
     ```
     goldsmith.Begin(srcDir).
@@ -106,7 +106,7 @@ I will show some code samples which show how this tool can be used in practice.
     ```
 
 *   Next we want to run our generated HTML through a template to add a header, footer, and a menu; for this we can use
-    the [Goldsmith-Layout](https://foosoft.net/projects/goldsmith-plugins/layout) plugin:
+    the [Goldsmith-Layout](https://foosoft.net/projects/goldsmith/plugins/layout/) plugin:
 
     ```
     goldsmith.Begin(srcDir).
@@ -117,7 +117,7 @@ I will show some code samples which show how this tool can be used in practice.
     ```
 
 *   Finally, let's minify our files to reduce data transfer and load times for our site's visitors using the
-    [Goldsmith-Minify](https://foosoft.net/projects/goldsmith-plugins/minify) plugin:
+    [Goldsmith-Minify](https://foosoft.net/projects/goldsmith/plugins/minify/) plugin:
 
     ```
     goldsmith.Begin(srcDir).
@@ -129,7 +129,7 @@ I will show some code samples which show how this tool can be used in practice.
     ```
 
 *   Now that we have all of our plugins chained up, let's look at a complete example which uses the
-    [Goldsmith-DevServer](https://foosoft.net/projects/goldsmith-devserver) library to bootstrap a development sever with live reload:
+    [Goldsmith-DevServer](https://foosoft.net/projects/goldsmith/devserver/) library to bootstrap a development sever with live reload:
 
     ```
     package main
