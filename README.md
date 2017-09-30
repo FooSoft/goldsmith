@@ -86,7 +86,7 @@ I will show some code samples which show how this tool can be used in practice.
 
 *   Start by copying files from a source directory to a destination directory (simplest possible use case):
 
-    ```
+    ```go
     goldsmith.Begin(srcDir).
         End(dstDir)
     ```
@@ -94,7 +94,7 @@ I will show some code samples which show how this tool can be used in practice.
 *   Now let's also convert our Markdown files to HTML using the
     [Goldsmith-Markdown](https://foosoft.net/projects/goldsmith/plugins/markdown/) plugin:
 
-    ```
+    ```go
     goldsmith.Begin(srcDir).
         Chain(markdown.NewCommon()).
         End(dstDir)
@@ -103,7 +103,7 @@ I will show some code samples which show how this tool can be used in practice.
 *   If we are using *frontmatter* in our Markdown files, we can easily extract it by using the
     [Goldsmith-Frontmatter](https://foosoft.net/projects/goldsmith/plugins/frontmatter/) plugin:
 
-    ```
+    ```go
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
         Chain(markdown.NewCommon()).
@@ -113,7 +113,7 @@ I will show some code samples which show how this tool can be used in practice.
 *   Next we want to run our generated HTML through a template to add a header, footer, and a menu; for this we can use
     the [Goldsmith-Layout](https://foosoft.net/projects/goldsmith/plugins/layout/) plugin:
 
-    ```
+    ```go
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
         Chain(markdown.NewCommon()).
@@ -124,7 +124,7 @@ I will show some code samples which show how this tool can be used in practice.
 *   Finally, let's minify our files to reduce data transfer and load times for our site's visitors using the
     [Goldsmith-Minify](https://foosoft.net/projects/goldsmith/plugins/minify/) plugin:
 
-    ```
+    ```go
     goldsmith.Begin(srcDir).
 		Chain(frontmatter.New()).
         Chain(markdown.NewCommon()).
@@ -136,7 +136,7 @@ I will show some code samples which show how this tool can be used in practice.
 *   Now that we have all of our plugins chained up, let's look at a complete example which uses the
     [Goldsmith-DevServer](https://foosoft.net/projects/goldsmith/devserver/) library to bootstrap a development sever with live reload:
 
-    ```
+    ```go
     package main
 
     import (
