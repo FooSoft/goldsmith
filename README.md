@@ -13,6 +13,13 @@ chain](https://github.com/FooSoft/webtools/blob/master/webbuild/main.go) that ma
 
 ![](https://foosoft.net/projects/goldsmith/img/gold.png)
 
+## Table of Contents
+
+*   [Motivation](https://foosoft.net/projects/goldsmith/#motivation)
+*   [Plugins](https://foosoft.net/projects/goldsmith/#plugins)
+*   [Usage](https://foosoft.net/projects/goldsmith/#usage)
+*   [License](https://foosoft.net/projects/goldsmith/#license)
+
 ## Motivation ##
 
 Why in the world would one create yet another static site generator? At first, I didn't think I needed to; after all,
