@@ -134,7 +134,7 @@ func (f *file) SetValue(key string, value interface{}) bool {
 	return setDelimValue(f.Meta, key, value)
 }
 
-func (f *file) CopyValues(src File) {
+func (f *file) InheritValues(src File) {
 	rf := src.(*file)
 	for name, value := range rf.Meta {
 		f.SetValue(name, value)

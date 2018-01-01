@@ -52,7 +52,7 @@ type File interface {
 
 	Value(key string) (interface{}, bool)
 	SetValue(key string, value interface{}) bool
-	CopyValues(src File)
+	InheritValues(src File)
 
 	Read(p []byte) (int, error)
 	WriteTo(w io.Writer) (int64, error)
