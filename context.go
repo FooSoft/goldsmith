@@ -26,23 +26,21 @@ import (
 	"os"
 	"runtime"
 	"sync"
-
-	"github.com/bmatcuk/doublestar"
 )
 
 type context struct {
 	gs            *goldsmith
 	plug          Plugin
-	filters       []string
+	filters       []Filter
 	input, output chan *file
 }
 
 func (ctx *context) chain() {
 	defer close(ctx.output)
 
-	var filters []string
+	var err error
+	var filters []Filter
 	if initializer, ok := ctx.plug.(Initializer); ok {
-		var err error
 		filters, err = initializer.Initialize(ctx)
 		if err != nil {
 			ctx.gs.fault(ctx.plug.Name(), nil, err)
@@ -60,20 +58,16 @@ func (ctx *context) chain() {
 				defer wg.Done()
 				for f := range ctx.input {
 					accept := processor != nil
-					matcher := func(patterns []string) {
-						if accept && len(patterns) > 0 {
-							accept = false
-							for _, pattern := range patterns {
-								if match, _ := doublestar.PathMatch(pattern, f.Path()); match {
-									accept = true
-									break
-								}
-							}
+					for _, filter := range append(ctx.filters, filters...) {
+						if accept, err = filter.Accept(ctx, f); err != nil {
+							ctx.gs.fault(filter.Name(), f, err)
+							return
+						}
+
+						if !accept {
+							break
 						}
 					}
-
-					matcher(filters)
-					matcher(ctx.filters)
 
 					if accept {
 						if _, err := f.Seek(0, os.SEEK_SET); err != nil {

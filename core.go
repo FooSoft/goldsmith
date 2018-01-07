@@ -33,18 +33,15 @@ type goldsmith struct {
 	contexts       []*context
 	refs           map[string]bool
 	complete       bool
+	filters        []Filter
 
 	errors   []error
 	errorMtx sync.Mutex
 }
 
-func (gs *goldsmith) pushContext(plug Plugin, filters []string) *context {
-	ctx := &context{
-		gs:      gs,
-		plug:    plug,
-		filters: filters,
-		output:  make(chan *file),
-	}
+func (gs *goldsmith) pushContext(plug Plugin) *context {
+	ctx := &context{gs: gs, plug: plug, output: make(chan *file)}
+	ctx.filters = append(ctx.filters, gs.filters...)
 
 	if len(gs.contexts) > 0 {
 		ctx.input = gs.contexts[len(gs.contexts)-1].output
@@ -102,12 +99,35 @@ func (gs *goldsmith) fault(name string, f *file, err error) {
 //	Goldsmith Implementation
 //
 
-func (gs *goldsmith) Chain(p Plugin, filters ...string) Goldsmith {
+func (gs *goldsmith) Chain(p Plugin) Goldsmith {
 	if gs.complete {
 		panic("attempted reuse of goldsmith instance")
 	}
 
-	gs.pushContext(p, filters)
+	gs.pushContext(p)
+	return gs
+}
+
+func (gs *goldsmith) FilterPush(f Filter) Goldsmith {
+	if gs.complete {
+		panic("attempted reuse of goldsmith instance")
+	}
+
+	gs.filters = append(gs.filters, f)
+	return gs
+}
+
+func (gs *goldsmith) FilterPop() Goldsmith {
+	if gs.complete {
+		panic("attempted reuse of goldsmith instance")
+	}
+
+	count := len(gs.filters)
+	if count == 0 {
+		panic("attempted to pop empty filter stack")
+	}
+
+	gs.filters = gs.filters[:count-1]
 	return gs
 }
 

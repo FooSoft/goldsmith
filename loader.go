@@ -30,7 +30,7 @@ func (*loader) Name() string {
 	return "loader"
 }
 
-func (*loader) Initialize(ctx Context) ([]string, error) {
+func (*loader) Initialize(ctx Context) ([]Filter, error) {
 	infos := make(chan fileInfo)
 	go scanDir(ctx.SrcDir(), infos)
 

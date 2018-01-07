@@ -32,13 +32,15 @@ import (
 )
 
 type Goldsmith interface {
-	Chain(p Plugin, filters ...string) Goldsmith
+	Chain(p Plugin) Goldsmith
+	FilterPush(f Filter) Goldsmith
+	FilterPop() Goldsmith
 	End(dstDir string) []error
 }
 
-func Begin(srcDir string, filters ...string) Goldsmith {
+func Begin(srcDir string) Goldsmith {
 	gs := &goldsmith{srcDir: srcDir, refs: make(map[string]bool)}
-	gs.Chain(new(loader), filters...)
+	gs.Chain(new(loader))
 	return gs
 }
 
@@ -113,7 +115,7 @@ func (e Error) Error() string {
 }
 
 type Initializer interface {
-	Initialize(ctx Context) ([]string, error)
+	Initialize(ctx Context) ([]Filter, error)
 }
 
 type Processor interface {
@@ -124,6 +126,15 @@ type Finalizer interface {
 	Finalize(ctx Context) error
 }
 
-type Plugin interface {
+type Component interface {
 	Name() string
+}
+
+type Filter interface {
+	Component
+	Accept(ctx Context, f File) (bool, error)
+}
+
+type Plugin interface {
+	Component
 }
