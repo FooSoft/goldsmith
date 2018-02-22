@@ -16,7 +16,7 @@ chain](https://github.com/FooSoft/webtools/blob/master/webbuild/main.go) that ma
 ## Table of Contents
 
 *   [Motivation](https://foosoft.net/projects/goldsmith/#motivation)
-*   [Plugins](https://foosoft.net/projects/goldsmith/#plugins)
+*   [Components](https://foosoft.net/projects/goldsmith/#components)
 *   [Usage](https://foosoft.net/projects/goldsmith/#usage)
 *   [License](https://foosoft.net/projects/goldsmith/#license)
 
@@ -67,23 +67,40 @@ I originally built this tool to generate my personal homepage, but I believe it 
 enjoy the freedom of building a static site from ground up, especially users of Metalsmith. Why craft metal when you can
 be crafting gold?
 
-## Plugins ##
+## Components ##
 
 A growing set of core plugins is provided to make it easier to get started with this tool to generate static websites.
+
+### Plugins ###
 
 *   **[Goldsmith-Abs](https://foosoft.net/projects/goldsmith/plugins/abs/)**: Convert HTML relative file references to absolute paths.
 *   **[Goldsmith-Breadcrumbs](https://foosoft.net/projects/goldsmith/plugins/breadcrumbs/)**: Manage metadata required to build navigation breadcrumbs.
 *   **[Goldsmith-Collection](https://foosoft.net/projects/goldsmith/plugins/collection/)**: Group related pages into named collections.
-*   **[Goldsmith-Condition](https://foosoft.net/projects/goldsmith/plugins/condition/)**: Conditionally chain plugins based on various criteria.
+*   **[Goldsmith-Dom](https://foosoft.net/projects/goldsmith/plugins/dom/)**: Easily make changes to your site's DOM structure.
 *   **[Goldsmith-FrontMatter](https://foosoft.net/projects/goldsmith/plugins/frontmatter/)**: Extract front matter from files and store it in file metadata.
-*   **[Goldsmith-Include](https://foosoft.net/projects/goldsmith/plugins/include/)**: Include additional paths for processing.
 *   **[Goldsmith-Index](https://foosoft.net/projects/goldsmith/plugins/index/)**: Create index pages for displaying directory listings.
 *   **[Goldsmith-Layout](https://foosoft.net/projects/goldsmith/plugins/layout/)**: Process partial HTML into complete pages with Go templates.
 *   **[Goldsmith-LiveJs](https://foosoft.net/projects/goldsmith/plugins/livejs/)**: Automatically refresh your web browser page on content change.
 *   **[Goldsmith-Markdown](https://foosoft.net/projects/goldsmith/plugins/markdown/)**: Process Markdown files to generate partial HTML documents.
 *   **[Goldsmith-Minify](https://foosoft.net/projects/goldsmith/plugins/minify/)**: Reduce the data size of various web file formats.
+*   **[Goldsmith-Paginate](https://foosoft.net/projects/goldsmith/plugins/paginate/)**: Split large collections of data into multiple pages.
+*   **[Goldsmith-Summary](https://foosoft.net/projects/goldsmith/plugins/summary/)**:
+*   **[Goldsmith-Syntax](https://foosoft.net/projects/goldsmith/plugins/syntax/)**: Enable syntax highlighting inside code blocks.
 *   **[Goldsmith-Tags](https://foosoft.net/projects/goldsmith/plugins/tags/)**: Generate metadata and index pages for tags.
 *   **[Goldsmith-Thumbnail](https://foosoft.net/projects/goldsmith/plugins/thumbnail/)**: Generate thumbnails for a variety of image formats.
+
+### Filters ###
+
+*   **[Goldsmith-And](https://foosoft.net/projects/goldsmith/filters/and/)**: 
+*   **[Goldsmith-Condition](https://foosoft.net/projects/goldsmith/filters/condition/)**: 
+*   **[Goldsmith-Extension](https://foosoft.net/projects/goldsmith/filters/extension/)**: 
+*   **[Goldsmith-Not](https://foosoft.net/projects/goldsmith/filters/not/)**: 
+*   **[Goldsmith-Or](https://foosoft.net/projects/goldsmith/filters/or/)**: 
+*   **[Goldsmith-Wildcard](https://foosoft.net/projects/goldsmith/filters/wildcard/)**: 
+
+### Other ###
+
+*   **[Goldsmith-DevServer](https://foosoft.net/projects/goldsmith/devserver/)**: 
 
 ## Usage ##
 
@@ -151,11 +168,11 @@ I will show some code samples which show how this tool can be used in practice.
 
         "github.com/FooSoft/goldsmith"
         "github.com/FooSoft/goldsmith-devserver"
-        "github.com/FooSoft/goldsmith-plugins/frontmatter"
-        "github.com/FooSoft/goldsmith-plugins/layout"
-        "github.com/FooSoft/goldsmith-plugins/livejs"
-        "github.com/FooSoft/goldsmith-plugins/markdown"
-        "github.com/FooSoft/goldsmith-plugins/minify"
+        "github.com/FooSoft/goldsmith-components/frontmatter"
+        "github.com/FooSoft/goldsmith-components/layout"
+        "github.com/FooSoft/goldsmith-components/livejs"
+        "github.com/FooSoft/goldsmith-components/markdown"
+        "github.com/FooSoft/goldsmith-components/minify"
     )
 
     type builder struct{}
