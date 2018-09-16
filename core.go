@@ -117,7 +117,7 @@ func (gs *goldsmith) End(dstDir string) []error {
 	gs.dstDir = dstDir
 
 	for _, ctx := range gs.contexts {
-		go ctx.chain()
+		go ctx.step()
 	}
 
 	ctx := gs.contexts[len(gs.contexts)-1]

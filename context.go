@@ -13,7 +13,7 @@ type context struct {
 	input, output chan *file
 }
 
-func (ctx *context) chain() {
+func (ctx *context) step() {
 	defer close(ctx.output)
 
 	var err error
