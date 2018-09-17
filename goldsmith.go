@@ -39,13 +39,13 @@ type File interface {
 	Seek(offset int64, whence int) (int64, error)
 }
 
-func NewFileFromData(path string, data []byte) File {
+func NewFileFromData(path string, data []byte, modTime time.Time) File {
 	return &file{
 		path:    path,
 		Meta:    make(map[string]interface{}),
 		reader:  bytes.NewReader(data),
 		size:    int64(len(data)),
-		modTime: time.Now(),
+		modTime: modTime,
 	}
 }
 
