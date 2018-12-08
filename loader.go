@@ -8,26 +8,26 @@ func (*loader) Name() string {
 	return "loader"
 }
 
-func (*loader) Initialize(ctx Context) ([]Filter, error) {
+func (*loader) Initialize(ctx *Context) ([]Filter, error) {
 	infos := make(chan fileInfo)
-	go scanDir(ctx.SrcDir(), infos)
+	go scanDir(ctx.goldsmith.sourceDir, infos)
 
 	for info := range infos {
 		if info.IsDir() {
 			continue
 		}
 
-		relPath, _ := filepath.Rel(ctx.SrcDir(), info.path)
+		relPath, _ := filepath.Rel(ctx.goldsmith.sourceDir, info.path)
 
-		f := &file{
-			path:    relPath,
-			Meta:    make(map[string]interface{}),
-			modTime: info.ModTime(),
-			size:    info.Size(),
-			asset:   info.path,
+		file := &File{
+			sourcePath: relPath,
+			Meta:       make(map[string]interface{}),
+			modTime:    info.ModTime(),
+			size:       info.Size(),
+			dataPath:   info.path,
 		}
 
-		ctx.DispatchFile(f)
+		ctx.DispatchFile(file)
 	}
 
 	return nil, nil

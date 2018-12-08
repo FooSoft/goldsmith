@@ -1,118 +1,144 @@
 package goldsmith
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"io"
+	"hash"
+	"hash/crc32"
 	"os"
-	"time"
+	"path/filepath"
+	"sync"
 )
 
-type Goldsmith interface {
-	Chain(p Plugin) Goldsmith
-	FilterPush(f Filter) Goldsmith
-	FilterPop() Goldsmith
-	End(dstDir string) []error
+type Goldsmith struct {
+	sourceDir string
+	targetDir string
+
+	contexts      []*Context
+	contextHasher hash.Hash32
+
+	fileRefs    map[string]bool
+	fileFilters []Filter
+	fileCache   *fileCache
+
+	errors   []error
+	errorMtx sync.Mutex
 }
 
-func Begin(srcDir string) Goldsmith {
-	gs := &goldsmith{srcDir: srcDir, refs: make(map[string]bool)}
+func Begin(sourceDir string) *Goldsmith {
+	gs := &Goldsmith{
+		sourceDir:     sourceDir,
+		contextHasher: crc32.NewIEEE(),
+		fileRefs:      make(map[string]bool),
+	}
+
 	gs.Chain(new(loader))
 	return gs
 }
 
-type File interface {
-	Path() string
-	Name() string
-	Dir() string
-	Ext() string
-	Size() int64
-	ModTime() time.Time
-
-	Value(key string) (interface{}, bool)
-	SetValue(key string, value interface{}) bool
-	InheritValues(src File)
-
-	Read(p []byte) (int, error)
-	WriteTo(w io.Writer) (int64, error)
-	Seek(offset int64, whence int) (int64, error)
+func (gs *Goldsmith) Cache(cacheDir string) *Goldsmith {
+	gs.fileCache = &fileCache{cacheDir}
+	return gs
 }
 
-func NewFileFromData(path string, data []byte, modTime time.Time) File {
-	return &file{
-		path:    path,
-		Meta:    make(map[string]interface{}),
-		reader:  bytes.NewReader(data),
-		size:    int64(len(data)),
-		modTime: modTime,
+func (gs *Goldsmith) Chain(plugin Plugin) *Goldsmith {
+	gs.contextHasher.Write([]byte(plugin.Name()))
+
+	context := &Context{
+		goldsmith:   gs,
+		plugin:      plugin,
+		hash:        gs.contextHasher.Sum32(),
+		outputFiles: make(chan *File),
+	}
+
+	context.fileFilters = append(context.fileFilters, gs.fileFilters...)
+
+	if len(gs.contexts) > 0 {
+		context.inputFiles = gs.contexts[len(gs.contexts)-1].outputFiles
+	}
+
+	gs.contexts = append(gs.contexts, context)
+	return gs
+}
+
+func (gs *Goldsmith) FilterPush(filter Filter) *Goldsmith {
+	gs.fileFilters = append(gs.fileFilters, filter)
+	return gs
+}
+
+func (gs *Goldsmith) FilterPop() *Goldsmith {
+	count := len(gs.fileFilters)
+	if count == 0 {
+		panic("attempted to pop empty filter stack")
+	}
+
+	gs.fileFilters = gs.fileFilters[:count-1]
+	return gs
+}
+
+func (gs *Goldsmith) End(targetDir string) []error {
+	gs.targetDir = targetDir
+
+	for _, context := range gs.contexts {
+		go context.step()
+	}
+
+	context := gs.contexts[len(gs.contexts)-1]
+	for file := range context.outputFiles {
+		gs.exportFile(file)
+	}
+
+	gs.removeUnreferencedFiles()
+	return gs.errors
+}
+
+func (gs *Goldsmith) retrieveFile(context *Context, outputPath string, inputFiles []*File) *File {
+	if gs.fileCache != nil {
+		outputFile, _ := gs.fileCache.retrieveFile(context, outputPath, inputFiles)
+		return outputFile
+	}
+
+	return nil
+}
+
+func (gs *Goldsmith) storeFile(context *Context, outputFile *File, inputFiles []*File) {
+	if gs.fileCache != nil {
+		gs.fileCache.storeFile(context, outputFile, inputFiles)
 	}
 }
 
-func NewFileFromAsset(path, asset string) (File, error) {
-	info, err := os.Stat(asset)
-	if err != nil {
-		return nil, err
+func (gs *Goldsmith) removeUnreferencedFiles() {
+	infos := make(chan fileInfo)
+	go scanDir(gs.targetDir, infos)
+
+	for info := range infos {
+		if info.path != gs.targetDir {
+			relPath, _ := filepath.Rel(gs.targetDir, info.path)
+			if contained, _ := gs.fileRefs[relPath]; !contained {
+				os.RemoveAll(info.path)
+			}
+		}
+	}
+}
+
+func (gs *Goldsmith) exportFile(file *File) error {
+	if err := file.export(gs.targetDir); err != nil {
+		return err
 	}
 
-	if info.IsDir() {
-		return nil, errors.New("assets must be files")
+	for pathSeg := cleanPath(file.sourcePath); pathSeg != "."; pathSeg = filepath.Dir(pathSeg) {
+		gs.fileRefs[pathSeg] = true
 	}
 
-	f := &file{
-		path:    path,
-		Meta:    make(map[string]interface{}),
-		size:    info.Size(),
-		modTime: info.ModTime(),
-		asset:   asset,
+	return nil
+}
+
+func (gs *Goldsmith) fault(pluginName string, file *File, err error) {
+	gs.errorMtx.Lock()
+	defer gs.errorMtx.Unlock()
+
+	faultError := &Error{Name: pluginName, Err: err}
+	if file != nil {
+		faultError.Path = file.sourcePath
 	}
 
-	return f, nil
-}
-
-type Context interface {
-	DispatchFile(f File)
-
-	SrcDir() string
-	DstDir() string
-}
-
-type Error struct {
-	Name string
-	Path string
-	Err  error
-}
-
-func (e Error) Error() string {
-	var path string
-	if len(e.Path) > 0 {
-		path = "@" + e.Path
-	}
-
-	return fmt.Sprintf("[%s%s]: %s", e.Name, path, e.Err.Error())
-}
-
-type Initializer interface {
-	Initialize(ctx Context) ([]Filter, error)
-}
-
-type Processor interface {
-	Process(ctx Context, f File) error
-}
-
-type Finalizer interface {
-	Finalize(ctx Context) error
-}
-
-type Component interface {
-	Name() string
-}
-
-type Filter interface {
-	Component
-	Accept(ctx Context, f File) (bool, error)
-}
-
-type Plugin interface {
-	Component
+	gs.errors = append(gs.errors, faultError)
 }
