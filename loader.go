@@ -2,13 +2,15 @@ package goldsmith
 
 import "path/filepath"
 
-type loader struct{}
+type loader struct {
+	Initializer
+}
 
 func (*loader) Name() string {
 	return "loader"
 }
 
-func (*loader) Initialize(ctx *Context) ([]Filter, error) {
+func (*loader) Initialize(ctx *Context) (Filter, error) {
 	infos := make(chan fileInfo)
 	go scanDir(ctx.goldsmith.sourceDir, infos)
 

@@ -67,9 +67,9 @@ func (ctx *Context) step() {
 	defer close(ctx.outputFiles)
 
 	var err error
-	var filters []Filter
+	var filter Filter
 	if initializer, ok := ctx.plugin.(Initializer); ok {
-		filters, err = initializer.Initialize(ctx)
+		filter, err = initializer.Initialize(ctx)
 		if err != nil {
 			ctx.goldsmith.fault(ctx.plugin.Name(), nil, err)
 			return
@@ -86,9 +86,16 @@ func (ctx *Context) step() {
 				defer wg.Done()
 				for inputFile := range ctx.inputFiles {
 					accept := processor != nil
-					for _, filter := range append(ctx.fileFilters, filters...) {
-						if accept, err = filter.Accept(ctx, inputFile); err != nil {
-							ctx.goldsmith.fault(filter.Name(), inputFile, err)
+
+					var fileFilters []Filter
+					fileFilters = append(fileFilters, ctx.fileFilters...)
+					if filter != nil {
+						fileFilters = append(fileFilters, filter)
+					}
+
+					for _, fileFilter := range fileFilters {
+						if accept, err = fileFilter.Accept(ctx, inputFile); err != nil {
+							ctx.goldsmith.fault(fileFilter.Name(), inputFile, err)
 							return
 						}
 						if !accept {

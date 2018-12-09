@@ -1,7 +1,7 @@
 package goldsmith
 
 type Initializer interface {
-	Initialize(ctx *Context) ([]Filter, error)
+	Initialize(ctx *Context) (Filter, error)
 }
 
 type Processor interface {
