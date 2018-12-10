@@ -8,11 +8,11 @@ type Error struct {
 	Err  error
 }
 
-func (e Error) Error() string {
+func (err Error) Error() string {
 	var path string
-	if len(e.Path) > 0 {
-		path = "@" + e.Path
+	if len(err.Path) > 0 {
+		path = "@" + err.Path
 	}
 
-	return fmt.Sprintf("[%s%s]: %s", e.Name, path, e.Err.Error())
+	return fmt.Sprintf("[%s%s]: %s", err.Name, path, err.Err.Error())
 }

@@ -26,75 +26,61 @@ type File struct {
 	modTime time.Time
 }
 
-func (f *File) Path() string {
-	return f.sourcePath
+func (file *File) Path() string {
+	return file.sourcePath
 }
 
-func (f *File) Name() string {
-	return path.Base(f.sourcePath)
+func (file *File) Name() string {
+	return path.Base(file.sourcePath)
 }
 
-func (f *File) Dir() string {
-	return path.Dir(f.sourcePath)
+func (file *File) Dir() string {
+	return path.Dir(file.sourcePath)
 }
 
-func (f *File) Ext() string {
-	return path.Ext(f.sourcePath)
+func (file *File) Ext() string {
+	return path.Ext(file.sourcePath)
 }
 
-func (f *File) Size() int64 {
-	return f.size
+func (file *File) Size() int64 {
+	return file.size
 }
 
-func (f *File) ModTime() time.Time {
-	return f.modTime
+func (file *File) ModTime() time.Time {
+	return file.modTime
 }
 
-func (f *File) Read(data []byte) (int, error) {
-	if err := f.load(); err != nil {
+func (file *File) Read(data []byte) (int, error) {
+	if err := file.load(); err != nil {
 		return 0, err
 	}
 
-	return f.reader.Read(data)
+	return file.reader.Read(data)
 }
 
-func (f *File) WriteTo(writer io.Writer) (int64, error) {
-	if err := f.load(); err != nil {
+func (file *File) WriteTo(writer io.Writer) (int64, error) {
+	if err := file.load(); err != nil {
 		return 0, err
 	}
 
-	return f.reader.WriteTo(writer)
+	return file.reader.WriteTo(writer)
 }
 
-func (f *File) Seek(offset int64, whence int) (int64, error) {
-	if f.reader == nil && offset == 0 && (whence == os.SEEK_SET || whence == os.SEEK_CUR) {
+func (file *File) Seek(offset int64, whence int) (int64, error) {
+	if file.reader == nil && offset == 0 && (whence == os.SEEK_SET || whence == os.SEEK_CUR) {
 		return 0, nil
 	}
 
-	if err := f.load(); err != nil {
+	if err := file.load(); err != nil {
 		return 0, err
 	}
 
-	return f.reader.Seek(offset, whence)
+	return file.reader.Seek(offset, whence)
 }
 
-type FilesByPath []*File
-
-func (f FilesByPath) Len() int {
-	return len(f)
-}
-
-func (f FilesByPath) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
-}
-
-func (f FilesByPath) Less(i, j int) bool {
-	return strings.Compare(f[i].Path(), f[j].Path()) < 0
-}
-
-func (f *File) export(targetDir string) error {
-	targetPath := filepath.Join(targetDir, f.sourcePath)
-	if targetInfo, err := os.Stat(targetPath); err == nil && targetInfo.ModTime().After(f.ModTime()) {
+func (file *File) export(targetDir string) error {
+	targetPath := filepath.Join(targetDir, file.sourcePath)
+	if targetInfo, err := os.Stat(targetPath); err == nil && targetInfo.ModTime().After(file.ModTime()) {
 		return nil
 	}
 
@@ -108,8 +94,8 @@ func (f *File) export(targetDir string) error {
 	}
 	defer fw.Close()
 
-	if f.reader == nil {
-		fr, err := os.Open(f.dataPath)
+	if file.reader == nil {
+		fr, err := os.Open(file.dataPath)
 		if err != nil {
 			return err
 		}
@@ -119,11 +105,11 @@ func (f *File) export(targetDir string) error {
 			return err
 		}
 	} else {
-		if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+		if _, err := file.Seek(0, os.SEEK_SET); err != nil {
 			return err
 		}
 
-		if _, err := f.WriteTo(fw); err != nil {
+		if _, err := file.WriteTo(fw); err != nil {
 			return err
 		}
 	}
@@ -131,50 +117,64 @@ func (f *File) export(targetDir string) error {
 	return nil
 }
 
-func (f *File) load() error {
-	if f.reader != nil {
+func (file *File) load() error {
+	if file.reader != nil {
 		return nil
 	}
 
-	data, err := ioutil.ReadFile(f.dataPath)
+	data, err := ioutil.ReadFile(file.dataPath)
 	if err != nil {
 		return err
 	}
 
-	f.reader = bytes.NewReader(data)
+	file.reader = bytes.NewReader(data)
 	return nil
 }
 
-func (f *File) hash() (uint32, error) {
-	if f.hashValid {
-		return f.hashValue, nil
+func (file *File) hash() (uint32, error) {
+	if file.hashValid {
+		return file.hashValue, nil
 	}
 
-	if err := f.load(); err != nil {
+	if err := file.load(); err != nil {
 		return 0, err
 	}
 
-	offset, err := f.Seek(0, os.SEEK_CUR)
+	offset, err := file.Seek(0, os.SEEK_CUR)
 	if err != nil {
 		return 0, err
 	}
 
-	if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+	if _, err := file.Seek(0, os.SEEK_SET); err != nil {
 		return 0, err
 	}
 
 	hasher := crc32.NewIEEE()
-	if _, err := io.Copy(hasher, f.reader); err != nil {
+	if _, err := io.Copy(hasher, file.reader); err != nil {
 		return 0, err
 	}
 
-	if _, err := f.Seek(offset, os.SEEK_SET); err != nil {
+	if _, err := file.Seek(offset, os.SEEK_SET); err != nil {
 		return 0, err
 	}
 
-	f.hashValue = hasher.Sum32()
-	f.hashValid = true
-	return f.hashValue, nil
+	file.hashValue = hasher.Sum32()
+	file.hashValid = true
+	return file.hashValue, nil
+}
+
+type FilesByPath []*File
+
+func (file FilesByPath) Len() int {
+	return len(file)
+}
+
+func (file FilesByPath) Swap(i, j int) {
+	file[i], file[j] = file[j], file[i]
+}
+
+func (file FilesByPath) Less(i, j int) bool {
+	return strings.Compare(file[i].Path(), file[j].Path()) < 0
 }
 
 type fileInfo struct {

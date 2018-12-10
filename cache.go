@@ -9,12 +9,12 @@ import (
 	"sort"
 )
 
-type fileCache struct {
+type cache struct {
 	baseDir string
 }
 
-func (c *fileCache) retrieveFile(context *Context, outputPath string, inputFiles []*File) (*File, error) {
-	cachePath, err := c.buildCachePath(context, outputPath, inputFiles)
+func (cache *cache) retrieveFile(context *Context, outputPath string, inputFiles []*File) (*File, error) {
+	cachePath, err := cache.buildCachePath(context, outputPath, inputFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -31,13 +31,13 @@ func (c *fileCache) retrieveFile(context *Context, outputPath string, inputFiles
 	return outputFile, nil
 }
 
-func (c *fileCache) storeFile(context *Context, outputFile *File, inputFiles []*File) error {
-	cachePath, err := c.buildCachePath(context, outputFile.Path(), inputFiles)
+func (cache *cache) storeFile(context *Context, outputFile *File, inputFiles []*File) error {
+	cachePath, err := cache.buildCachePath(context, outputFile.Path(), inputFiles)
 	if err != nil {
 		return err
 	}
 
-	if err := os.MkdirAll(c.baseDir, 0755); err != nil {
+	if err := os.MkdirAll(cache.baseDir, 0755); err != nil {
 		return err
 	}
 
@@ -67,7 +67,7 @@ func (c *fileCache) storeFile(context *Context, outputFile *File, inputFiles []*
 	return nil
 }
 
-func (c *fileCache) buildCachePath(context *Context, outputPath string, inputFiles []*File) (string, error) {
+func (cache *cache) buildCachePath(context *Context, outputPath string, inputFiles []*File) (string, error) {
 	uintBuff := make([]byte, 4)
 	binary.LittleEndian.PutUint32(uintBuff, context.hash)
 
@@ -88,7 +88,7 @@ func (c *fileCache) buildCachePath(context *Context, outputPath string, inputFil
 		hasher.Write([]byte(inputFile.Path()))
 	}
 
-	cachePath := filepath.Join(c.baseDir, fmt.Sprintf(
+	cachePath := filepath.Join(cache.baseDir, fmt.Sprintf(
 		"gs_%.8x%s",
 		hasher.Sum32(),
 		filepath.Ext(outputPath),
