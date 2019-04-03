@@ -94,7 +94,7 @@ func (context *Context) step() {
 					}
 
 					for _, fileFilter := range fileFilters {
-						if accept, err = fileFilter.Accept(context, inputFile); err != nil {
+						if accept, err = fileFilter.Accept(inputFile); err != nil {
 							context.goldsmith.fault(fileFilter.Name(), inputFile, err)
 							return
 						}

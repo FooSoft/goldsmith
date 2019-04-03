@@ -18,7 +18,7 @@ type Component interface {
 
 type Filter interface {
 	Component
-	Accept(context *Context, file *File) (bool, error)
+	Accept(file *File) (bool, error)
 }
 
 type Plugin interface {

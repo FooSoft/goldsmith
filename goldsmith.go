@@ -82,7 +82,20 @@ func (goldsmith *Goldsmith) End(targetDir string) []error {
 	}
 
 	context := goldsmith.contexts[len(goldsmith.contexts)-1]
+
+export:
 	for file := range context.outputFiles {
+		for _, fileFilter := range goldsmith.fileFilters {
+			accept, err := fileFilter.Accept(file)
+			if err != nil {
+				goldsmith.fault(fileFilter.Name(), file, err)
+				continue export
+			}
+			if !accept {
+				continue export
+			}
+		}
+
 		goldsmith.exportFile(file)
 	}
 
@@ -103,6 +116,7 @@ func (goldsmith *Goldsmith) storeFile(context *Context, outputFile *File, inputF
 	if goldsmith.fileCache != nil {
 		goldsmith.fileCache.storeFile(context, outputFile, inputFiles)
 	}
+
 }
 
 func (goldsmith *Goldsmith) removeUnreferencedFiles() {
