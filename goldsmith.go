@@ -21,11 +21,13 @@ type Goldsmith struct {
 	fileFilters []Filter
 	fileCache   *cache
 
+	clean bool
+
 	errors []error
 	mutex  sync.Mutex
 }
 
-// Begin starts a chain, reading the files located in sourceDir as input.
+// Begin starts a chain, reading the files located in the source directory as input.
 func Begin(sourceDir string) *Goldsmith {
 	goldsmith := &Goldsmith{
 		sourceDir:     sourceDir,
@@ -40,6 +42,12 @@ func Begin(sourceDir string) *Goldsmith {
 // Cache enables caching in cacheDir for the remainder of the chain.
 func (goldsmith *Goldsmith) Cache(cacheDir string) *Goldsmith {
 	goldsmith.fileCache = &cache{cacheDir}
+	return goldsmith
+}
+
+// Clean enables or disables removal of leftover files in the target directory.
+func (goldsmith *Goldsmith) Clean(clean bool) *Goldsmith {
+	goldsmith.clean = clean
 	return goldsmith
 }
 
@@ -107,7 +115,10 @@ export:
 		goldsmith.exportFile(file)
 	}
 
-	goldsmith.removeUnreferencedFiles()
+	if goldsmith.clean {
+		goldsmith.removeUnreferencedFiles()
+	}
+
 	return goldsmith.errors
 }
 
