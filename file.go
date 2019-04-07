@@ -80,8 +80,11 @@ func (file *File) Seek(offset int64, whence int) (int64, error) {
 
 func (file *File) export(targetDir string) error {
 	targetPath := filepath.Join(targetDir, file.sourcePath)
-	if targetInfo, err := os.Stat(targetPath); err == nil && targetInfo.ModTime().After(file.ModTime()) {
-		return nil
+
+	if len(file.dataPath) == 0 {
+		if targetInfo, err := os.Stat(targetPath); err == nil && targetInfo.ModTime().After(file.ModTime()) {
+			return nil
+		}
 	}
 
 	if err := os.MkdirAll(path.Dir(targetPath), 0755); err != nil {
