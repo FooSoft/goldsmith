@@ -1,3 +1,4 @@
+// Package goldsmith generates static websites.
 package goldsmith
 
 import (
@@ -8,6 +9,7 @@ import (
 	"sync"
 )
 
+// Goldsmith chainable context.
 type Goldsmith struct {
 	sourceDir string
 	targetDir string
@@ -23,6 +25,7 @@ type Goldsmith struct {
 	mutex  sync.Mutex
 }
 
+// Begin starts a chain, reading the files located in sourceDir as input.
 func Begin(sourceDir string) *Goldsmith {
 	goldsmith := &Goldsmith{
 		sourceDir:     sourceDir,
@@ -34,11 +37,13 @@ func Begin(sourceDir string) *Goldsmith {
 	return goldsmith
 }
 
+// Cache enables caching in cacheDir for the remainder of the chain.
 func (goldsmith *Goldsmith) Cache(cacheDir string) *Goldsmith {
 	goldsmith.fileCache = &cache{cacheDir}
 	return goldsmith
 }
 
+// Chain links a plugin instance into the chain.
 func (goldsmith *Goldsmith) Chain(plugin Plugin) *Goldsmith {
 	goldsmith.contextHasher.Write([]byte(plugin.Name()))
 
@@ -59,11 +64,13 @@ func (goldsmith *Goldsmith) Chain(plugin Plugin) *Goldsmith {
 	return goldsmith
 }
 
+// FilterPush pushes a filter instance on the chain's filter stack.
 func (goldsmith *Goldsmith) FilterPush(filter Filter) *Goldsmith {
 	goldsmith.fileFilters = append(goldsmith.fileFilters, filter)
 	return goldsmith
 }
 
+// FilterPop pops a filter instance from the chain's filter stack.
 func (goldsmith *Goldsmith) FilterPop() *Goldsmith {
 	count := len(goldsmith.fileFilters)
 	if count == 0 {
@@ -74,6 +81,7 @@ func (goldsmith *Goldsmith) FilterPop() *Goldsmith {
 	return goldsmith
 }
 
+// End stops a chain, writing all recieved files to targetDir as output.
 func (goldsmith *Goldsmith) End(targetDir string) []error {
 	goldsmith.targetDir = targetDir
 

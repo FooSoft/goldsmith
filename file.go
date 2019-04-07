@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// File represents in-memory or on-disk files in a chain.
 type File struct {
 	sourcePath string
 	dataPath   string
@@ -26,30 +27,37 @@ type File struct {
 	modTime time.Time
 }
 
+// Path returns the file path relative to the source directory.
 func (file *File) Path() string {
 	return file.sourcePath
 }
 
+// Name returns the base name of the file.
 func (file *File) Name() string {
 	return path.Base(file.sourcePath)
 }
 
+// Dir returns the containing directory of the file.
 func (file *File) Dir() string {
 	return path.Dir(file.sourcePath)
 }
 
+// Ext returns the extension of the file.
 func (file *File) Ext() string {
 	return path.Ext(file.sourcePath)
 }
 
+// Size returns the file length in bytes.
 func (file *File) Size() int64 {
 	return file.size
 }
 
+// ModTime returns the time of the file's last modification.
 func (file *File) ModTime() time.Time {
 	return file.modTime
 }
 
+// Read reads file data into the provided buffer.
 func (file *File) Read(data []byte) (int, error) {
 	if err := file.load(); err != nil {
 		return 0, err
@@ -58,6 +66,7 @@ func (file *File) Read(data []byte) (int, error) {
 	return file.reader.Read(data)
 }
 
+// Write writes file data into the provided writer.
 func (file *File) WriteTo(writer io.Writer) (int64, error) {
 	if err := file.load(); err != nil {
 		return 0, err
@@ -66,6 +75,7 @@ func (file *File) WriteTo(writer io.Writer) (int64, error) {
 	return file.reader.WriteTo(writer)
 }
 
+// Seek updates the file pointer to the desired position.
 func (file *File) Seek(offset int64, whence int) (int64, error) {
 	if file.reader == nil && offset == 0 && (whence == os.SEEK_SET || whence == os.SEEK_CUR) {
 		return 0, nil
