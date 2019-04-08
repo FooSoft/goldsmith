@@ -1,190 +1,124 @@
 # Goldsmith #
 
-Goldsmith is a static website generator developed in Go with flexibility, extensibility, and performance as primary
-design considerations. With Goldsmith you can easily build and deploy any type of site, whether it is a personal blog,
-image gallery, or a corporate homepage; the tool no assumptions are made about your layout or file structure. Goldsmith
-is trivially extensible via a plugin architecture which makes it simple to perform complex data transformations
-concurrently.
+Goldsmith is a fast and easily extensible static website generator written in Go. In contrast to other generators,
+Goldsmith does not force any design paradigms or file organizational schemes on the user, making it possible to create
+anything from blogs to image galleries using the same tool.
 
-Naturally, I use Goldsmith to generate my personal website, [FooSoft Productions](https://foosoft.net/). If you would
-like to know how a Bootstrap site can be put together with this static generator, you can check out the [source content
-files](https://github.com/FooSoft/foosoft.net.git) as well as the [plugin
-chain](https://github.com/FooSoft/webtools/blob/master/webbuild/main.go) that makes everything happen.
+## Tutorial ##
 
-![](https://foosoft.net/projects/goldsmith/img/gold.png)
-
-## Table of Contents
-
-*   [Motivation](https://foosoft.net/projects/goldsmith/#motivation)
-*   [Components](https://foosoft.net/projects/goldsmith/#components)
-*   [Usage](https://foosoft.net/projects/goldsmith/#usage)
-*   [License](https://foosoft.net/projects/goldsmith/#license)
-
-## Motivation ##
-
-Why in the world would one create yet another static site generator? At first, I didn't think I needed to; after all,
-there is a wide variety of open source tools freely available for use. Surely one of these applications would allow me
-to build my portfolio page exactly the way I want right?
-
-After trying several static generators, namely [Pelican](http://blog.getpelican.com/), [Hexo](https://hexo.io/), and
-[Hugo](https://gohugo.io/), I found that although sometimes coming close, no tool gave me exactly what I needed.
-Although I hold the authors of these applications in high regard and sincerely appreciate their contribution to the open
-source community, everyone seemed overly eager to make assumptions about content organization and presentation.
-
-Many of the static generators I've used feature extensive configuration files to support customization. Nevertheless, I
-was disappointed to discovered that even though I could approach my planned design, I could never realize it. There was
-always some architectural limitation preventing me from doing something with my site which seemed like basic
-functionality.
-
-*   Blog posts can be tagged, but static pages cannot.
-*   Image files cannot be stored next to content files.
-*   Navbar item activated when viewing blog, but not static pages.
-*   Auto-generated pages behave differently from normal ones.
-
-Upon asking on community forms, I learned that most users were content to live with such design decisions, with some
-offering workarounds that would get me halfway to where I wanted to go. As I am not one to make compromises, I kept
-hopping from one static site generator to another, until I discovered [Metalsmith](http://www.metalsmith.io/). Finally,
-it seemed like I found a tool that gets out of my way, and lets me build my website the way I want to. After using this
-tool for almost a year, I began to see its limits.
-
-*   The extension system is complicated; it's difficult to write and debug plugins.
-*   Quality of existing plugins varies greatly; I found many subtle issues.
-*   No support for parallel processing (this is a big one if you process images).
-*   A full Node.js is stack (including dependencies) is required to build sites.
-
-Rather than making do with what I had indefinitely, I decided to use the knowledge I've obtained from using various
-static site generators to build my own. The *Goldsmith* name is a reference to both the *Go* programming language I've
-selected for this project, as well as to *Metalsmith*, my inspiration for what an static site generator could be.
-
-The motivation behind Goldsmith can be described by the following principles:
-
-*   Keep the core small and simple.
-*   Enable efficient, multi-core processing.
-*   Add new features via user plugins.
-*   Customize behavior through user code.
-
-I originally built this tool to generate my personal homepage, but I believe it can be of use to anyone who wants to
-enjoy the freedom of building a static site from ground up, especially users of Metalsmith. Why craft metal when you can
-be crafting gold?
-
-## Components ##
-
-A growing set of core plugins is provided to make it easier to get started with this tool to generate static websites.
-
-### Plugins ###
-
-*   **[Goldsmith-Abs](https://foosoft.net/projects/goldsmith/plugins/abs/)**: Convert HTML relative file references to absolute paths.
-*   **[Goldsmith-Breadcrumbs](https://foosoft.net/projects/goldsmith/plugins/breadcrumbs/)**: Manage metadata required to build navigation breadcrumbs.
-*   **[Goldsmith-Collection](https://foosoft.net/projects/goldsmith/plugins/collection/)**: Group related pages into named collections.
-*   **[Goldsmith-Dom](https://foosoft.net/projects/goldsmith/plugins/dom/)**: Easily make changes to your site's DOM structure.
-*   **[Goldsmith-FrontMatter](https://foosoft.net/projects/goldsmith/plugins/frontmatter/)**: Extract front matter from files and store it in file metadata.
-*   **[Goldsmith-Index](https://foosoft.net/projects/goldsmith/plugins/index/)**: Create index pages for displaying directory listings.
-*   **[Goldsmith-Layout](https://foosoft.net/projects/goldsmith/plugins/layout/)**: Process partial HTML into complete pages with Go templates.
-*   **[Goldsmith-LiveJs](https://foosoft.net/projects/goldsmith/plugins/livejs/)**: Automatically refresh your web browser page on content change.
-*   **[Goldsmith-Markdown](https://foosoft.net/projects/goldsmith/plugins/markdown/)**: Process Markdown files to generate partial HTML documents.
-*   **[Goldsmith-Minify](https://foosoft.net/projects/goldsmith/plugins/minify/)**: Reduce the data size of various web file formats.
-*   **[Goldsmith-Paginate](https://foosoft.net/projects/goldsmith/plugins/paginate/)**: Split large collections of data into multiple pages.
-*   **[Goldsmith-Summary](https://foosoft.net/projects/goldsmith/plugins/summary/)**:
-*   **[Goldsmith-Syntax](https://foosoft.net/projects/goldsmith/plugins/syntax/)**: Enable syntax highlighting inside code blocks.
-*   **[Goldsmith-Tags](https://foosoft.net/projects/goldsmith/plugins/tags/)**: Generate metadata and index pages for tags.
-*   **[Goldsmith-Thumbnail](https://foosoft.net/projects/goldsmith/plugins/thumbnail/)**: Generate thumbnails for a variety of image formats.
-
-### Filters ###
-
-*   **[Goldsmith-And](https://foosoft.net/projects/goldsmith/filters/and/)**: 
-*   **[Goldsmith-Condition](https://foosoft.net/projects/goldsmith/filters/condition/)**: 
-*   **[Goldsmith-Extension](https://foosoft.net/projects/goldsmith/filters/extension/)**: 
-*   **[Goldsmith-Not](https://foosoft.net/projects/goldsmith/filters/not/)**: 
-*   **[Goldsmith-Or](https://foosoft.net/projects/goldsmith/filters/or/)**: 
-*   **[Goldsmith-Wildcard](https://foosoft.net/projects/goldsmith/filters/wildcard/)**: 
-
-### Other ###
-
-*   **[Goldsmith-DevServer](https://foosoft.net/projects/goldsmith/devserver/)**: 
-
-## Usage ##
-
-Goldsmith is a pipeline-based file processor. Files are loaded in from the source directory, processed by a number of
-plugins, and are finally output to the destination directory. Rather than explaining the process in detail conceptually,
-I will show some code samples which show how this tool can be used in practice.
+Goldsmith does not use any configuration files, and all generation behavior is described through code. Goldsmith uses
+the [builder pattern](https://en.wikipedia.org/wiki/Builder_pattern) to establish a chain, which modifies files as they
+pass through it. Although the [Goldsmith](https://godoc.org/github.com/FooSoft/goldsmith) is short and (hopefully) easy
+to understand, I find it is best to learn by example:
 
 *   Start by copying files from a source directory to a destination directory (simplest possible use case):
 
     ```go
-    goldsmith.Begin(srcDir).
-        End(dstDir)
+    goldsmith.
+        Begin(srcDir). // read files from srcDir
+        End(dstDir)    // write files to dstDir
     ```
 
-*   Now let's also convert our Markdown files to HTML using the
-    [Goldsmith-Markdown](https://foosoft.net/projects/goldsmith/plugins/markdown/) plugin:
+*   Now let's convert any Markdown files to HTML (while copying the rest), using the
+    [Markdown](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/markdown) plugin:
 
     ```go
-    goldsmith.Begin(srcDir).
-        Chain(markdown.NewCommon()).
-        End(dstDir)
+    goldsmith.
+        Begin(srcDir).         // read files from srcDir
+        Chain(markdown.New()). // convert *.md files to *.html files
+        End(dstDir)            // write files to dstDir
     ```
 
-*   If we are using *frontmatter* in our Markdown files, we can easily extract it by using the
-    [Goldsmith-Frontmatter](https://foosoft.net/projects/goldsmith/plugins/frontmatter/) plugin:
+*   If we have any
+    [frontmatter](https://raw.githubusercontent.com/FooSoft/goldsmith-samples/master/basic/content/index.md) in our
+    Markdown files, we should extract it using the,
+    [Frontmatter](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter) plugin:
 
     ```go
-    goldsmith.Begin(srcDir).
-		Chain(frontmatter.New()).
-        Chain(markdown.NewCommon()).
-        End(dstDir)
+    goldsmith.
+        Begin(srcDir).            // read files from srcDir
+        Chain(frontmatter.New()). // extract frontmatter and store it as metadata
+        Chain(markdown.New()).    // convert *.md files to *.html files
+        End(dstDir)               // write files to dstDir
     ```
 
-*   Next we want to run our generated HTML through a template to add a header, footer, and a menu; for this we can use
-    the [Goldsmith-Layout](https://foosoft.net/projects/goldsmith/plugins/layout/) plugin:
+*   Next we want to run our barebones HTML through a
+    [template](https://raw.githubusercontent.com/FooSoft/goldsmith-samples/master/basic/content/layouts/basic.gohtml) to
+    add a header, footer, and a menu; for this we can use the
+    [Layout](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter) plugin:
 
     ```go
-    goldsmith.Begin(srcDir).
-		Chain(frontmatter.New()).
-        Chain(markdown.NewCommon()).
-        Chain(layout.New("layoutDir/*.html")).
-        End(dstDir)
+    goldsmith.
+        Begin(srcDir).            // read files from srcDir
+        Chain(frontmatter.New()). // extract frontmatter and store it as metadata
+        Chain(markdown.New()).    // convert *.md files to *.html files
+        Chain(layout.New()).      // apply *.gohtml templates to *.html files
+        End(dstDir)               // write files to dstDir
     ```
 
-*   Finally, let's minify our files to reduce data transfer and load times for our site's visitors using the
-    [Goldsmith-Minify](https://foosoft.net/projects/goldsmith/plugins/minify/) plugin:
+*   Now, let's minify our files to reduce data transfer and load times for our site's visitors using the
+    [Minify](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/minify) plugin:
 
     ```go
-    goldsmith.Begin(srcDir).
-		Chain(frontmatter.New()).
-        Chain(markdown.NewCommon()).
-        Chain(layout.New("layoutDir/*.html")).
-		Chain(minify.New()).
-        End(dstDir)
+    goldsmith.
+        Begin(srcDir).            // read files from srcDir
+        Chain(frontmatter.New()). // extract frontmatter and store it as metadata
+        Chain(markdown.New()).    // convert *.md files to *.html files
+        Chain(layout.New()).      // apply *.gohtml templates to *.html files
+        Chain(minify.New()).      // minify *.html, *.css, *.js, etc. files
+        End(dstDir)               // write files to dstDir
     ```
 
-*   Now that we have all of our plugins chained up, let's look at a complete example which uses the
-    [Goldsmith-DevServer](https://foosoft.net/projects/goldsmith/devserver/) library to bootstrap a development sever with live reload:
+*   Debugging problems in minified code can be annoying, so let's use the
+    [Condition](https://godoc.org/github.com/FooSoft/goldsmith-components/filters/condition) filter to make it happen
+    only when we are ready for final distribution.
+
+    ```go
+    goldsmith.
+        Begin(srcDir).                   // read files from srcDir
+        Chain(frontmatter.New()).        // extract frontmatter and store it as metadata
+        Chain(markdown.New()).           // convert *.md files to *.html files
+        Chain(layout.New()).             // apply *.gohtml templates to *.html files
+        FilterPush(condition.New(dist)). // push a dist-only conditional filter onto the stack
+        Chain(minify.New()).             // minify *.html, *.css, *.js, etc. files
+        FilterPop().                     // pop off the last filter pushed onto the stack
+        End(dstDir)                      // write files to dstDir
+    ```
+
+*   Now that we have all of our plugins chained up, let's look at a complete example which uses 
+    [DevServer](https://godoc.org/github.com/FooSoft/goldsmith-components/devserver) to bootstrap a complete development
+    sever which automatically rebuilds the site whenever source files are updated.
 
     ```go
     package main
 
     import (
+        "flag"
         "log"
 
         "github.com/FooSoft/goldsmith"
-        "github.com/FooSoft/goldsmith-devserver"
-        "github.com/FooSoft/goldsmith-components/frontmatter"
-        "github.com/FooSoft/goldsmith-components/layout"
-        "github.com/FooSoft/goldsmith-components/livejs"
-        "github.com/FooSoft/goldsmith-components/markdown"
-        "github.com/FooSoft/goldsmith-components/minify"
+        "github.com/FooSoft/goldsmith-components/devserver"
+        "github.com/FooSoft/goldsmith-components/filters/condition"
+        "github.com/FooSoft/goldsmith-components/plugins/frontmatter"
+        "github.com/FooSoft/goldsmith-components/plugins/layout"
+        "github.com/FooSoft/goldsmith-components/plugins/markdown"
+        "github.com/FooSoft/goldsmith-components/plugins/minify"
     )
 
-    type builder struct{}
+    type builder struct {
+        dist bool
+    }
 
-    func (b *builder) Build(srcDir, dstDir string) {
-        errs := goldsmith.Begin(srcDir).
-            Chain(frontmatter.New()).
-            Chain(markdown.NewCommon()).
-            Chain(layout.New("layoutDir/*.html")).
-            Chain(livejs.New()).
-            Chain(minify.New()).
-            End(dstDir)
+    func (b *builder) Build(srcDir, dstDir, cacheDir string) {
+        errs := goldsmith.
+            Begin(srcDir).                     // read files from srcDir
+            Chain(frontmatter.New()).          // extract frontmatter and store it as metadata
+            Chain(markdown.New()).             // convert *.md files to *.html files
+            Chain(layout.New()).               // apply *.gohtml templates to *.html files
+            FilterPush(condition.New(b.dist)). // push a dist-only conditional filter onto the stack
+            Chain(minify.New()).               // minify *.html, *.css, *.js, etc. files
+            FilterPop().                       // pop off the last filter pushed onto the stack
+            End(dstDir)                        // write files to dstDir
 
         for _, err := range errs {
             log.Print(err)
@@ -192,18 +126,76 @@ I will show some code samples which show how this tool can be used in practice.
     }
 
     func main() {
-        devserver.DevServe(new(builder), 8080, "srcDir", "dstDir")
+        port := flag.Int("port", 8080, "server port")
+        dist := flag.Bool("dist", false, "final dist mode")
+        flag.Parse()
+
+        devserver.DevServe(&builder{*dist}, *port, "content", "build", "cache")
     }
     ```
 
-I hope that this short series of examples illustrated the inherent simplicity and flexibility of the Goldsmith
-pipeline-oriented approach to data processing. Files are injected into the stream at Goldsmith initialization, processed
-in parallel through a set of plugins, and are finally written out to disk upon completion.
+## Samples ##
 
-Files are guaranteed to flow through Goldsmith plugins in the same order, but not necessarily in the same sequence
-relative to each other. Timing differences can cause certain files to finish ahead of others; fortunately this, along
-with other threading characteristics of the tool, is abstracted from the user. The execution, while appearing to be a
-mere series chained methods, will process files taking full advantage of your processor's cores.
+Below are some examples of Goldsmith usage which can used to base your site on:
+
+*   [Basic Sample](https://github.com/FooSoft/goldsmith-samples/tree/master/basic): a great starting point, this is the
+    sample site from the tutorial.
+*   [Bootstrap Sample](https://github.com/FooSoft/goldsmith-samples/tree/master/bootstrap): a slightly more advanced
+    sample using [Bootstrap](https://getbootstrap.com/).
+*   [FooSoft.net](https://github.com/FooSoft/foosoft.net): the source for [my homepage](http://foosoft.net),
+    using most plugins and filters.
+
+## Components ##
+
+A growing set of plugins, filters, and other tools are provided to make it easier to get started with Goldsmith.
+
+### Plugins ###
+
+*   [Absolute](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/absolute): Convert relative HTML file
+    references to absolute paths.
+*   [Breadcrumbs](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/breadcrumbs): Generate metadata
+    required to enable breadcrumb navigation.
+*   [Collection](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/collection): Group related pages
+    into named collections. 
+*   [Document](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/document): Enable simple DOM
+    modification via an API similar to jQuery.
+*   [FrontMatter](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter): Extract the metadata
+    stored in your files.
+*   [Index](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/index): Create metadata for file
+    listings and generate directory index pages.
+*   [Layout](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/layout): Transform your HTML with Go
+    templates.
+*   [LiveJs](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/livejs): Inject code to automatically
+    reload pages when they are modified.
+*   [Markdown](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/markdown): Render Markdown documents
+    to HTML fragments.
+*   [Minify](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/minify): Remove superfluous data from a
+    variety of web formats.
+*   [Pager](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/pager): Split arrays of metadata into
+    standalone pages.
+*   [Summary](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/summary): Generate summary and title
+    metadata for HTML files.
+*   [Syntax](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/syntax): Generate syntax highlighting for
+    preformatted code blocks.
+*   [Tags](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/tags): Build tag clouds from file metadata.
+*   [Thumbnail](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/thumbnail): Generate thumbnails for a
+    variety of common image formats.
+
+### Filters ###
+
+*   [Condition](https://godoc.org/github.com/FooSoft/goldsmith-components/filters/condition): Filter files based on a
+    single condition.
+*   [Operator](https://godoc.org/github.com/FooSoft/goldsmith-components/filters/operator): Join filters using
+    logical `AND`, `OR`, and `NOT` operators.
+*   [Wildcard](https://godoc.org/github.com/FooSoft/goldsmith-components/filters/wildcard): Filter files using path
+    wildcards (`*`, `?`, etc.)
+
+### Other ###
+
+*   [DevServer](https://godoc.org/github.com/FooSoft/goldsmith-components/devserver): Simple framework for generating
+    and viewing your site.
+*   [Harness](https://godoc.org/github.com/FooSoft/goldsmith-components/harness): Unit test harness for Goldsmith
+    plugins and filters.
 
 ## License ##
 
