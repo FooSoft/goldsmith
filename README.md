@@ -1,17 +1,17 @@
 # Goldsmith #
 
-Goldsmith is a fast and easily extensible static website generator written in Go. In contrast to other generators,
-Goldsmith does not force any design paradigms or file organizational schemes on the user, making it possible to create
+Goldsmith is a fast and easily extensible static website generator written in Go. In contrast to many other generators,
+Goldsmith does not force any design paradigms or file organization rules on the user, making it possible to generate
 anything from blogs to image galleries using the same tool.
 
 ## Tutorial ##
 
-Goldsmith does not use any configuration files, and all generation behavior is described through code. Goldsmith uses
-the [builder pattern](https://en.wikipedia.org/wiki/Builder_pattern) to establish a chain, which modifies files as they
-pass through it. Although the [Goldsmith](https://godoc.org/github.com/FooSoft/goldsmith) is short and (hopefully) easy
-to understand, I find it is best to learn by example:
+Goldsmith does not use any configuration files, and all behavior customization happens in code. Goldsmith uses the
+[builder pattern](https://en.wikipedia.org/wiki/Builder_pattern) to establish a chain, which modifies files as they pass
+through it. Although the [Goldsmith](https://godoc.org/github.com/FooSoft/goldsmith) is short and (hopefully) easy to
+understand, it is often best to learn by example:
 
-*   Start by copying files from a source directory to a destination directory (simplest possible use case):
+*   Start by copying files from a source directory to a destination directory (the simplest possible use case):
 
     ```go
     goldsmith.
@@ -19,7 +19,7 @@ to understand, I find it is best to learn by example:
         End(dstDir)    // write files to dstDir
     ```
 
-*   Now let's convert any Markdown files to HTML (while copying the rest), using the
+*   Now let's convert any Markdown files to HTML fragments (while still copying the rest), using the
     [Markdown](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/markdown) plugin:
 
     ```go
@@ -30,9 +30,9 @@ to understand, I find it is best to learn by example:
     ```
 
 *   If we have any
-    [frontmatter](https://raw.githubusercontent.com/FooSoft/goldsmith-samples/master/basic/content/index.md) in our
-    Markdown files, we should extract it using the,
-    [Frontmatter](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter) plugin:
+    [front matter](https://raw.githubusercontent.com/FooSoft/goldsmith-samples/master/basic/content/index.md) in our
+    Markdown files, we need to extract it using the,
+    [FrontMatter](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter) plugin:
 
     ```go
     goldsmith.
@@ -42,9 +42,9 @@ to understand, I find it is best to learn by example:
         End(dstDir)               // write files to dstDir
     ```
 
-*   Next we want to run our barebones HTML through a
+*   Next, we should run our barebones HTML through a
     [template](https://raw.githubusercontent.com/FooSoft/goldsmith-samples/master/basic/content/layouts/basic.gohtml) to
-    add a header, footer, and a menu; for this we can use the
+    add elements like a header, footer, or a menu; for this we can use the
     [Layout](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter) plugin:
 
     ```go
@@ -56,7 +56,8 @@ to understand, I find it is best to learn by example:
         End(dstDir)               // write files to dstDir
     ```
 
-*   Now, let's minify our files to reduce data transfer and load times for our site's visitors using the
+*   Now, let's [minify](https://en.wikipedia.org/wiki/Minification_(programming)) our files to reduce data transfer and
+    load times for our site's visitors using the
     [Minify](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/minify) plugin:
 
     ```go
@@ -69,9 +70,9 @@ to understand, I find it is best to learn by example:
         End(dstDir)               // write files to dstDir
     ```
 
-*   Debugging problems in minified code can be annoying, so let's use the
-    [Condition](https://godoc.org/github.com/FooSoft/goldsmith-components/filters/condition) filter to make it happen
-    only when we are ready for final distribution.
+*   Debugging problems in minified code can be tricky, so let's use the
+    [Condition](https://godoc.org/github.com/FooSoft/goldsmith-components/filters/condition) filter to make minification
+    occur only when we are ready for distribution.
 
     ```go
     goldsmith.
@@ -142,8 +143,6 @@ Below are some examples of Goldsmith usage which can used to base your site on:
     sample site from the tutorial.
 *   [Bootstrap Sample](https://github.com/FooSoft/goldsmith-samples/tree/master/bootstrap): a slightly more advanced
     sample using [Bootstrap](https://getbootstrap.com/).
-*   [FooSoft.net](https://github.com/FooSoft/foosoft.net): the source for [my homepage](http://foosoft.net),
-    using most plugins and filters.
 
 ## Components ##
 
@@ -154,31 +153,32 @@ A growing set of plugins, filters, and other tools are provided to make it easie
 *   [Absolute](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/absolute): Convert relative HTML file
     references to absolute paths.
 *   [Breadcrumbs](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/breadcrumbs): Generate metadata
-    required to enable breadcrumb navigation.
+    required to build breadcrumb navigation.
 *   [Collection](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/collection): Group related pages
     into named collections. 
 *   [Document](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/document): Enable simple DOM
     modification via an API similar to jQuery.
-*   [FrontMatter](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter): Extract the metadata
-    stored in your files.
-*   [Index](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/index): Create metadata for file
+*   [FrontMatter](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter): Extract the
+    JSON, YAML, or TOML metadata stored in your files.
+*   [Index](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/index): Create metadata for directory file
     listings and generate directory index pages.
-*   [Layout](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/layout): Transform your HTML with Go
-    templates.
-*   [LiveJs](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/livejs): Inject code to automatically
-    reload pages when they are modified.
+*   [Layout](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/layout): Transform your HTML files with
+    Go templates.
+*   [LiveJs](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/livejs): Inject JavaScript code to
+    automatically reload pages when modified.
 *   [Markdown](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/markdown): Render Markdown documents
-    to HTML fragments.
+    as HTML fragments.
 *   [Minify](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/minify): Remove superfluous data from a
     variety of web formats.
 *   [Pager](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/pager): Split arrays of metadata into
     standalone pages.
-*   [Summary](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/summary): Generate summary and title
-    metadata for HTML files.
-*   [Syntax](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/syntax): Generate syntax highlighting for
-    preformatted code blocks.
-*   [Tags](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/tags): Build tag clouds from file metadata.
-*   [Thumbnail](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/thumbnail): Generate thumbnails for a
+*   [Summary](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/summary): Extract summary and title
+    metadata from HTML files.
+*   [Syntax](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/syntax): Enable syntax highlighting for
+    pre-formatted code blocks.
+*   [Tags](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/tags): Generate tag clouds and indices 
+    from file metadata.
+*   [Thumbnail](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/thumbnail): Build thumbnails for a
     variety of common image formats.
 
 ### Filters ###
@@ -192,10 +192,10 @@ A growing set of plugins, filters, and other tools are provided to make it easie
 
 ### Other ###
 
-*   [DevServer](https://godoc.org/github.com/FooSoft/goldsmith-components/devserver): Simple framework for generating
-    and viewing your site.
-*   [Harness](https://godoc.org/github.com/FooSoft/goldsmith-components/harness): Unit test harness for Goldsmith
-    plugins and filters.
+*   [DevServer](https://godoc.org/github.com/FooSoft/goldsmith-components/devserver): Simple framework for building,
+    updating, and viewing your site.
+*   [Harness](https://godoc.org/github.com/FooSoft/goldsmith-components/harness): Unit test harness for verifying
+    Goldsmith plugins and filters.
 
 ## License ##
 
