@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+// Context corresponds to the current link in the chain and provides methods
+// that enable plugins to inject new files into the chain.
 type Context struct {
 	goldsmith *Goldsmith
 
@@ -20,6 +22,7 @@ type Context struct {
 	outputFiles chan *File
 }
 
+// CreateFileFrom data creates a new file instance from the provided data buffer.
 func (*Context) CreateFileFromData(sourcePath string, data []byte) *File {
 	return &File{
 		sourcePath: sourcePath,
@@ -30,6 +33,7 @@ func (*Context) CreateFileFromData(sourcePath string, data []byte) *File {
 	}
 }
 
+// CreateFileFromAsset creates a new file instance from the provided file path.
 func (*Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, error) {
 	info, err := os.Stat(dataPath)
 	if err != nil {
@@ -50,15 +54,22 @@ func (*Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, error) 
 	return file, nil
 }
 
+// DispatchFile causes the file to get passed to the next link in the chain.
 func (context *Context) DispatchFile(file *File) {
 	context.outputFiles <- file
 }
 
+// DispatchAndCacheFile caches the file data (excluding the metadata), taking
+// dependencies on any input files that are needed to generate it, and then
+// passes it to the next link in the chain.
 func (context *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File) {
 	context.goldsmith.storeFile(context, outputFile, inputFiles)
 	context.outputFiles <- outputFile
 }
 
+// RetrieveCachedFile looks up file data (excluding the metadata), given an
+// output path and any input files that are needed to generate it. The function
+// will return nil if the desired file is not found in the cache.
 func (context *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) *File {
 	return context.goldsmith.retrieveFile(context, outputPath, inputFiles)
 }
