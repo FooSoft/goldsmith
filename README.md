@@ -143,8 +143,8 @@ Below are some examples of Goldsmith usage which can used to base your site on:
     sample site from the tutorial.
 *   [Bootstrap Sample](https://github.com/FooSoft/goldsmith-samples/tree/master/bootstrap): a slightly more advanced
     sample using [Bootstrap](https://getbootstrap.com/).
-*   [FooSoft Productions](https://foosoft.net): I have been "dogfooding" Goldsmith by using it to build my homepage for
-    years.
+*   [FooSoft.net](https://foosoft.net/projects/goldsmith): I've been "dogfooding" Goldsmith by using it to build
+    my homepage for years.
 
 ## Components ##
 
