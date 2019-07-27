@@ -27,6 +27,11 @@ type File struct {
 	modTime time.Time
 }
 
+// Rename modifies the file path relative to the source directory.
+func (file *File) Rename(path string) {
+	file.sourcePath = path
+}
+
 // Path returns the file path relative to the source directory.
 func (file *File) Path() string {
 	return file.sourcePath
