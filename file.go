@@ -93,6 +93,11 @@ func (file *File) Seek(offset int64, whence int) (int64, error) {
 	return file.reader.Seek(offset, whence)
 }
 
+// Returns value for string formatting.
+func (file *File) GoString() string {
+	return file.sourcePath
+}
+
 func (file *File) export(targetDir string) error {
 	targetPath := filepath.Join(targetDir, file.sourcePath)
 

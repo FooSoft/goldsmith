@@ -2,6 +2,7 @@
 package goldsmith
 
 import (
+	"fmt"
 	"hash"
 	"hash/crc32"
 	"os"
@@ -164,13 +165,15 @@ func (goldsmith *Goldsmith) exportFile(file *File) error {
 	return nil
 }
 
-func (goldsmith *Goldsmith) fault(pluginName string, file *File, err error) {
+func (goldsmith *Goldsmith) fault(name string, file *File, err error) {
 	goldsmith.mutex.Lock()
 	defer goldsmith.mutex.Unlock()
 
-	faultError := &Error{Name: pluginName, Err: err}
-	if file != nil {
-		faultError.Path = file.sourcePath
+	var faultError error
+	if file == nil {
+		faultError = fmt.Errorf("[%s]: %w", name, err)
+	} else {
+		faultError = fmt.Errorf("[%s@%v]: %w", name, file, err)
 	}
 
 	goldsmith.errors = append(goldsmith.errors, faultError)
