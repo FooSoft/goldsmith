@@ -96,21 +96,22 @@ func (context *Context) step() {
 			go func() {
 				defer wg.Done()
 				for inputFile := range context.inputFiles {
-					accept := processor != nil
-
 					var fileFilters []Filter
 					fileFilters = append(fileFilters, context.fileFilters...)
 					if filter != nil {
 						fileFilters = append(fileFilters, filter)
 					}
 
-					for _, fileFilter := range fileFilters {
-						if accept, err = fileFilter.Accept(inputFile); err != nil {
-							context.goldsmith.fault(fileFilter.Name(), inputFile, err)
-							return
-						}
-						if !accept {
-							break
+					var accept bool
+					if processor != nil {
+						for _, fileFilter := range fileFilters {
+							if accept, err = fileFilter.Accept(inputFile); err != nil {
+								context.goldsmith.fault(fileFilter.Name(), inputFile, err)
+								return
+							}
+							if !accept {
+								break
+							}
 						}
 					}
 
