@@ -17,7 +17,9 @@ type Context struct {
 	plugin Plugin
 	hash   uint32
 
-	fileFilters []Filter
+	filtersExternal filterStack
+	filtersInternal filterStack
+
 	inputFiles  chan *File
 	outputFiles chan *File
 }
@@ -74,14 +76,17 @@ func (context *Context) RetrieveCachedFile(outputPath string, inputFiles ...*Fil
 	return context.goldsmith.retrieveFile(context, outputPath, inputFiles)
 }
 
+// Specify internal filter(s) that exclude files from being processed.
+func (context *Context) Filter(filters ...Filter) *Context {
+	context.filtersInternal = filters
+	return context
+}
+
 func (context *Context) step() {
 	defer close(context.outputFiles)
 
-	var err error
-	var filter Filter
 	if initializer, ok := context.plugin.(Initializer); ok {
-		filter, err = initializer.Initialize(context)
-		if err != nil {
+		if err := initializer.Initialize(context); err != nil {
 			context.goldsmith.fault(context.plugin.Name(), nil, err)
 			return
 		}
@@ -96,26 +101,7 @@ func (context *Context) step() {
 			go func() {
 				defer wg.Done()
 				for inputFile := range context.inputFiles {
-					var fileFilters []Filter
-					fileFilters = append(fileFilters, context.fileFilters...)
-					if filter != nil {
-						fileFilters = append(fileFilters, filter)
-					}
-
-					var accept bool
-					if processor != nil {
-						for _, fileFilter := range fileFilters {
-							if accept, err = fileFilter.Accept(inputFile); err != nil {
-								context.goldsmith.fault(fileFilter.Name(), inputFile, err)
-								return
-							}
-							if !accept {
-								break
-							}
-						}
-					}
-
-					if accept {
+					if processor != nil && context.filtersInternal.accept(inputFile) && context.filtersExternal.accept(inputFile) {
 						if _, err := inputFile.Seek(0, os.SEEK_SET); err != nil {
 							context.goldsmith.fault("core", inputFile, err)
 						}

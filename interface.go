@@ -9,7 +9,7 @@ type Plugin interface {
 // Initializer is used to optionally initialize a plugin and to specify a
 // filter to be used for determining which files will be processed.
 type Initializer interface {
-	Initialize(context *Context) (Filter, error)
+	Initialize(context *Context) error
 }
 
 // Processor allows for optional processing of files passing through a plugin.
@@ -26,5 +26,5 @@ type Finalizer interface {
 // Filter is used to determine which files should continue in the chain.
 type Filter interface {
 	Name() string
-	Accept(file *File) (bool, error)
+	Accept(file *File) bool
 }

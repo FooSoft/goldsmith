@@ -10,7 +10,7 @@ func (*loader) Name() string {
 	return "loader"
 }
 
-func (*loader) Initialize(ctx *Context) (Filter, error) {
+func (*loader) Initialize(ctx *Context) error {
 	infos := make(chan fileInfo)
 	go scanDir(ctx.goldsmith.sourceDir, infos)
 
@@ -32,5 +32,5 @@ func (*loader) Initialize(ctx *Context) (Filter, error) {
 		ctx.DispatchFile(file)
 	}
 
-	return nil, nil
+	return nil
 }

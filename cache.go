@@ -75,7 +75,7 @@ func (cache *cache) buildCachePath(context *Context, outputPath string, inputFil
 	hasher.Write(uintBuff)
 	hasher.Write([]byte(outputPath))
 
-	sort.Sort(FilesByPath(inputFiles))
+	sort.Sort(filesByPath(inputFiles))
 	for _, inputFile := range inputFiles {
 		fileHash, err := inputFile.hash()
 		if err != nil {

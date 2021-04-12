@@ -186,17 +186,17 @@ func (file *File) hash() (uint32, error) {
 	return file.hashValue, nil
 }
 
-type FilesByPath []*File
+type filesByPath []*File
 
-func (file FilesByPath) Len() int {
+func (file filesByPath) Len() int {
 	return len(file)
 }
 
-func (file FilesByPath) Swap(i, j int) {
+func (file filesByPath) Swap(i, j int) {
 	file[i], file[j] = file[j], file[i]
 }
 
-func (file FilesByPath) Less(i, j int) bool {
+func (file filesByPath) Less(i, j int) bool {
 	return strings.Compare(file[i].Path(), file[j].Path()) < 0
 }
 
@@ -226,4 +226,29 @@ func scanDir(rootDir string, infos chan fileInfo) {
 
 		return err
 	})
+}
+
+type filterStack []Filter
+
+func (filters *filterStack) accept(file *File) bool {
+	for _, filter := range *filters {
+		if !filter.Accept(file) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (filters *filterStack) push(filter Filter) {
+	*filters = append(*filters, filter)
+}
+
+func (filters *filterStack) pop() {
+	count := len(*filters)
+	if count == 0 {
+		panic("attempted to pop empty filter stack")
+	}
+
+	*filters = (*filters)[:count-1]
 }

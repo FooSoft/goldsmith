@@ -18,11 +18,11 @@ type Goldsmith struct {
 	contexts      []*Context
 	contextHasher hash.Hash32
 
-	fileRefs    map[string]bool
-	fileFilters []Filter
-	fileCache   *cache
+	fileRefs  map[string]bool
+	fileCache *cache
 
-	clean bool
+	filters filterStack
+	clean   bool
 
 	errors []error
 	mutex  sync.Mutex
@@ -63,7 +63,7 @@ func (goldsmith *Goldsmith) Chain(plugin Plugin) *Goldsmith {
 		outputFiles: make(chan *File),
 	}
 
-	context.fileFilters = append(context.fileFilters, goldsmith.fileFilters...)
+	context.filtersExternal = append(context.filtersExternal, goldsmith.filters...)
 
 	if len(goldsmith.contexts) > 0 {
 		context.inputFiles = goldsmith.contexts[len(goldsmith.contexts)-1].outputFiles
@@ -75,18 +75,13 @@ func (goldsmith *Goldsmith) Chain(plugin Plugin) *Goldsmith {
 
 // FilterPush pushes a filter instance on the chain's filter stack.
 func (goldsmith *Goldsmith) FilterPush(filter Filter) *Goldsmith {
-	goldsmith.fileFilters = append(goldsmith.fileFilters, filter)
+	goldsmith.filters.push(filter)
 	return goldsmith
 }
 
 // FilterPop pops a filter instance from the chain's filter stack.
 func (goldsmith *Goldsmith) FilterPop() *Goldsmith {
-	count := len(goldsmith.fileFilters)
-	if count == 0 {
-		panic("attempted to pop empty filter stack")
-	}
-
-	goldsmith.fileFilters = goldsmith.fileFilters[:count-1]
+	goldsmith.filters.pop()
 	return goldsmith
 }
 
@@ -99,21 +94,10 @@ func (goldsmith *Goldsmith) End(targetDir string) []error {
 	}
 
 	context := goldsmith.contexts[len(goldsmith.contexts)-1]
-
-export:
 	for file := range context.outputFiles {
-		for _, fileFilter := range goldsmith.fileFilters {
-			accept, err := fileFilter.Accept(file)
-			if err != nil {
-				goldsmith.fault(fileFilter.Name(), file, err)
-				continue export
-			}
-			if !accept {
-				continue export
-			}
+		if goldsmith.filters.accept(file) {
+			goldsmith.exportFile(file)
 		}
-
-		goldsmith.exportFile(file)
 	}
 
 	if goldsmith.clean {
