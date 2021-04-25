@@ -16,9 +16,9 @@ type Goldsmith struct {
 	contexts      []*Context
 	contextHasher hash.Hash32
 
-	fileCache *cache
-	filters   filterStack
-	clean     bool
+	cache   *cache
+	filters filterStack
+	clean   bool
 
 	errors []error
 	mutex  sync.Mutex
@@ -37,7 +37,7 @@ func Begin(sourceDir string) *Goldsmith {
 
 // Cache enables caching in cacheDir for the remainder of the chain.
 func (goldsmith *Goldsmith) Cache(cacheDir string) *Goldsmith {
-	goldsmith.fileCache = &cache{cacheDir}
+	goldsmith.cache = &cache{cacheDir}
 	return goldsmith
 }
 
