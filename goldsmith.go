@@ -84,13 +84,19 @@ func (goldsmith *Goldsmith) FilterPop() *Goldsmith {
 func (goldsmith *Goldsmith) End(targetDir string) []error {
 	goldsmith.targetDir = targetDir
 
+	var wg sync.WaitGroup
 	goldsmith.Chain(&saver{
 		clean: goldsmith.clean,
+		wg:    &wg,
 	})
+
+	wg.Add(1)
 
 	for _, context := range goldsmith.contexts {
 		go context.step()
 	}
+
+	wg.Wait()
 
 	return goldsmith.errors
 }

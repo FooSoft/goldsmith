@@ -3,11 +3,13 @@ package goldsmith
 import (
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 type saver struct {
 	clean  bool
 	tokens map[string]bool
+	wg     *sync.WaitGroup
 }
 
 func (*saver) Name() string {
@@ -29,6 +31,8 @@ func (saver *saver) Process(context *Context, file *File) error {
 }
 
 func (saver *saver) Finalize(context *Context) error {
+	defer saver.wg.Done()
+
 	if !saver.clean {
 		return nil
 	}
