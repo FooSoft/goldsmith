@@ -17,9 +17,8 @@ type Goldsmith struct {
 	contextHasher hash.Hash32
 
 	fileCache *cache
-
-	filters filterStack
-	clean   bool
+	filters   filterStack
+	clean     bool
 
 	errors []error
 	mutex  sync.Mutex
@@ -53,16 +52,16 @@ func (goldsmith *Goldsmith) Chain(plugin Plugin) *Goldsmith {
 	goldsmith.contextHasher.Write([]byte(plugin.Name()))
 
 	context := &Context{
-		goldsmith:   goldsmith,
-		plugin:      plugin,
-		hash:        goldsmith.contextHasher.Sum32(),
-		outputFiles: make(chan *File),
+		goldsmith: goldsmith,
+		plugin:    plugin,
+		chainHash: goldsmith.contextHasher.Sum32(),
+		filesOut:  make(chan *File),
 	}
 
-	context.filtersExternal = append(context.filtersExternal, goldsmith.filters...)
+	context.filtersExt = append(context.filtersExt, goldsmith.filters...)
 
 	if len(goldsmith.contexts) > 0 {
-		context.inputFiles = goldsmith.contexts[len(goldsmith.contexts)-1].outputFiles
+		context.filesIn = goldsmith.contexts[len(goldsmith.contexts)-1].filesOut
 	}
 
 	goldsmith.contexts = append(goldsmith.contexts, context)
@@ -86,8 +85,7 @@ func (goldsmith *Goldsmith) End(targetDir string) []error {
 	goldsmith.targetDir = targetDir
 
 	goldsmith.Chain(&saver{
-		clean:  goldsmith.clean,
-		tokens: make(map[string]bool),
+		clean: goldsmith.clean,
 	})
 
 	for _, context := range goldsmith.contexts {

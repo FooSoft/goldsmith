@@ -3,24 +3,24 @@ package goldsmith
 import (
 	"os"
 	"path/filepath"
-	"sync"
 )
 
 type saver struct {
-	clean bool
-
+	clean  bool
 	tokens map[string]bool
-	mutex  sync.Mutex
 }
 
 func (*saver) Name() string {
 	return "saver"
 }
 
-func (saver *saver) Process(context *Context, file *File) error {
-	saver.mutex.Lock()
-	defer saver.mutex.Unlock()
+func (saver *saver) Initialize(context *Context) error {
+	saver.tokens = make(map[string]bool)
+	context.Threads(1)
+	return nil
+}
 
+func (saver *saver) Process(context *Context, file *File) error {
 	for token := cleanPath(file.sourcePath); token != "."; token = filepath.Dir(token) {
 		saver.tokens[token] = true
 	}

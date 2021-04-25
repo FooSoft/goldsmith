@@ -14,14 +14,16 @@ import (
 type Context struct {
 	goldsmith *Goldsmith
 
-	plugin Plugin
-	hash   uint32
+	plugin    Plugin
+	chainHash uint32
 
-	filtersExternal filterStack
-	filtersInternal filterStack
+	filtersExt filterStack
+	filtersInt filterStack
 
-	inputFiles  chan *File
-	outputFiles chan *File
+	threads int
+
+	filesIn  chan *File
+	filesOut chan *File
 }
 
 // CreateFileFrom data creates a new file instance from the provided data buffer.
@@ -58,7 +60,7 @@ func (*Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, error) 
 
 // DispatchFile causes the file to get passed to the next link in the chain.
 func (context *Context) DispatchFile(file *File) {
-	context.outputFiles <- file
+	context.filesOut <- file
 }
 
 // DispatchAndCacheFile caches the file data (excluding the metadata), taking
@@ -69,7 +71,7 @@ func (context *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*Fi
 		context.goldsmith.fileCache.storeFile(context, outputFile, inputFiles)
 	}
 
-	context.outputFiles <- outputFile
+	context.filesOut <- outputFile
 }
 
 // RetrieveCachedFile looks up file data (excluding the metadata), given an
@@ -86,12 +88,18 @@ func (context *Context) RetrieveCachedFile(outputPath string, inputFiles ...*Fil
 
 // Specify internal filter(s) that exclude files from being processed.
 func (context *Context) Filter(filters ...Filter) *Context {
-	context.filtersInternal = filters
+	context.filtersInt = filters
+	return context
+}
+
+// Specify the maximum number of threads used for processing.
+func (context *Context) Threads(threads int) *Context {
+	context.threads = threads
 	return context
 }
 
 func (context *Context) step() {
-	defer close(context.outputFiles)
+	defer close(context.filesOut)
 
 	if initializer, ok := context.plugin.(Initializer); ok {
 		if err := initializer.Initialize(context); err != nil {
@@ -100,16 +108,21 @@ func (context *Context) step() {
 		}
 	}
 
-	if context.inputFiles != nil {
+	if context.filesIn != nil {
 		processor, _ := context.plugin.(Processor)
 
+		threads := context.threads
+		if threads < 1 {
+			threads = runtime.NumCPU()
+		}
+
 		var wg sync.WaitGroup
-		for i := 0; i < runtime.NumCPU(); i++ {
+		for i := 0; i < threads; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				for inputFile := range context.inputFiles {
-					if processor != nil && context.filtersInternal.accept(inputFile) && context.filtersExternal.accept(inputFile) {
+				for inputFile := range context.filesIn {
+					if processor != nil && context.filtersInt.accept(inputFile) && context.filtersExt.accept(inputFile) {
 						if _, err := inputFile.Seek(0, os.SEEK_SET); err != nil {
 							context.goldsmith.fault("core", inputFile, err)
 						}
@@ -117,7 +130,7 @@ func (context *Context) step() {
 							context.goldsmith.fault(context.plugin.Name(), inputFile, err)
 						}
 					} else {
-						context.outputFiles <- inputFile
+						context.filesOut <- inputFile
 					}
 				}
 			}()
