@@ -69,7 +69,7 @@ func (cache *cache) storeFile(context *Context, outputFile *File, inputFiles []*
 
 func (cache *cache) buildCachePath(context *Context, outputPath string, inputFiles []*File) (string, error) {
 	uintBuff := make([]byte, 4)
-	binary.LittleEndian.PutUint32(uintBuff, context.chainHash)
+	binary.LittleEndian.PutUint32(uintBuff, context.hash)
 
 	hasher := crc32.NewIEEE()
 	hasher.Write(uintBuff)
