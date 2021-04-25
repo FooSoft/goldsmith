@@ -2,9 +2,7 @@ package goldsmith
 
 import "path/filepath"
 
-type loader struct {
-	Initializer
-}
+type loader struct{}
 
 func (*loader) Name() string {
 	return "loader"

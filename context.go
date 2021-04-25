@@ -65,7 +65,10 @@ func (context *Context) DispatchFile(file *File) {
 // dependencies on any input files that are needed to generate it, and then
 // passes it to the next link in the chain.
 func (context *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File) {
-	context.goldsmith.storeFile(context, outputFile, inputFiles)
+	if context.goldsmith.fileCache != nil {
+		context.goldsmith.fileCache.storeFile(context, outputFile, inputFiles)
+	}
+
 	context.outputFiles <- outputFile
 }
 
@@ -73,7 +76,12 @@ func (context *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*Fi
 // output path and any input files that are needed to generate it. The function
 // will return nil if the desired file is not found in the cache.
 func (context *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) *File {
-	return context.goldsmith.retrieveFile(context, outputPath, inputFiles)
+	var outputFile *File
+	if context.goldsmith.fileCache != nil {
+		outputFile, _ = context.goldsmith.fileCache.retrieveFile(context, outputPath, inputFiles)
+	}
+
+	return outputFile
 }
 
 // Specify internal filter(s) that exclude files from being processed.
