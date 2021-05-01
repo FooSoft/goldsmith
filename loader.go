@@ -2,24 +2,22 @@ package goldsmith
 
 import "path/filepath"
 
-type loader struct {
-	Initializer
-}
+type loader struct{}
 
 func (*loader) Name() string {
 	return "loader"
 }
 
-func (*loader) Initialize(ctx *Context) error {
+func (*loader) Initialize(context *Context) error {
 	infos := make(chan fileInfo)
-	go scanDir(ctx.goldsmith.sourceDir, infos)
+	go scanDir(context.goldsmith.sourceDir, infos)
 
 	for info := range infos {
 		if info.IsDir() {
 			continue
 		}
 
-		relPath, _ := filepath.Rel(ctx.goldsmith.sourceDir, info.path)
+		relPath, _ := filepath.Rel(context.goldsmith.sourceDir, info.path)
 
 		file := &File{
 			sourcePath: relPath,
@@ -29,7 +27,7 @@ func (*loader) Initialize(ctx *Context) error {
 			dataPath:   info.path,
 		}
 
-		ctx.DispatchFile(file)
+		context.DispatchFile(file)
 	}
 
 	return nil
