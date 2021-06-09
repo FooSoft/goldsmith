@@ -1,10 +1,10 @@
-# Goldsmith #
+# Goldsmith
 
 Goldsmith is a fast and easily extensible static website generator written in Go. In contrast to many other generators,
 Goldsmith does not force any design paradigms or file organization rules on the user, making it possible to generate
 anything from blogs to image galleries using the same tool.
 
-## Tutorial ##
+## Tutorial
 
 Goldsmith does not use any configuration files, and all behavior customization happens in code. Goldsmith uses the
 [builder pattern](https://en.wikipedia.org/wiki/Builder_pattern) to establish a chain, which modifies files as they pass
@@ -135,7 +135,7 @@ understand, it is often best to learn by example:
     }
     ```
 
-## Samples ##
+## Samples
 
 Below are some examples of Goldsmith usage which can used to base your site on:
 
@@ -146,11 +146,11 @@ Below are some examples of Goldsmith usage which can used to base your site on:
 *   [FooSoft.net](https://foosoft.net/projects/goldsmith): I've been "dogfooding" Goldsmith by using it to build
     my homepage for years.
 
-## Components ##
+## Components
 
 A growing set of plugins, filters, and other tools are provided to make it easier to get started with Goldsmith.
 
-### Plugins ###
+### Plugins
 
 *   [Absolute](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/absolute): Convert relative HTML file
     references to absolute paths.
@@ -183,7 +183,7 @@ A growing set of plugins, filters, and other tools are provided to make it easie
 *   [Thumbnail](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/thumbnail): Build thumbnails for a
     variety of common image formats.
 
-### Filters ###
+### Filters
 
 *   [Condition](https://godoc.org/github.com/FooSoft/goldsmith-components/filters/condition): Filter files based on a
     single condition.
@@ -192,7 +192,7 @@ A growing set of plugins, filters, and other tools are provided to make it easie
 *   [Wildcard](https://godoc.org/github.com/FooSoft/goldsmith-components/filters/wildcard): Filter files using path
     wildcards (`*`, `?`, etc.)
 
-### Other ###
+### Other
 
 *   [DevServer](https://godoc.org/github.com/FooSoft/goldsmith-components/devserver): Simple framework for building,
     updating, and viewing your site.
