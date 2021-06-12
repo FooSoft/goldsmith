@@ -160,6 +160,8 @@ A growing set of plugins, filters, and other tools are provided to make it easie
     into named collections.
 *   [Document](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/document): Enable simple DOM
     modification via an API similar to jQuery.
+*   [Forward](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/forward): Create simple redirections for
+    pages that have moved to a new URL.
 *   [FrontMatter](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/frontmatter): Extract the
     JSON, YAML, or TOML metadata stored in your files.
 *   [Index](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/index): Create metadata for directory file
