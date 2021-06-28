@@ -12,19 +12,18 @@ import (
 	"time"
 )
 
+type Property interface{}
+
 // File represents in-memory or on-disk files in a chain.
 type File struct {
 	sourcePath string
 	dataPath   string
+	properties map[string]Property
 
-	Meta map[string]interface{}
-
-	hashValue uint32
-	hashValid bool
-
-	reader  *bytes.Reader
-	size    int64
-	modTime time.Time
+	hashValue *uint32
+	reader    *bytes.Reader
+	size      int64
+	modTime   time.Time
 }
 
 // Rename modifies the file path relative to the source directory.
@@ -60,6 +59,29 @@ func (file *File) Size() int64 {
 // ModTime returns the time of the file's last modification.
 func (file *File) ModTime() time.Time {
 	return file.modTime
+}
+
+func (file *File) SetProperty(name string, value Property) {
+	file.properties[name] = value
+}
+
+func (file *File) GetProperty(name string) (Property, bool) {
+	value, ok := file.properties[name]
+	return value, ok
+}
+
+func (file *File) GetPropertyOrDefault(name string, valueDef Property) Property {
+	if value, ok := file.GetProperty(name); ok {
+		return value
+	}
+
+	return valueDef
+}
+
+func (file *File) CopyPropertiesTo(other *File) {
+	for key, value := range file.properties {
+		other.SetProperty(key, value)
+	}
 }
 
 // Read reads file data into the provided buffer.
@@ -155,8 +177,8 @@ func (file *File) load() error {
 }
 
 func (file *File) hash() (uint32, error) {
-	if file.hashValid {
-		return file.hashValue, nil
+	if file.hashValue != nil {
+		return *file.hashValue, nil
 	}
 
 	if err := file.load(); err != nil {
@@ -181,9 +203,10 @@ func (file *File) hash() (uint32, error) {
 		return 0, err
 	}
 
-	file.hashValue = hasher.Sum32()
-	file.hashValid = true
-	return file.hashValue, nil
+	hashValue := hasher.Sum32()
+	file.hashValue = &hashValue
+
+	return *file.hashValue, nil
 }
 
 type filesByPath []*File

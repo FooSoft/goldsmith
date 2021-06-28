@@ -21,7 +21,7 @@ func (*loader) Initialize(context *Context) error {
 
 		file := &File{
 			sourcePath: relPath,
-			Meta:       make(map[string]interface{}),
+			properties: make(map[string]Property),
 			modTime:    info.ModTime(),
 			size:       info.Size(),
 			dataPath:   info.path,
