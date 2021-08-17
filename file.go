@@ -101,10 +101,8 @@ func (file *File) GoString() string {
 func (file *File) export(targetDir string) error {
 	targetPath := filepath.Join(targetDir, file.sourcePath)
 
-	if len(file.dataPath) == 0 {
-		if targetInfo, err := os.Stat(targetPath); err == nil && targetInfo.ModTime().After(file.ModTime()) {
-			return nil
-		}
+	if targetInfo, err := os.Stat(targetPath); err == nil && !targetInfo.ModTime().Before(file.ModTime()) {
+		return nil
 	}
 
 	if err := os.MkdirAll(path.Dir(targetPath), 0755); err != nil {
