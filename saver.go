@@ -14,32 +14,32 @@ func (*saver) Name() string {
 	return "saver"
 }
 
-func (saver *saver) Initialize(context *Context) error {
-	saver.tokens = make(map[string]bool)
+func (self *saver) Initialize(context *Context) error {
+	self.tokens = make(map[string]bool)
 	context.Threads(1)
 	return nil
 }
 
-func (saver *saver) Process(context *Context, file *File) error {
-	for token := cleanPath(file.sourcePath); token != "."; token = filepath.Dir(token) {
-		saver.tokens[token] = true
+func (self *saver) Process(context *Context, file *File) error {
+	for token := cleanPath(file.relPath); token != "."; token = filepath.Dir(token) {
+		self.tokens[token] = true
 	}
 
 	return file.export(context.goldsmith.targetDir)
 }
 
-func (saver *saver) Finalize(context *Context) error {
-	if !saver.clean {
+func (self *saver) Finalize(context *Context) error {
+	if !self.clean {
 		return nil
 	}
 
-	infos := make(chan fileInfo)
-	go scanDir(context.goldsmith.targetDir, infos)
+	scannedInfo := make(chan fileInfo)
+	go scanDir(context.goldsmith.targetDir, scannedInfo)
 
-	for info := range infos {
+	for info := range scannedInfo {
 		if info.path != context.goldsmith.targetDir {
 			relPath, _ := filepath.Rel(context.goldsmith.targetDir, info.path)
-			if contained, _ := saver.tokens[relPath]; !contained {
+			if contained, _ := self.tokens[relPath]; !contained {
 				os.RemoveAll(info.path)
 			}
 		}

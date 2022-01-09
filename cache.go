@@ -13,8 +13,8 @@ type cache struct {
 	baseDir string
 }
 
-func (cache *cache) retrieveFile(context *Context, outputPath string, inputFiles []*File) (*File, error) {
-	cachePath, err := cache.buildCachePath(context, outputPath, inputFiles)
+func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles []*File) (*File, error) {
+	cachePath, err := self.buildCachePath(context, outputPath, inputFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -31,13 +31,13 @@ func (cache *cache) retrieveFile(context *Context, outputPath string, inputFiles
 	return outputFile, nil
 }
 
-func (cache *cache) storeFile(context *Context, outputFile *File, inputFiles []*File) error {
-	cachePath, err := cache.buildCachePath(context, outputFile.Path(), inputFiles)
+func (self *cache) storeFile(context *Context, outputFile *File, inputFiles []*File) error {
+	cachePath, err := self.buildCachePath(context, outputFile.Path(), inputFiles)
 	if err != nil {
 		return err
 	}
 
-	if err := os.MkdirAll(cache.baseDir, 0755); err != nil {
+	if err := os.MkdirAll(self.baseDir, 0755); err != nil {
 		return err
 	}
 
@@ -67,28 +67,20 @@ func (cache *cache) storeFile(context *Context, outputFile *File, inputFiles []*
 	return nil
 }
 
-func (cache *cache) buildCachePath(context *Context, outputPath string, inputFiles []*File) (string, error) {
-	uintBuff := make([]byte, 4)
-	binary.LittleEndian.PutUint32(uintBuff, context.chainHash)
-
+func (self *cache) buildCachePath(context *Context, outputPath string, inputFiles []*File) (string, error) {
 	hasher := crc32.NewIEEE()
-	hasher.Write(uintBuff)
 	hasher.Write([]byte(outputPath))
 
 	sort.Sort(filesByPath(inputFiles))
+
 	for _, inputFile := range inputFiles {
-		fileHash, err := inputFile.hash()
-		if err != nil {
-			return "", err
-		}
-
-		binary.LittleEndian.PutUint32(uintBuff, fileHash)
-
-		hasher.Write(uintBuff)
+		modTimeBuff := make([]byte, 8)
+		binary.LittleEndian.PutUint64(modTimeBuff, uint64(inputFile.ModTime().UnixNano()))
 		hasher.Write([]byte(inputFile.Path()))
+		hasher.Write(modTimeBuff)
 	}
 
-	cachePath := filepath.Join(cache.baseDir, fmt.Sprintf(
+	cachePath := filepath.Join(self.baseDir, fmt.Sprintf(
 		"gs_%.8x%s",
 		hasher.Sum32(),
 		filepath.Ext(outputPath),

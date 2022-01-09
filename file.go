@@ -2,106 +2,144 @@ package goldsmith
 
 import (
 	"bytes"
-	"hash/crc32"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
+type Prop interface{}
+type PropMap map[string]Prop
+
 // File represents in-memory or on-disk files in a chain.
 type File struct {
-	sourcePath string
-	dataPath   string
-
-	Meta map[string]interface{}
-
-	hashValue uint32
-	hashValid bool
-
-	reader  *bytes.Reader
-	size    int64
+	relPath string
+	props   map[string]Prop
 	modTime time.Time
+	size    int64
+
+	dataPath string
+	reader   *bytes.Reader
+
+	index int
 }
 
 // Rename modifies the file path relative to the source directory.
-func (file *File) Rename(path string) {
-	file.sourcePath = path
+func (self *File) Rename(path string) {
+	self.relPath = path
+}
+
+func (self *File) Rewrite(reader io.Reader) error {
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	self.reader = bytes.NewReader(data)
+	self.modTime = time.Now()
+	self.size = int64(len(data))
+	return nil
 }
 
 // Path returns the file path relative to the source directory.
-func (file *File) Path() string {
-	return file.sourcePath
+func (self *File) Path() string {
+	return self.relPath
 }
 
 // Name returns the base name of the file.
-func (file *File) Name() string {
-	return path.Base(file.sourcePath)
+func (self *File) Name() string {
+	return path.Base(self.relPath)
 }
 
 // Dir returns the containing directory of the file.
-func (file *File) Dir() string {
-	return path.Dir(file.sourcePath)
+func (self *File) Dir() string {
+	return path.Dir(self.relPath)
 }
 
 // Ext returns the extension of the file.
-func (file *File) Ext() string {
-	return path.Ext(file.sourcePath)
+func (self *File) Ext() string {
+	return path.Ext(self.relPath)
 }
 
 // Size returns the file length in bytes.
-func (file *File) Size() int64 {
-	return file.size
+func (self *File) Size() int64 {
+	return self.size
 }
 
 // ModTime returns the time of the file's last modification.
-func (file *File) ModTime() time.Time {
-	return file.modTime
+func (self *File) ModTime() time.Time {
+	return self.modTime
 }
 
 // Read reads file data into the provided buffer.
-func (file *File) Read(data []byte) (int, error) {
-	if err := file.load(); err != nil {
+func (self *File) Read(data []byte) (int, error) {
+	if err := self.load(); err != nil {
 		return 0, err
 	}
 
-	return file.reader.Read(data)
+	return self.reader.Read(data)
 }
 
 // Write writes file data into the provided writer.
-func (file *File) WriteTo(writer io.Writer) (int64, error) {
-	if err := file.load(); err != nil {
+func (self *File) WriteTo(writer io.Writer) (int64, error) {
+	if err := self.load(); err != nil {
 		return 0, err
 	}
 
-	return file.reader.WriteTo(writer)
+	return self.reader.WriteTo(writer)
 }
 
 // Seek updates the file pointer to the desired position.
-func (file *File) Seek(offset int64, whence int) (int64, error) {
-	if file.reader == nil && offset == 0 && (whence == os.SEEK_SET || whence == os.SEEK_CUR) {
+func (self *File) Seek(offset int64, whence int) (int64, error) {
+	if self.reader == nil && offset == 0 && (whence == os.SEEK_SET || whence == os.SEEK_CUR) {
 		return 0, nil
 	}
 
-	if err := file.load(); err != nil {
+	if err := self.load(); err != nil {
 		return 0, err
 	}
 
-	return file.reader.Seek(offset, whence)
+	return self.reader.Seek(offset, whence)
 }
 
 // Returns value for string formatting.
-func (file *File) GoString() string {
-	return file.sourcePath
+func (self *File) GoString() string {
+	return self.relPath
 }
 
-func (file *File) export(targetDir string) error {
-	targetPath := filepath.Join(targetDir, file.sourcePath)
+func (self *File) SetProp(name string, value Prop) {
+	self.props[name] = value
+}
 
-	if targetInfo, err := os.Stat(targetPath); err == nil && !targetInfo.ModTime().Before(file.ModTime()) {
+func (self *File) CopyProps(file *File) {
+	for key, value := range file.props {
+		self.props[key] = value
+	}
+}
+
+func (self *File) Prop(name string) (Prop, bool) {
+	value, ok := self.props[name]
+	return value, ok
+}
+
+func (self *File) Props() PropMap {
+	return self.props
+}
+
+func (self *File) PropOrDefault(name string, valueDef Prop) Prop {
+	if value, ok := self.Prop(name); ok {
+		return value
+	}
+
+	return valueDef
+}
+
+func (self *File) export(targetDir string) error {
+	targetPath := filepath.Join(targetDir, self.relPath)
+
+	if targetInfo, err := os.Stat(targetPath); err == nil && !targetInfo.ModTime().Before(self.ModTime()) {
 		return nil
 	}
 
@@ -115,8 +153,8 @@ func (file *File) export(targetDir string) error {
 	}
 	defer fw.Close()
 
-	if file.reader == nil {
-		fr, err := os.Open(file.dataPath)
+	if self.reader == nil {
+		fr, err := os.Open(self.dataPath)
 		if err != nil {
 			return err
 		}
@@ -126,11 +164,11 @@ func (file *File) export(targetDir string) error {
 			return err
 		}
 	} else {
-		if _, err := file.Seek(0, os.SEEK_SET); err != nil {
+		if _, err := self.Seek(0, os.SEEK_SET); err != nil {
 			return err
 		}
 
-		if _, err := file.WriteTo(fw); err != nil {
+		if _, err := self.WriteTo(fw); err != nil {
 			return err
 		}
 	}
@@ -138,115 +176,16 @@ func (file *File) export(targetDir string) error {
 	return nil
 }
 
-func (file *File) load() error {
-	if file.reader != nil {
+func (self *File) load() error {
+	if self.reader != nil {
 		return nil
 	}
 
-	data, err := ioutil.ReadFile(file.dataPath)
+	data, err := ioutil.ReadFile(self.dataPath)
 	if err != nil {
 		return err
 	}
 
-	file.reader = bytes.NewReader(data)
+	self.reader = bytes.NewReader(data)
 	return nil
-}
-
-func (file *File) hash() (uint32, error) {
-	if file.hashValid {
-		return file.hashValue, nil
-	}
-
-	if err := file.load(); err != nil {
-		return 0, err
-	}
-
-	offset, err := file.Seek(0, os.SEEK_CUR)
-	if err != nil {
-		return 0, err
-	}
-
-	if _, err := file.Seek(0, os.SEEK_SET); err != nil {
-		return 0, err
-	}
-
-	hasher := crc32.NewIEEE()
-	if _, err := io.Copy(hasher, file.reader); err != nil {
-		return 0, err
-	}
-
-	if _, err := file.Seek(offset, os.SEEK_SET); err != nil {
-		return 0, err
-	}
-
-	file.hashValue = hasher.Sum32()
-	file.hashValid = true
-	return file.hashValue, nil
-}
-
-type filesByPath []*File
-
-func (file filesByPath) Len() int {
-	return len(file)
-}
-
-func (file filesByPath) Swap(i, j int) {
-	file[i], file[j] = file[j], file[i]
-}
-
-func (file filesByPath) Less(i, j int) bool {
-	return strings.Compare(file[i].Path(), file[j].Path()) < 0
-}
-
-type fileInfo struct {
-	os.FileInfo
-	path string
-}
-
-func cleanPath(path string) string {
-	if filepath.IsAbs(path) {
-		var err error
-		if path, err = filepath.Rel("/", path); err != nil {
-			panic(err)
-		}
-	}
-
-	return filepath.Clean(path)
-}
-
-func scanDir(rootDir string, infos chan fileInfo) {
-	defer close(infos)
-
-	filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
-		if err == nil {
-			infos <- fileInfo{FileInfo: info, path: path}
-		}
-
-		return err
-	})
-}
-
-type filterStack []Filter
-
-func (filters *filterStack) accept(file *File) bool {
-	for _, filter := range *filters {
-		if !filter.Accept(file) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (filters *filterStack) push(filter Filter) {
-	*filters = append(*filters, filter)
-}
-
-func (filters *filterStack) pop() {
-	count := len(*filters)
-	if count == 0 {
-		panic("attempted to pop empty filter stack")
-	}
-
-	*filters = (*filters)[:count-1]
 }

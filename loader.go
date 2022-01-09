@@ -9,22 +9,18 @@ func (*loader) Name() string {
 }
 
 func (*loader) Initialize(context *Context) error {
-	infos := make(chan fileInfo)
-	go scanDir(context.goldsmith.sourceDir, infos)
+	scannedInfo := make(chan fileInfo)
+	go scanDir(context.goldsmith.sourceDir, scannedInfo)
 
-	for info := range infos {
+	for info := range scannedInfo {
 		if info.IsDir() {
 			continue
 		}
 
 		relPath, _ := filepath.Rel(context.goldsmith.sourceDir, info.path)
-
-		file := &File{
-			sourcePath: relPath,
-			Meta:       make(map[string]interface{}),
-			modTime:    info.ModTime(),
-			size:       info.Size(),
-			dataPath:   info.path,
+		file, err := context.CreateFileFromAsset(relPath, info.path)
+		if err != nil {
+			return err
 		}
 
 		context.DispatchFile(file)
