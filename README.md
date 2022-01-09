@@ -1,3 +1,12 @@
+<!-- +++
+Area = "projects"
+GitHub = "goldsmith"
+Layout = "page"
+Tags = ["generator", "golang", "goldsmith", "mit license", "web"]
+Description = "Static pipeline-based website generator written in Go."
+Collection = "ProjectsActive"
++++ -->
+
 # Goldsmith
 
 Goldsmith is a fast and easily extensible static website generator written in Go. In contrast to many other generators,
