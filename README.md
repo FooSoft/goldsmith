@@ -187,6 +187,8 @@ A growing set of plugins, filters, and other tools are provided to make it easie
     standalone pages.
 *   [Summary](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/summary): Extract summary and title
     metadata from HTML files.
+*   [Syndicate](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/syndicate): Generate RSS, Atom, and
+    JSON feeds from existing metadata.
 *   [Syntax](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/syntax): Enable syntax highlighting for
     pre-formatted code blocks.
 *   [Tags](https://godoc.org/github.com/FooSoft/goldsmith-components/plugins/tags): Generate tag clouds and indices
