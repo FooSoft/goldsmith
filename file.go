@@ -54,7 +54,7 @@ func (self *File) Name() string {
 
 // Dir returns the containing directory of the file.
 func (self *File) Dir() string {
-	return filepath.Dir(self.relPath)
+	return filepath.ToSlash(filepath.Dir(self.relPath))
 }
 
 // Ext returns the extension of the file.

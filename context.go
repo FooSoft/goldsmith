@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -49,6 +50,14 @@ func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (
 
 // CreateFileFromAsset creates a new file instance from the provided file path.
 func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, error) {
+	if filepath.IsAbs(sourcePath) {
+		return nil, errors.New("source paths must be relative")
+	}
+
+	if filepath.IsAbs(dataPath) {
+		return nil, errors.New("data paths must be relative")
+	}
+
 	info, err := os.Stat(dataPath)
 	if err != nil {
 		return nil, err
