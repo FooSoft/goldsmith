@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 )
@@ -50,17 +49,17 @@ func (self *File) Path() string {
 
 // Name returns the base name of the file.
 func (self *File) Name() string {
-	return path.Base(self.relPath)
+	return filepath.Base(self.relPath)
 }
 
 // Dir returns the containing directory of the file.
 func (self *File) Dir() string {
-	return path.Dir(self.relPath)
+	return filepath.Dir(self.relPath)
 }
 
 // Ext returns the extension of the file.
 func (self *File) Ext() string {
-	return path.Ext(self.relPath)
+	return filepath.Ext(self.relPath)
 }
 
 // Size returns the file length in bytes.
@@ -143,7 +142,7 @@ func (self *File) export(targetDir string) error {
 		return nil
 	}
 
-	if err := os.MkdirAll(path.Dir(targetPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 		return err
 	}
 
