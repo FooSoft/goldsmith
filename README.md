@@ -185,6 +185,8 @@ A growing set of plugins, filters, and other tools are provided to make it easie
     variety of web formats.
 *   [Pager](https://godoc.org/foosoft.net/projects/goldsmith-components/plugins/pager): Split arrays of metadata into
     standalone pages.
+*   [Rule](https://godoc.org/foosoft.net/projects/goldsmith-components/plugins/rule): Update metadata and filter files
+    based on paths.
 *   [Summary](https://godoc.org/foosoft.net/projects/goldsmith-components/plugins/summary): Extract summary and title
     metadata from HTML files.
 *   [Syndicate](https://godoc.org/foosoft.net/projects/goldsmith-components/plugins/syndicate): Generate RSS, Atom, and
