@@ -44,7 +44,7 @@ func (self *File) Rewrite(reader io.Reader) error {
 
 // Path returns the file path relative to the source directory.
 func (self *File) Path() string {
-	return self.relPath
+	return filepath.ToSlash(self.relPath)
 }
 
 // Name returns the base name of the file.
