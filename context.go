@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -31,7 +30,7 @@ type Context struct {
 
 // CreateFileFrom data creates a new file instance from the provided data buffer.
 func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (*File, error) {
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +145,7 @@ func (self *Context) step() {
 				defer wg.Done()
 				for inputFile := range self.filesIn {
 					if processor != nil && self.filtersInt.accept(inputFile) && self.filtersExt.accept(inputFile) {
-						if _, err := inputFile.Seek(0, os.SEEK_SET); err != nil {
+						if _, err := inputFile.Seek(0, io.SeekStart); err != nil {
 							self.goldsmith.fault("core", inputFile, err)
 						}
 						if err := processor.Process(self, inputFile); err != nil {

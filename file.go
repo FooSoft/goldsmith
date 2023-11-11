@@ -3,7 +3,6 @@ package goldsmith
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -31,7 +30,7 @@ func (self *File) Rename(path string) {
 }
 
 func (self *File) Rewrite(reader io.Reader) error {
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return err
 	}
@@ -92,7 +91,7 @@ func (self *File) WriteTo(writer io.Writer) (int64, error) {
 
 // Seek updates the file pointer to the desired position.
 func (self *File) Seek(offset int64, whence int) (int64, error) {
-	if self.reader == nil && offset == 0 && (whence == os.SEEK_SET || whence == os.SEEK_CUR) {
+	if self.reader == nil && offset == 0 && (whence == io.SeekStart || whence == io.SeekCurrent) {
 		return 0, nil
 	}
 
@@ -163,7 +162,7 @@ func (self *File) export(targetDir string) error {
 			return err
 		}
 	} else {
-		if _, err := self.Seek(0, os.SEEK_SET); err != nil {
+		if _, err := self.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
 
@@ -180,7 +179,7 @@ func (self *File) load() error {
 		return nil
 	}
 
-	data, err := ioutil.ReadFile(self.dataPath)
+	data, err := os.ReadFile(self.dataPath)
 	if err != nil {
 		return err
 	}

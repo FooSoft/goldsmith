@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -47,12 +48,12 @@ func (self *cache) storeFile(context *Context, outputFile *File, inputFiles []*F
 	}
 	defer fp.Close()
 
-	offset, err := outputFile.Seek(0, os.SEEK_CUR)
+	offset, err := outputFile.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return err
 	}
 
-	if _, err := outputFile.Seek(0, os.SEEK_SET); err != nil {
+	if _, err := outputFile.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 
@@ -60,7 +61,7 @@ func (self *cache) storeFile(context *Context, outputFile *File, inputFiles []*F
 		return err
 	}
 
-	if _, err := outputFile.Seek(offset, os.SEEK_SET); err != nil {
+	if _, err := outputFile.Seek(offset, io.SeekStart); err != nil {
 		return err
 	}
 
