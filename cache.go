@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 type cache struct {
@@ -72,7 +73,9 @@ func (self *cache) buildCachePath(context *Context, outputPath string, inputFile
 	hasher := crc32.NewIEEE()
 	hasher.Write([]byte(outputPath))
 
-	sort.Sort(filesByPath(inputFiles))
+	sort.Slice(inputFiles, func(i, j int) bool {
+		return strings.Compare(inputFiles[i].Path(), inputFiles[j].Path()) < 0
+	})
 
 	for _, inputFile := range inputFiles {
 		modTimeBuff := make([]byte, 8)

@@ -8,9 +8,6 @@ import (
 
 // Goldsmith chainable context.
 type Goldsmith struct {
-	sourceDir string
-	targetDir string
-
 	contexts []*Context
 
 	cache   *cache
@@ -24,8 +21,8 @@ type Goldsmith struct {
 
 // Begin starts a chain, reading the files located in the source directory as input.
 func Begin(sourceDir string) *Goldsmith {
-	goldsmith := &Goldsmith{sourceDir: sourceDir}
-	goldsmith.Chain(&loader{})
+	goldsmith := new(Goldsmith)
+	goldsmith.Chain(&fileImporter{sourceDir: sourceDir})
 	return goldsmith
 }
 
@@ -77,9 +74,7 @@ func (self *Goldsmith) FilterPop() *Goldsmith {
 
 // End stops a chain, writing all recieved files to targetDir as output.
 func (self *Goldsmith) End(targetDir string) []error {
-	self.targetDir = targetDir
-
-	self.Chain(&saver{clean: self.clean})
+	self.Chain(&fileExporter{targetDir: targetDir, clean: self.clean})
 	for _, context := range self.contexts {
 		go context.step()
 	}
