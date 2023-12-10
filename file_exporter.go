@@ -45,25 +45,22 @@ func (self *fileExporter) Finalize(context *Context) error {
 		return nil
 	}
 
-	infoChan := make(chan fileInfo)
-	go scanDir(self.targetDir, infoChan)
-
-	for info := range infoChan {
-		if info.path == self.targetDir {
-			continue
+	return filepath.Walk(self.targetDir, func(path string, info os.FileInfo, err error) error {
+		if path == self.targetDir {
+			return nil
 		}
 
-		relPath, err := filepath.Rel(self.targetDir, info.path)
+		relPath, err := filepath.Rel(self.targetDir, path)
 		if err != nil {
 			panic(err)
 		}
 
 		if tokenized, _ := self.tokens[relPath]; !tokenized {
-			if err := os.RemoveAll(info.path); err != nil {
+			if err := os.RemoveAll(path); err != nil {
 				return err
 			}
 		}
-	}
 
-	return nil
+		return nil
+	})
 }

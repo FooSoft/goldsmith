@@ -1,6 +1,7 @@
 package goldsmith
 
 import (
+	"os"
 	"path/filepath"
 )
 
@@ -13,26 +14,22 @@ func (*fileImporter) Name() string {
 }
 
 func (self *fileImporter) Initialize(context *Context) error {
-	infoChan := make(chan fileInfo)
-	go scanDir(self.sourceDir, infoChan)
-
-	for info := range infoChan {
+	return filepath.Walk(self.sourceDir, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
-			continue
+			return nil
 		}
 
-		relPath, err := filepath.Rel(self.sourceDir, info.path)
+		relPath, err := filepath.Rel(self.sourceDir, path)
 		if err != nil {
 			panic(err)
 		}
 
-		file, err := context.CreateFileFromAsset(relPath, info.path)
+		file, err := context.CreateFileFromAsset(relPath, path)
 		if err != nil {
 			return err
 		}
 
 		context.DispatchFile(file)
-	}
-
-	return nil
+		return nil
+	})
 }
