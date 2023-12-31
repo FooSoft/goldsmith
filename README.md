@@ -139,12 +139,12 @@ to understand, it is often best to learn by example:
 
 Below are some examples of Goldsmith usage which can used to base your site on:
 
-*   [Basic Sample](https://github.com/FooSoft/goldsmith-samples/tree/master/basic): a great starting point, this is the
-    sample site from the tutorial.
-*   [Bootstrap Sample](https://github.com/FooSoft/goldsmith-samples/tree/master/bootstrap): a slightly more advanced
-    sample using [Bootstrap](https://getbootstrap.com/).
-*   [FooSoft.net](https://git.foosoft.net/alex/goldsmith): I've been "dogfooding" Goldsmith by using it to build
-    my homepage for years.
+*   [Basic Sample](https://git.foosoft.net/alex/goldsmith-samples/src/branch/master/basic): a great starting point, this
+    is the sample site from the tutorial.
+*   [Bootstrap Sample](https://git.foosoft.net/alex/goldsmith-samples/src/branch/master/bootstrap): a slightly more
+    advanced sample using [Bootstrap](https://getbootstrap.com/).
+*   [FooSoft.net](https://git.foosoft.net/alex/goldsmith): I've been "dogfooding" Goldsmith by using it to [generate my
+    homepage](/posts/generating-the-foosoft.net-homepage) for nearly a decade.
 
 ## Components
 
