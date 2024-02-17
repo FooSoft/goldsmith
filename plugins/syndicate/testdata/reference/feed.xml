@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Feed Title</title>
+    <link>https://foosoft.net</link>
+    <description>Feed Description</description>
+    <copyright>Feed Copyright</copyright>
+    <managingEditor>Author Email (Author Name)</managingEditor>
+    <image>
+      <url>Feed Image Url</url>
+      <title></title>
+      <link></link>
+    </image>
+    <item>
+      <title>Page 1 Title</title>
+      <link>https://foosoft.net/page_1.md</link>
+      <description>Page 1 Description</description>
+      <content:encoded><![CDATA[Page 1 Content]]></content:encoded>
+      <author>Page 1 Author Name</author>
+      <guid>Page 1 Id</guid>
+      <pubDate>Thu, 28 Apr 2016 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Page 2 Title</title>
+      <link>https://foosoft.net/page_2.md</link>
+      <description>Page 2 Description</description>
+      <content:encoded><![CDATA[Page 2
+]]></content:encoded>
+      <author>Page 2 Author Name</author>
+      <guid>Page 2 Id</guid>
+      <pubDate>Fri, 28 Apr 2017 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Page 3 Title</title>
+      <link>https://foosoft.net/page_3.md</link>
+      <description>Page 3 Description</description>
+      <content:encoded><![CDATA[Page 3 Content]]></content:encoded>
+      <author>Page 3 Author Name</author>
+      <guid>Page 3 Id</guid>
+      <pubDate>Sat, 28 Apr 2018 00:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

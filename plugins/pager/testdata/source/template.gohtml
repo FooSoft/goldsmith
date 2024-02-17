@@ -1,0 +1,42 @@
+{{define "page"}}
+<html>
+    <body>
+        <h1>{{.Props.Title}}</h1>
+        <p>{{.Props.Content}}</p>
+    </body>
+</html>
+{{end}}
+
+{{define "index"}}
+<html>
+    <body>
+        <h1>Listing {{.Props.Pager.CurrPage.Index}} of {{len .Props.Pager.AllPages}}</h1>
+        <p>
+            {{range .Props.Pager.CurrPage.Items}}
+            <li>
+                <a href="{{.Path}}">{{.Props.Title}}</a>
+            </li>
+            {{end}}
+        </p>
+        <p>
+            [
+
+            {{if .Props.Pager.CurrPage.Prev}}
+            <a href="{{.Props.Pager.CurrPage.Prev.File.Path}}">Prev</a>
+            {{else}}
+            Prev
+            {{end}}
+
+            |
+
+            {{if .Props.Pager.CurrPage.Next}}
+            <a href="{{.Props.Pager.CurrPage.Next.File.Path}}">Next</a>
+            {{else}}
+            Next
+            {{end}}
+
+            ]
+        </p>
+    </body>
+</html>
+{{end}}

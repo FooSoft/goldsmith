@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Feed Title</title>
+  <id>https://foosoft.net</id>
+  <updated></updated>
+  <rights>Feed Copyright</rights>
+  <subtitle>Feed Description</subtitle>
+  <link href="https://foosoft.net"></link>
+  <author>
+    <name>Author Name</name>
+    <email>Author Email</email>
+  </author>
+  <entry>
+    <title>Page 1 Title</title>
+    <updated>2016-04-29T00:00:00Z</updated>
+    <id>Page 1 Id</id>
+    <content type="html">Page 1 Content</content>
+    <link href="https://foosoft.net/page_1.md" rel="alternate"></link>
+    <summary type="html">Page 1 Description</summary>
+    <author>
+      <name>Page 1 Author Name</name>
+      <email>Page 1 Author Email</email>
+    </author>
+  </entry>
+  <entry>
+    <title>Page 2 Title</title>
+    <updated>2017-04-29T00:00:00Z</updated>
+    <id>Page 2 Id</id>
+    <content type="html">Page 2&#xA;</content>
+    <link href="https://foosoft.net/page_2.md" rel="alternate"></link>
+    <summary type="html">Page 2 Description</summary>
+    <author>
+      <name>Page 2 Author Name</name>
+      <email>Page 2 Author Email</email>
+    </author>
+  </entry>
+  <entry>
+    <title>Page 3 Title</title>
+    <updated>2018-04-29T00:00:00Z</updated>
+    <id>Page 3 Id</id>
+    <content type="html">Page 3 Content</content>
+    <link href="https://foosoft.net/page_3.md" rel="alternate"></link>
+    <summary type="html">Page 3 Description</summary>
+    <author>
+      <name>Page 3 Author Name</name>
+      <email>Page 3 Author Email</email>
+    </author>
+  </entry>
+</feed>

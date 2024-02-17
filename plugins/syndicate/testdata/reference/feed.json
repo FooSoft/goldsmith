@@ -1,0 +1,67 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Feed Title",
+  "home_page_url": "https://foosoft.net",
+  "description": "Feed Description",
+  "author": {
+    "name": "Author Name"
+  },
+  "authors": [
+    {
+      "name": "Author Name"
+    }
+  ],
+  "items": [
+    {
+      "id": "Page 1 Id",
+      "url": "https://foosoft.net/page_1.md",
+      "title": "Page 1 Title",
+      "content_html": "Page 1 Content",
+      "summary": "Page 1 Description",
+      "date_published": "2016-04-28T00:00:00Z",
+      "date_modified": "2016-04-29T00:00:00Z",
+      "author": {
+        "name": "Page 1 Author Name"
+      },
+      "authors": [
+        {
+          "name": "Page 1 Author Name"
+        }
+      ]
+    },
+    {
+      "id": "Page 2 Id",
+      "url": "https://foosoft.net/page_2.md",
+      "title": "Page 2 Title",
+      "content_html": "Page 2\n",
+      "summary": "Page 2 Description",
+      "date_published": "2017-04-28T00:00:00Z",
+      "date_modified": "2017-04-29T00:00:00Z",
+      "author": {
+        "name": "Page 2 Author Name"
+      },
+      "authors": [
+        {
+          "name": "Page 2 Author Name"
+        }
+      ]
+    },
+    {
+      "id": "Page 3 Id",
+      "url": "https://foosoft.net/page_3.md",
+      "title": "Page 3 Title",
+      "content_html": "Page 3 Content",
+      "summary": "Page 3 Description",
+      "date_published": "2018-04-28T00:00:00Z",
+      "date_modified": "2018-04-29T00:00:00Z",
+      "author": {
+        "name": "Page 3 Author Name"
+      },
+      "authors": [
+        {
+          "name": "Page 3 Author Name"
+        }
+      ]
+    }
+  ]
+}

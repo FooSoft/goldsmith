@@ -1,0 +1,52 @@
+{{define "tag"}}
+<html>
+    <body>
+        <h1>Pages Tagged "{{.Props.TagState.CurrentTag.RawName}}"</h1>
+        <ul>
+            {{range .Props.TagState.CurrentTag.TaggedFiles}}
+            <li><a href="../../{{.Path}}">{{.Props.Title}}</a></li>
+            {{end}}
+        </ul>
+        <a href="../../index.html">Show all tags</a>
+    </body>
+</html>
+{{end}}
+
+{{define "tags"}}
+<html>
+    <body>
+        <h1>Global Tag Listing</h1>
+
+        <h2>By Name</h2>
+        <ul>
+            {{range .Props.TagState.TagsByName}}
+            <li><a href="{{.IndexFile.Path}}">{{.RawName}}</a> ({{len .TaggedFiles}})</li>
+            {{end}}
+        </ul>
+
+        <h2>By Count</h2>
+        <ul>
+            {{range .Props.TagState.TagsByCount}}
+            <li><a href="{{.IndexFile.Path}}">{{.RawName}}</a> ({{len .TaggedFiles}})</li>
+            {{end}}
+        </ul>
+    </body>
+</html>
+{{end}}
+
+{{define "page"}}
+<html>
+    <body>
+        <h1>{{.Props.Title}}</h1>
+        <p>
+            Tagged with:
+            {{range .Props.TagState.CurrentTags}}
+            <a href="{{.IndexFile.Path}}">{{.RawName}}</a>
+            {{end}}
+        </p>
+        <p>
+            <a href="index.html">Show all tags</a>
+        </p>
+    </body>
+</html>
+{{end}}

@@ -1,0 +1,12 @@
+{{define "page"}}
+<html>
+    <body>
+        {{template "title" .Props.Title}}
+        {{template "content" .Props.Content}}
+    </body>
+</html>
+{{end}}
+
+{{define "content"}}
+<p>{{.}}</p>
+{{end}}

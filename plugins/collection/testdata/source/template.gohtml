@@ -1,0 +1,33 @@
+{{define "page"}}
+<html>
+    <body>
+        <h1>{{.Props.Title}}</h1>
+    </body>
+</html>
+{{end}}
+
+{{define "collection"}}
+<ul>
+    {{range .}}
+    <li>
+        <a href="{{.Path}}">{{.Props.Title}}</a>
+    </li>
+    {{end}}
+</ul>
+{{end}}
+
+{{define "index"}}
+<html>
+    <body>
+        <div>
+            <h1>Group 1</h1>
+            {{template "collection" .Props.Groups.group_1}}
+        </div>
+
+        <div>
+            <h1>Group 2</h1>
+            {{template "collection" .Props.Groups.group_2}}
+        </div>
+    </body>
+</html>
+{{end}}

@@ -1,0 +1,1 @@
+function fizzbuzz(e){for(var t=1;t<=e;t++)t%15==0?console.log("fizzbuzz"):t%3==0?console.log("fizz"):t%5==0?console.log("buzz"):console.log(t)}
