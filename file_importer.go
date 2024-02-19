@@ -21,7 +21,7 @@ func (self *fileImporter) Initialize(context *Context) error {
 
 		relPath, err := filepath.Rel(self.sourceDir, path)
 		if err != nil {
-			return err
+			panic(err)
 		}
 
 		file, err := context.CreateFileFromAsset(relPath, path)

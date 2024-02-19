@@ -2,14 +2,17 @@ package goldsmith
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 )
 
-type Prop interface{}
-type PropMap map[string]Prop
+type (
+	Prop    any
+	PropMap map[string]Prop
+)
 
 // File represents in-memory or on-disk files in a chain.
 type File struct {
@@ -25,19 +28,12 @@ type File struct {
 }
 
 // Rename modifies the file path relative to the source directory.
-func (self *File) Rename(path string) {
-	self.relPath = path
-}
-
-func (self *File) Rewrite(reader io.Reader) error {
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return err
+func (self *File) Rename(path string) error {
+	if filepath.IsAbs(path) {
+		return fmt.Errorf("unexpected absolute path: %s", path)
 	}
 
-	self.reader = bytes.NewReader(data)
-	self.modTime = time.Now()
-	self.size = int64(len(data))
+	self.relPath = path
 	return nil
 }
 
@@ -46,14 +42,14 @@ func (self *File) Path() string {
 	return filepath.ToSlash(self.relPath)
 }
 
-// Name returns the base name of the file.
-func (self *File) Name() string {
-	return filepath.Base(self.relPath)
-}
-
 // Dir returns the containing directory of the file.
 func (self *File) Dir() string {
 	return filepath.ToSlash(filepath.Dir(self.relPath))
+}
+
+// Name returns the base name of the file.
+func (self *File) Name() string {
+	return filepath.Base(self.relPath)
 }
 
 // Ext returns the extension of the file.
@@ -102,36 +98,60 @@ func (self *File) Seek(offset int64, whence int) (int64, error) {
 	return self.reader.Seek(offset, whence)
 }
 
-// Returns value for string formatting.
+// GoString returns value for string formatting.
 func (self *File) GoString() string {
 	return self.relPath
 }
 
+// RemoveProp deletes the metadata property for the provided name.
+func (self *File) RemoveProp(name string) {
+	delete(self.props, name)
+}
+
+// SetProp updates the metadata property for the provided name.
 func (self *File) SetProp(name string, value Prop) {
 	self.props[name] = value
 }
 
+// Prop returns the metadata property for the provided name.
+func (self *File) Prop(name string) (Prop, bool) {
+	value, ok := self.props[name]
+	return value, ok
+}
+
+// PropOrDef returns the metadata property for the provided name or the default.
+func (self *File) PropOrDef(name string, valueDef Prop) Prop {
+	if value, ok := self.Prop(name); ok {
+		return value
+	}
+
+	return valueDef
+}
+
+// Props returns all of the metadata properties.
+func (self *File) Props() PropMap {
+	return self.props
+}
+
+// CopyProps copies all metadata properties from the provided file.
 func (self *File) CopyProps(file *File) {
 	for key, value := range file.props {
 		self.props[key] = value
 	}
 }
 
-func (self *File) Prop(name string) (Prop, bool) {
-	value, ok := self.props[name]
-	return value, ok
-}
-
-func (self *File) Props() PropMap {
-	return self.props
-}
-
-func (self *File) PropOrDefault(name string, valueDef Prop) Prop {
-	if value, ok := self.Prop(name); ok {
-		return value
+func (self *File) load() error {
+	if self.reader != nil {
+		return nil
 	}
 
-	return valueDef
+	data, err := os.ReadFile(self.dataPath)
+	if err != nil {
+		return err
+	}
+
+	self.reader = bytes.NewReader(data)
+	return nil
 }
 
 func (self *File) export(targetDir string) error {
@@ -151,39 +171,17 @@ func (self *File) export(targetDir string) error {
 	}
 	defer fw.Close()
 
-	if self.reader == nil {
-		fr, err := os.Open(self.dataPath)
-		if err != nil {
-			return err
-		}
-		defer fr.Close()
-
-		if _, err := io.Copy(fw, fr); err != nil {
-			return err
-		}
-	} else {
-		if _, err := self.Seek(0, io.SeekStart); err != nil {
-			return err
-		}
-
-		if _, err := self.WriteTo(fw); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (self *File) load() error {
-	if self.reader != nil {
-		return nil
-	}
-
-	data, err := os.ReadFile(self.dataPath)
-	if err != nil {
+	if err := self.load(); err != nil {
 		return err
 	}
 
-	self.reader = bytes.NewReader(data)
+	if _, err := self.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+
+	if _, err := self.WriteTo(fw); err != nil {
+		return err
+	}
+
 	return nil
 }
