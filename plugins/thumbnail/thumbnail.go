@@ -81,7 +81,7 @@ func (*Thumbnail) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Thumbnail) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
+func (self *Thumbnail) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	defer context.DispatchFile(inputFile)
 
 	thumbPath := self.namer(inputFile.Path(), self.size)
@@ -104,7 +104,7 @@ func (self *Thumbnail) Process(context *goldsmith.Context, inputFile *goldsmith.
 	return nil
 }
 
-func (self *Thumbnail) thumbnail(context *goldsmith.Context, inputFile *goldsmith.File, thumbPath string) (*goldsmith.File, error) {
+func (self *Thumbnail) thumbnail(context *goldsmith.Context, inputFile goldsmith.File, thumbPath string) (goldsmith.File, error) {
 	var thumbFormat imaging.Format
 	switch strings.ToLower(filepath.Ext(thumbPath)) {
 	case ".jpg", ".jpeg":

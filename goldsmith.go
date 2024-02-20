@@ -45,7 +45,7 @@ func (self *Goldsmith) Chain(plugin Plugin) *Goldsmith {
 		plugin:     plugin,
 		filtersExt: append(filterStack(nil), self.filters...),
 		index:      self.index,
-		filesOut:   make(chan *File),
+		filesOut:   make(chan File),
 	}
 
 	if len(self.contexts) > 0 {
@@ -87,7 +87,7 @@ func (self *Goldsmith) End(targetDir string) []error {
 	return self.errors
 }
 
-func (self *Goldsmith) fault(name string, file *File, err error) {
+func (self *Goldsmith) fault(name string, file File, err error) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 

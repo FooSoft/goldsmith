@@ -1,6 +1,7 @@
 package goldsmith
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -21,7 +22,7 @@ func (self *fileExporter) Initialize(context *Context) error {
 	return nil
 }
 
-func (self *fileExporter) Process(context *Context, file *File) error {
+func (self *fileExporter) Process(context *Context, file File) error {
 	slicePath := func(path string) string {
 		if filepath.IsAbs(path) {
 			var err error
@@ -33,11 +34,34 @@ func (self *fileExporter) Process(context *Context, file *File) error {
 		return filepath.Clean(path)
 	}
 
-	for token := slicePath(file.relPath); token != "."; token = filepath.Dir(token) {
+	for token := slicePath(file.Path()); token != "."; token = filepath.Dir(token) {
 		self.tokens[token] = true
 	}
 
-	return file.export(self.targetDir)
+	targetPath := filepath.Join(self.targetDir, file.Path())
+	if targetInfo, err := os.Stat(targetPath); err == nil && !targetInfo.ModTime().Before(file.ModTime()) {
+		return nil
+	}
+
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+		return err
+	}
+
+	fw, err := os.Create(targetPath)
+	if err != nil {
+		return err
+	}
+	defer fw.Close()
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+
+	if _, err := file.WriteTo(fw); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (self *fileExporter) Finalize(context *Context) error {

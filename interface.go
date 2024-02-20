@@ -1,5 +1,10 @@
 package goldsmith
 
+import (
+	"io"
+	"time"
+)
+
 // Plugin contains the minimum set of methods required on plugins. Plugins can
 // also optionally implement Initializer, Processor, and Finalizer interfaces.
 type Plugin interface {
@@ -14,7 +19,7 @@ type Initializer interface {
 
 // Processor allows for optional processing of files passing through a plugin.
 type Processor interface {
-	Process(context *Context, file *File) error
+	Process(context *Context, file File) error
 }
 
 // Finalizer allows for optional finalization of a plugin after all files
@@ -26,5 +31,36 @@ type Finalizer interface {
 // Filter is used to determine which files should continue in the chain.
 type Filter interface {
 	Name() string
-	Accept(file *File) bool
+	Accept(file File) bool
+}
+
+type (
+	FileProp  any
+	FileProps map[string]FileProp
+)
+
+// File represents in-memory or on-disk files in a chain.
+type File interface {
+	Path() string
+	Dir() string
+	Name() string
+	Ext() string
+	Rename(path string) error
+
+	Size() int64
+	ModTime() time.Time
+
+	Read(data []byte) (int, error)
+	WriteTo(writer io.Writer) (int64, error)
+	Seek(offset int64, whence int) (int64, error)
+
+	SetProp(name string, value FileProp)
+	Prop(name string) (FileProp, bool)
+	PropOrDef(name string, valueDef FileProp) FileProp
+	Props() FileProps
+	CopyProps(file File)
+	RemoveProp(name string)
+
+	GoString() string
+	Index() int
 }

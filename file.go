@@ -9,15 +9,9 @@ import (
 	"time"
 )
 
-type (
-	Prop    any
-	PropMap map[string]Prop
-)
-
-// File represents in-memory or on-disk files in a chain.
-type File struct {
+type rawFile struct {
 	relPath string
-	props   map[string]Prop
+	props   map[string]FileProp
 	modTime time.Time
 	size    int64
 
@@ -27,8 +21,23 @@ type File struct {
 	index int
 }
 
-// Rename modifies the file path relative to the source directory.
-func (self *File) Rename(path string) error {
+func (self *rawFile) Path() string {
+	return filepath.ToSlash(self.relPath)
+}
+
+func (self *rawFile) Dir() string {
+	return filepath.ToSlash(filepath.Dir(self.relPath))
+}
+
+func (self *rawFile) Name() string {
+	return filepath.Base(self.relPath)
+}
+
+func (self *rawFile) Ext() string {
+	return filepath.Ext(self.relPath)
+}
+
+func (self *rawFile) Rename(path string) error {
 	if filepath.IsAbs(path) {
 		return fmt.Errorf("unexpected absolute path: %s", path)
 	}
@@ -37,38 +46,15 @@ func (self *File) Rename(path string) error {
 	return nil
 }
 
-// Path returns the file path relative to the source directory.
-func (self *File) Path() string {
-	return filepath.ToSlash(self.relPath)
-}
-
-// Dir returns the containing directory of the file.
-func (self *File) Dir() string {
-	return filepath.ToSlash(filepath.Dir(self.relPath))
-}
-
-// Name returns the base name of the file.
-func (self *File) Name() string {
-	return filepath.Base(self.relPath)
-}
-
-// Ext returns the extension of the file.
-func (self *File) Ext() string {
-	return filepath.Ext(self.relPath)
-}
-
-// Size returns the file length in bytes.
-func (self *File) Size() int64 {
+func (self *rawFile) Size() int64 {
 	return self.size
 }
 
-// ModTime returns the time of the file's last modification.
-func (self *File) ModTime() time.Time {
+func (self *rawFile) ModTime() time.Time {
 	return self.modTime
 }
 
-// Read reads file data into the provided buffer.
-func (self *File) Read(data []byte) (int, error) {
+func (self *rawFile) Read(data []byte) (int, error) {
 	if err := self.load(); err != nil {
 		return 0, err
 	}
@@ -76,8 +62,7 @@ func (self *File) Read(data []byte) (int, error) {
 	return self.reader.Read(data)
 }
 
-// Write writes file data into the provided writer.
-func (self *File) WriteTo(writer io.Writer) (int64, error) {
+func (self *rawFile) WriteTo(writer io.Writer) (int64, error) {
 	if err := self.load(); err != nil {
 		return 0, err
 	}
@@ -85,8 +70,7 @@ func (self *File) WriteTo(writer io.Writer) (int64, error) {
 	return self.reader.WriteTo(writer)
 }
 
-// Seek updates the file pointer to the desired position.
-func (self *File) Seek(offset int64, whence int) (int64, error) {
+func (self *rawFile) Seek(offset int64, whence int) (int64, error) {
 	if self.reader == nil && offset == 0 && (whence == io.SeekStart || whence == io.SeekCurrent) {
 		return 0, nil
 	}
@@ -98,29 +82,20 @@ func (self *File) Seek(offset int64, whence int) (int64, error) {
 	return self.reader.Seek(offset, whence)
 }
 
-// GoString returns value for string formatting.
-func (self *File) GoString() string {
+func (self *rawFile) GoString() string {
 	return self.relPath
 }
 
-// RemoveProp deletes the metadata property for the provided name.
-func (self *File) RemoveProp(name string) {
-	delete(self.props, name)
-}
-
-// SetProp updates the metadata property for the provided name.
-func (self *File) SetProp(name string, value Prop) {
+func (self *rawFile) SetProp(name string, value FileProp) {
 	self.props[name] = value
 }
 
-// Prop returns the metadata property for the provided name.
-func (self *File) Prop(name string) (Prop, bool) {
+func (self *rawFile) Prop(name string) (FileProp, bool) {
 	value, ok := self.props[name]
 	return value, ok
 }
 
-// PropOrDef returns the metadata property for the provided name or the default.
-func (self *File) PropOrDef(name string, valueDef Prop) Prop {
+func (self *rawFile) PropOrDef(name string, valueDef FileProp) FileProp {
 	if value, ok := self.Prop(name); ok {
 		return value
 	}
@@ -128,19 +103,25 @@ func (self *File) PropOrDef(name string, valueDef Prop) Prop {
 	return valueDef
 }
 
-// Props returns all of the metadata properties.
-func (self *File) Props() PropMap {
+func (self *rawFile) Props() FileProps {
 	return self.props
 }
 
-// CopyProps copies all metadata properties from the provided file.
-func (self *File) CopyProps(file *File) {
-	for key, value := range file.props {
+func (self *rawFile) CopyProps(file File) {
+	for key, value := range file.Props() {
 		self.props[key] = value
 	}
 }
 
-func (self *File) load() error {
+func (self *rawFile) RemoveProp(name string) {
+	delete(self.props, name)
+}
+
+func (self *rawFile) Index() int {
+	return self.index
+}
+
+func (self *rawFile) load() error {
 	if self.reader != nil {
 		return nil
 	}
@@ -151,37 +132,5 @@ func (self *File) load() error {
 	}
 
 	self.reader = bytes.NewReader(data)
-	return nil
-}
-
-func (self *File) export(targetDir string) error {
-	targetPath := filepath.Join(targetDir, self.relPath)
-
-	if targetInfo, err := os.Stat(targetPath); err == nil && !targetInfo.ModTime().Before(self.ModTime()) {
-		return nil
-	}
-
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-		return err
-	}
-
-	fw, err := os.Create(targetPath)
-	if err != nil {
-		return err
-	}
-	defer fw.Close()
-
-	if err := self.load(); err != nil {
-		return err
-	}
-
-	if _, err := self.Seek(0, io.SeekStart); err != nil {
-		return err
-	}
-
-	if _, err := self.WriteTo(fw); err != nil {
-		return err
-	}
-
 	return nil
 }

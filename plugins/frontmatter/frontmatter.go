@@ -71,7 +71,7 @@ func (*FrontMatter) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (*FrontMatter) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
+func (*FrontMatter) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	meta, body, err := parse(inputFile)
 	if err != nil {
 		return err

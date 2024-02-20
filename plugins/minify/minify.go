@@ -37,7 +37,7 @@ func (*Minify) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (*Minify) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
+func (*Minify) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	if outputFile := context.RetrieveCachedFile(inputFile.Path(), inputFile); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)

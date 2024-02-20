@@ -20,8 +20,8 @@ type Layout struct {
 	defaultLayout *string
 	helpers       template.FuncMap
 
-	inputFiles    []*goldsmith.File
-	templateFiles []*goldsmith.File
+	inputFiles    []goldsmith.File
+	templateFiles []goldsmith.File
 	mutex         sync.Mutex
 
 	template *template.Template
@@ -70,7 +70,7 @@ func (self *Layout) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Layout) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
+func (self *Layout) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -128,7 +128,7 @@ func (self *Layout) Finalize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Layout) getFileLayout(file *goldsmith.File) (string, bool) {
+func (self *Layout) getFileLayout(file goldsmith.File) (string, bool) {
 	if name, ok := file.Props()[self.layoutKey].(string); ok {
 		return name, true
 	}

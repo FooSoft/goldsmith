@@ -16,6 +16,6 @@ func (*Condition) Name() string {
 	return "condition"
 }
 
-func (self *Condition) Accept(file *goldsmith.File) bool {
+func (self *Condition) Accept(file goldsmith.File) bool {
 	return self.accept
 }

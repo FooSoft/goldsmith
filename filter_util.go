@@ -7,9 +7,9 @@ type filterEntry struct {
 
 type filterStack []filterEntry
 
-func (self *filterStack) accept(file *File) bool {
+func (self *filterStack) accept(file File) bool {
 	for _, entry := range *self {
-		if entry.index >= file.index && !entry.filter.Accept(file) {
+		if entry.index >= file.Index() && !entry.filter.Accept(file) {
 			return false
 		}
 	}

@@ -18,7 +18,7 @@ import (
 // TagInfo contains site-wide information about a particular tag.
 type TagInfo struct {
 	TaggedFiles filesByPath
-	IndexFile   *goldsmith.File
+	IndexFile   goldsmith.File
 	SafeName    string
 	RawName     string
 }
@@ -44,7 +44,7 @@ type Tags struct {
 	infoByName  tagInfoByName
 	infoByCount tagInfoByCount
 
-	files []*goldsmith.File
+	files []goldsmith.File
 	mutex sync.Mutex
 }
 
@@ -98,7 +98,7 @@ func (*Tags) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Tags) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
+func (self *Tags) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	tagState := &TagState{
 		TagsByName:  &self.infoByName,
 		TagsByCount: &self.infoByCount,
@@ -185,8 +185,8 @@ func (self *Tags) Finalize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Tags) buildPages(context *goldsmith.Context) ([]*goldsmith.File, error) {
-	var files []*goldsmith.File
+func (self *Tags) buildPages(context *goldsmith.Context) ([]goldsmith.File, error) {
+	var files []goldsmith.File
 	for tag, info := range self.info {
 		var err error
 		info.IndexFile, err = context.CreateFileFromReader(self.tagPagePath(tag), bytes.NewReader(nil))
@@ -273,7 +273,7 @@ func (self tagInfoByName) Less(i, j int) bool {
 	return false
 }
 
-type filesByPath []*goldsmith.File
+type filesByPath []goldsmith.File
 
 func (self filesByPath) Len() int {
 	return len(self)

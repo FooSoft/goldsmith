@@ -24,20 +24,20 @@ type Context struct {
 	threads int
 	index   int
 
-	filesIn  chan *File
-	filesOut chan *File
+	filesIn  chan File
+	filesOut chan File
 }
 
 // CreateFileFrom data creates a new file instance from the provided data buffer.
-func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (*File, error) {
+func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (File, error) {
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	file := &File{
+	file := &rawFile{
 		relPath: sourcePath,
-		props:   make(map[string]Prop),
+		props:   make(map[string]FileProp),
 		modTime: time.Now(),
 		size:    int64(len(data)),
 		reader:  bytes.NewReader(data),
@@ -48,7 +48,7 @@ func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (
 }
 
 // CreateFileFromAsset creates a new file instance from the provided file path.
-func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, error) {
+func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (File, error) {
 	if filepath.IsAbs(sourcePath) {
 		return nil, errors.New("source paths must be relative")
 	}
@@ -65,9 +65,9 @@ func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, er
 		return nil, errors.New("assets must be files")
 	}
 
-	file := &File{
+	file := &rawFile{
 		relPath:  sourcePath,
-		props:    make(map[string]Prop),
+		props:    make(map[string]FileProp),
 		modTime:  info.ModTime(),
 		size:     info.Size(),
 		dataPath: dataPath,
@@ -78,14 +78,14 @@ func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, er
 }
 
 // DispatchFile causes the file to get passed to the next link in the chain.
-func (self *Context) DispatchFile(file *File) {
+func (self *Context) DispatchFile(file File) {
 	self.filesOut <- file
 }
 
 // DispatchAndCacheFile caches the file data (excluding the metadata), taking
 // dependencies on any input files that are needed to generate it, and then
 // passes it to the next link in the chain.
-func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File) {
+func (self *Context) DispatchAndCacheFile(outputFile File, inputFiles ...File) {
 	if self.goldsmith.cache != nil {
 		self.goldsmith.cache.storeFile(self, outputFile, inputFiles)
 	}
@@ -96,8 +96,8 @@ func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File)
 // RetrieveCachedFile looks up file data (excluding the metadata), given an
 // output path and any input files that are needed to generate it. The function
 // will return nil if the desired file is not found in the cache.
-func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) *File {
-	var outputFile *File
+func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...File) File {
+	var outputFile File
 	if self.goldsmith.cache != nil {
 		outputFile, _ = self.goldsmith.cache.retrieveFile(self, outputPath, inputFiles)
 	}

@@ -22,13 +22,13 @@ import (
 type Namer func(path string, index int) string
 
 // Lister callback function is used to return a metadata slice which should be paged across several files.
-type Lister func(file *goldsmith.File) interface{}
+type Lister func(file goldsmith.File) interface{}
 
 // Page represents information about a given metadata segment.
 type Page struct {
 	Index int
 	Items interface{}
-	File  *goldsmith.File
+	File  goldsmith.File
 
 	Next *Page
 	Prev *Page
@@ -51,7 +51,7 @@ type Pager struct {
 	inheritedKeys []string
 	itemsPerPage  int
 
-	files []*goldsmith.File
+	files []goldsmith.File
 	mutex sync.Mutex
 }
 
@@ -114,7 +114,7 @@ func (*Pager) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Pager) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
+func (self *Pager) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -208,7 +208,7 @@ func (self *Pager) Finalize(ctx *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Pager) isEnabledForFile(file *goldsmith.File) (bool, error) {
+func (self *Pager) isEnabledForFile(file goldsmith.File) (bool, error) {
 	enableRaw, ok := file.Prop(self.enableKey)
 	if !ok {
 		return false, nil
