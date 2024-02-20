@@ -62,5 +62,4 @@ type File interface {
 	RemoveProp(name string)
 
 	GoString() string
-	Index() int
 }

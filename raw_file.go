@@ -17,8 +17,6 @@ type rawFile struct {
 
 	dataPath string
 	reader   *bytes.Reader
-
-	index int
 }
 
 func (self *rawFile) Path() string {
@@ -115,10 +113,6 @@ func (self *rawFile) CopyProps(file File) {
 
 func (self *rawFile) RemoveProp(name string) {
 	delete(self.props, name)
-}
-
-func (self *rawFile) Index() int {
-	return self.index
 }
 
 func (self *rawFile) load() error {

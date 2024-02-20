@@ -8,8 +8,10 @@ type filterEntry struct {
 type filterStack []filterEntry
 
 func (self *filterStack) accept(file File) bool {
+	cf := file.(*contextFile)
+
 	for _, entry := range *self {
-		if entry.index >= file.Index() && !entry.filter.Accept(file) {
+		if entry.index >= cf.index && !entry.filter.Accept(file) {
 			return false
 		}
 	}

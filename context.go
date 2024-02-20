@@ -35,16 +35,20 @@ func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (
 		return nil, err
 	}
 
-	file := &rawFile{
+	rf := &rawFile{
 		relPath: sourcePath,
 		props:   make(map[string]FileProp),
 		modTime: time.Now(),
 		size:    int64(len(data)),
 		reader:  bytes.NewReader(data),
-		index:   self.index,
 	}
 
-	return file, nil
+	cf := &contextFile{
+		file:  rf,
+		index: self.index,
+	}
+
+	return cf, nil
 }
 
 // CreateFileFromAsset creates a new file instance from the provided file path.
@@ -65,16 +69,20 @@ func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (File, err
 		return nil, errors.New("assets must be files")
 	}
 
-	file := &rawFile{
+	rf := &rawFile{
 		relPath:  sourcePath,
 		props:    make(map[string]FileProp),
 		modTime:  info.ModTime(),
 		size:     info.Size(),
 		dataPath: dataPath,
-		index:    self.index,
 	}
 
-	return file, nil
+	cf := &contextFile{
+		file:  rf,
+		index: self.index,
+	}
+
+	return cf, nil
 }
 
 // DispatchFile causes the file to get passed to the next link in the chain.
@@ -90,7 +98,7 @@ func (self *Context) DispatchAndCacheFile(outputFile File, inputFiles ...File) {
 		self.goldsmith.cache.storeFile(self, outputFile, inputFiles)
 	}
 
-	self.filesOut <- outputFile
+	self.DispatchFile(outputFile)
 }
 
 // RetrieveCachedFile looks up file data (excluding the metadata), given an
