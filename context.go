@@ -160,7 +160,7 @@ func (self *Context) step() {
 							self.goldsmith.fault(self.plugin.Name(), inputFile, err)
 						}
 					} else {
-						self.filesOut <- inputFile
+						self.DispatchFile(inputFile)
 					}
 				}
 			}()
