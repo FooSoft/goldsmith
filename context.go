@@ -35,17 +35,15 @@ func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (
 		return nil, err
 	}
 
-	rf := &rawFile{
-		relPath: sourcePath,
-		props:   make(map[string]FileProp),
-		modTime: time.Now(),
-		size:    int64(len(data)),
-		reader:  bytes.NewReader(data),
-	}
-
 	cf := &contextFile{
-		file:  rf,
-		index: self.index,
+		rawFile{
+			relPath: sourcePath,
+			props:   make(map[string]FileProp),
+			modTime: time.Now(),
+			size:    int64(len(data)),
+			reader:  bytes.NewReader(data),
+		},
+		self.index,
 	}
 
 	return cf, nil
@@ -69,17 +67,15 @@ func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (File, err
 		return nil, errors.New("assets must be files")
 	}
 
-	rf := &rawFile{
-		relPath:  sourcePath,
-		props:    make(map[string]FileProp),
-		modTime:  info.ModTime(),
-		size:     info.Size(),
-		dataPath: dataPath,
-	}
-
 	cf := &contextFile{
-		file:  rf,
-		index: self.index,
+		rawFile{
+			relPath:  sourcePath,
+			props:    make(map[string]FileProp),
+			modTime:  info.ModTime(),
+			size:     info.Size(),
+			dataPath: dataPath,
+		},
+		self.index,
 	}
 
 	return cf, nil
