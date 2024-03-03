@@ -45,12 +45,12 @@ func (*Absolute) Name() string {
 	return "absolute"
 }
 
-func (*Absolute) Initialize(context *goldsmith.Context) error {
+func (*Absolute) Initialize(context goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *Absolute) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Absolute) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	if outputFile := context.RetrieveCachedFile(inputFile.Path(), inputFile); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)

@@ -42,12 +42,12 @@ func (*Markdown) Name() string {
 	return "markdown"
 }
 
-func (self *Markdown) Initialize(context *goldsmith.Context) error {
+func (self *Markdown) Initialize(context goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.md", "**/*.markdown"))
 	return nil
 }
 
-func (self *Markdown) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Markdown) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	outputPath := strings.TrimSuffix(inputFile.Path(), path.Ext(inputFile.Path())) + ".html"
 	if outputFile := context.RetrieveCachedFile(outputPath, inputFile); outputFile != nil {
 		outputFile.CopyProps(inputFile)

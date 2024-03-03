@@ -32,12 +32,12 @@ func (*Document) Name() string {
 	return "document"
 }
 
-func (*Document) Initialize(context *goldsmith.Context) error {
+func (*Document) Initialize(context goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *Document) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Document) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	doc, err := goquery.NewDocumentFromReader(inputFile)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (self *Document) Process(context *goldsmith.Context, inputFile goldsmith.Fi
 	return nil
 }
 
-func (self *Document) Finalize(context *goldsmith.Context) error {
+func (self *Document) Finalize(context goldsmith.Context) error {
 	for _, file := range self.files {
 		context.DispatchFile(file)
 	}

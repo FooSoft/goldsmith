@@ -16,13 +16,13 @@ func (*fileExporter) Name() string {
 	return "exporter"
 }
 
-func (self *fileExporter) Initialize(context *Context) error {
+func (self *fileExporter) Initialize(context Context) error {
 	self.tokens = make(map[string]bool)
 	context.Threads(1)
 	return nil
 }
 
-func (self *fileExporter) Process(context *Context, file File) error {
+func (self *fileExporter) Process(context Context, file File) error {
 	slicePath := func(path string) string {
 		if filepath.IsAbs(path) {
 			var err error
@@ -64,7 +64,7 @@ func (self *fileExporter) Process(context *Context, file File) error {
 	return nil
 }
 
-func (self *fileExporter) Finalize(context *Context) error {
+func (self *fileExporter) Finalize(context Context) error {
 	if !self.clean {
 		return nil
 	}

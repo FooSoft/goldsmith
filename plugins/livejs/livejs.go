@@ -31,13 +31,13 @@ func (*LiveJs) Name() string {
 	return "livejs"
 }
 
-func (self *LiveJs) Initialize(context *goldsmith.Context) error {
+func (self *LiveJs) Initialize(context goldsmith.Context) error {
 	self.html = fmt.Sprintf("\n<!-- begin livejs code -->\n<script>\n%s\n</script>\n<!-- end livejs code -->\n", livejs)
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *LiveJs) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *LiveJs) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	if outputFile := context.RetrieveCachedFile(inputFile.Path(), inputFile); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)

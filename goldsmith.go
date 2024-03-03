@@ -8,7 +8,7 @@ import (
 
 // Goldsmith chainable context.
 type Goldsmith struct {
-	contexts []*Context
+	contexts []*contextImpl
 
 	cache   *cache
 	filters filterStack
@@ -40,7 +40,7 @@ func (self *Goldsmith) Clean(clean bool) *Goldsmith {
 
 // Chain links a plugin instance into the chain.
 func (self *Goldsmith) Chain(plugin Plugin) *Goldsmith {
-	context := &Context{
+	context := &contextImpl{
 		goldsmith:  self,
 		plugin:     plugin,
 		filtersExt: append(filterStack(nil), self.filters...),

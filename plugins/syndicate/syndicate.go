@@ -120,7 +120,7 @@ func (self *Syndicate) WithFeed(name string, config FeedConfig) *Syndicate {
 	return self
 }
 
-func (self *Syndicate) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Syndicate) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	defer context.DispatchFile(inputFile)
 
 	getString := func(key string) string {
@@ -214,7 +214,7 @@ func (self *Syndicate) Process(context *goldsmith.Context, inputFile goldsmith.F
 	return nil
 }
 
-func (self *feed) output(context *goldsmith.Context) error {
+func (self *feed) output(context goldsmith.Context) error {
 	feed := feeds.Feed{
 		Title:       self.config.Title,
 		Link:        &feeds.Link{Href: self.config.Url},
@@ -310,7 +310,7 @@ func (self *feed) output(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Syndicate) Finalize(context *goldsmith.Context) error {
+func (self *Syndicate) Finalize(context goldsmith.Context) error {
 	for _, feed := range self.feeds {
 		feed.output(context)
 	}

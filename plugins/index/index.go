@@ -60,7 +60,7 @@ func (*Index) Name() string {
 	return "index"
 }
 
-func (self *Index) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Index) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -105,7 +105,7 @@ func (self *Index) Process(context *goldsmith.Context, inputFile goldsmith.File)
 	return nil
 }
 
-func (self *Index) Finalize(context *goldsmith.Context) error {
+func (self *Index) Finalize(context goldsmith.Context) error {
 	for name, list := range self.dirLists {
 		sort.Sort(list.entries)
 

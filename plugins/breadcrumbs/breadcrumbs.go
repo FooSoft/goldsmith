@@ -70,12 +70,12 @@ func (*Breadcrumbs) Name() string {
 	return "breadcrumbs"
 }
 
-func (*Breadcrumbs) Initialize(context *goldsmith.Context) error {
+func (*Breadcrumbs) Initialize(context goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *Breadcrumbs) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Breadcrumbs) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	var parentNameStr string
 	if parentName, ok := inputFile.Prop(self.parentKey); ok {
 		parentNameStr, _ = parentName.(string)
@@ -103,7 +103,7 @@ func (self *Breadcrumbs) Process(context *goldsmith.Context, inputFile goldsmith
 	return nil
 }
 
-func (self *Breadcrumbs) Finalize(context *goldsmith.Context) error {
+func (self *Breadcrumbs) Finalize(context goldsmith.Context) error {
 	for _, node := range self.allNodes {
 		if len(node.parentName) == 0 {
 			continue

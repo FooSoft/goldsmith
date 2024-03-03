@@ -64,13 +64,13 @@ func (*Layout) Name() string {
 	return "layout"
 }
 
-func (self *Layout) Initialize(context *goldsmith.Context) error {
+func (self *Layout) Initialize(context goldsmith.Context) error {
 	self.template = template.New("").Funcs(self.helpers)
 	context.Filter(wildcard.New("**/*.html", "**/*.htm", "**/*.tmpl", "**/*.gohtml"))
 	return nil
 }
 
-func (self *Layout) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Layout) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -94,7 +94,7 @@ func (self *Layout) Process(context *goldsmith.Context, inputFile goldsmith.File
 	return nil
 }
 
-func (self *Layout) Finalize(context *goldsmith.Context) error {
+func (self *Layout) Finalize(context goldsmith.Context) error {
 	for _, templateFile := range self.templateFiles {
 		var buff bytes.Buffer
 		if _, err := templateFile.WriteTo(&buff); err != nil {

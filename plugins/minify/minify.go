@@ -32,12 +32,12 @@ func (*Minify) Name() string {
 	return "minify"
 }
 
-func (*Minify) Initialize(context *goldsmith.Context) error {
+func (*Minify) Initialize(context goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.css", "**/*.html", "**/*.htm", "**/*.js", "**/*.svg", "**/*.json", "**/*.xml"))
 	return nil
 }
 
-func (*Minify) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (*Minify) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	if outputFile := context.RetrieveCachedFile(inputFile.Path(), inputFile); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)

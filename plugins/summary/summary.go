@@ -57,12 +57,12 @@ func (*Summary) Name() string {
 	return "summary"
 }
 
-func (*Summary) Initialize(context *goldsmith.Context) error {
+func (*Summary) Initialize(context goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *Summary) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Summary) Process(context goldsmith.Context, inputFile goldsmith.File) error {
 	doc, err := goquery.NewDocumentFromReader(inputFile)
 	if err != nil {
 		return err
