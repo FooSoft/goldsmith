@@ -1,11 +1,6 @@
 // Package goldsmith generates static websites.
 package goldsmith
 
-import (
-	"fmt"
-	"sync"
-)
-
 // Goldsmith chainable context.
 type Goldsmith struct {
 	chain *chainState
@@ -13,7 +8,7 @@ type Goldsmith struct {
 
 // Begin starts a chain, reading the files located in the source directory as input.
 func (self *Goldsmith) Begin(sourceDir string) *Goldsmith {
-	self.chain = new(chainState)
+	self.chain = &chainState{}
 	self.Chain(&fileImporter{sourceDir: sourceDir})
 	return self
 }
@@ -80,30 +75,4 @@ func (self *Goldsmith) End(targetDir string) []error {
 	self.chain = nil
 
 	return errors
-}
-
-type chainState struct {
-	contexts []*Context
-
-	cache   *cache
-	filters filterStack
-	clean   bool
-	index   int
-
-	errors []error
-	mutex  sync.Mutex
-}
-
-func (self *chainState) fault(name string, file *File, err error) {
-	self.mutex.Lock()
-	defer self.mutex.Unlock()
-
-	var faultError error
-	if file == nil {
-		faultError = fmt.Errorf("[%s]: %w", name, err)
-	} else {
-		faultError = fmt.Errorf("[%s@%v]: %w", name, file, err)
-	}
-
-	self.errors = append(self.errors, faultError)
 }

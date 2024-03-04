@@ -28,14 +28,18 @@ type Context struct {
 }
 
 // CreateFileFrom data creates a new file instance from the provided data buffer.
-func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (*File, error) {
+func (self *Context) CreateFileFromReader(relPath string, reader io.Reader) (*File, error) {
+	if filepath.IsAbs(relPath) {
+		return nil, errors.New("file paths must be relative")
+	}
+
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
 	file := &File{
-		relPath: sourcePath,
+		relPath: relPath,
 		props:   make(FileProps),
 		modTime: time.Now(),
 		size:    int64(len(data)),
@@ -47,13 +51,9 @@ func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (
 }
 
 // CreateFileFromAsset creates a new file instance from the provided file path.
-func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, error) {
-	if filepath.IsAbs(sourcePath) {
-		return nil, errors.New("source paths must be relative")
-	}
-
-	if filepath.IsAbs(dataPath) {
-		return nil, errors.New("data paths must be relative")
+func (self *Context) CreateFileFromAsset(relPath, dataPath string) (*File, error) {
+	if filepath.IsAbs(relPath) {
+		return nil, errors.New("file paths must be relative")
 	}
 
 	info, err := os.Stat(dataPath)
@@ -61,11 +61,11 @@ func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (*File, er
 		return nil, err
 	}
 	if info.IsDir() {
-		return nil, errors.New("assets must be files")
+		return nil, errors.New("file paths cannot be directories")
 	}
 
 	file := &File{
-		relPath:  sourcePath,
+		relPath:  relPath,
 		props:    make(FileProps),
 		modTime:  info.ModTime(),
 		size:     info.Size(),
@@ -86,7 +86,7 @@ func (self *Context) DispatchFile(file *File) {
 // passes it to the next link in the chain.
 func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File) {
 	if self.chain.cache != nil {
-		self.chain.cache.storeFile(self, outputFile, inputFiles)
+		self.chain.cache.storeFile(outputFile, inputFiles)
 	}
 
 	self.DispatchFile(outputFile)
