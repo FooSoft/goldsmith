@@ -14,8 +14,7 @@ import (
 // Context corresponds to the current link in the chain and provides methods
 // that enable plugins to inject new files into the chain.
 type Context struct {
-	goldsmith *Goldsmith
-
+	chain  *chainState
 	plugin Plugin
 
 	filtersExt filterStack
@@ -86,8 +85,8 @@ func (self *Context) DispatchFile(file *File) {
 // dependencies on any input files that are needed to generate it, and then
 // passes it to the next link in the chain.
 func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File) {
-	if self.goldsmith.state.cache != nil {
-		self.goldsmith.state.cache.storeFile(self, outputFile, inputFiles)
+	if self.chain.cache != nil {
+		self.chain.cache.storeFile(self, outputFile, inputFiles)
 	}
 
 	self.DispatchFile(outputFile)
@@ -98,8 +97,8 @@ func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File)
 // will return nil if the desired file is not found in the cache.
 func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) *File {
 	var outputFile *File
-	if self.goldsmith.state.cache != nil {
-		outputFile, _ = self.goldsmith.state.cache.retrieveFile(self, outputPath, inputFiles)
+	if self.chain.cache != nil {
+		outputFile, _ = self.chain.cache.retrieveFile(self, outputPath, inputFiles)
 	}
 
 	return outputFile
@@ -125,7 +124,7 @@ func (self *Context) step() {
 
 	if initializer, ok := self.plugin.(Initializer); ok {
 		if err := initializer.Initialize(self); err != nil {
-			self.goldsmith.fault(self.plugin.Name(), nil, err)
+			self.chain.fault(self.plugin.Name(), nil, err)
 			return
 		}
 	}
@@ -146,10 +145,10 @@ func (self *Context) step() {
 				for inputFile := range self.filesIn {
 					if processor != nil && self.filtersInt.accept(inputFile) && self.filtersExt.accept(inputFile) {
 						if _, err := inputFile.Seek(0, io.SeekStart); err != nil {
-							self.goldsmith.fault("core", inputFile, err)
+							self.chain.fault("core", inputFile, err)
 						}
 						if err := processor.Process(self, inputFile); err != nil {
-							self.goldsmith.fault(self.plugin.Name(), inputFile, err)
+							self.chain.fault(self.plugin.Name(), inputFile, err)
 						}
 					} else {
 						self.DispatchFile(inputFile)
@@ -163,7 +162,7 @@ func (self *Context) step() {
 
 	if finalizer, ok := self.plugin.(Finalizer); ok {
 		if err := finalizer.Finalize(self); err != nil {
-			self.goldsmith.fault(self.plugin.Name(), nil, err)
+			self.chain.fault(self.plugin.Name(), nil, err)
 		}
 	}
 }
