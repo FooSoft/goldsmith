@@ -16,16 +16,16 @@ import (
 	"git.foosoft.net/alex/goldsmith"
 )
 
-// Stager callback function is used to set up a goldsmith chain.
-type Stager func(gs *goldsmith.Goldsmith)
+// StagingCallback callback function is used to set up a goldsmith chain.
+type StagingCallback func(gs *goldsmith.Goldsmith)
 
 // Validate enables validation of a single, unnamed case (test data is stored in "testdata").
-func Validate(t *testing.T, stager Stager) {
+func Validate(t *testing.T, stager StagingCallback) {
 	ValidateCase(t, "", stager)
 }
 
 // ValidateCase enables enables of a single, named case (test data is stored in "testdata/caseName").
-func ValidateCase(t *testing.T, caseName string, stager Stager) {
+func ValidateCase(t *testing.T, caseName string, stager StagingCallback) {
 	var (
 		caseDir      = filepath.Join("testdata", caseName)
 		sourceDir    = filepath.Join(caseDir, "source")
@@ -43,7 +43,7 @@ func ValidateCase(t *testing.T, caseName string, stager Stager) {
 	}
 }
 
-func validate(sourceDir, targetDir, cacheDir, referenceDir string, stager Stager) []error {
+func validate(sourceDir, targetDir, cacheDir, referenceDir string, stager StagingCallback) []error {
 	if err := os.RemoveAll(targetDir); err != nil {
 		return []error{err}
 	}
@@ -67,7 +67,7 @@ func validate(sourceDir, targetDir, cacheDir, referenceDir string, stager Stager
 	return nil
 }
 
-func execute(sourceDir, targetDir, cacheDir string, stager Stager) []error {
+func execute(sourceDir, targetDir, cacheDir string, stager StagingCallback) []error {
 	var gs goldsmith.Goldsmith
 	gs.Begin(sourceDir).Cache(cacheDir).Clean(true)
 	stager(&gs)
