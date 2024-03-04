@@ -128,7 +128,7 @@ func (*Rule) Name() string {
 	return "rule"
 }
 
-func (self *Rule) Process(context goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Rule) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	if inputFile.Name() == self.filename {
 		ruleSet, err := newRuleSet(inputFile)
 		if err != nil {
@@ -147,7 +147,7 @@ func (self *Rule) Process(context goldsmith.Context, inputFile goldsmith.File) e
 	return nil
 }
 
-func (self *Rule) Finalize(context goldsmith.Context) error {
+func (self *Rule) Finalize(context *goldsmith.Context) error {
 	for _, inputFile := range self.inputFiles {
 		var block bool
 		for _, ruleSet := range self.ruleSets {

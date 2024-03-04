@@ -93,12 +93,12 @@ func (*Tags) Name() string {
 	return "tags"
 }
 
-func (*Tags) Initialize(context goldsmith.Context) error {
+func (*Tags) Initialize(context *goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *Tags) Process(context goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Tags) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	tagState := &TagState{
 		TagsByName:  &self.infoByName,
 		TagsByCount: &self.infoByCount,
@@ -158,7 +158,7 @@ func (self *Tags) Process(context goldsmith.Context, inputFile goldsmith.File) e
 	return nil
 }
 
-func (self *Tags) Finalize(context goldsmith.Context) error {
+func (self *Tags) Finalize(context *goldsmith.Context) error {
 	for _, info := range self.info {
 		sort.Sort(info.TaggedFiles)
 
@@ -185,7 +185,7 @@ func (self *Tags) Finalize(context goldsmith.Context) error {
 	return nil
 }
 
-func (self *Tags) buildPages(context goldsmith.Context) ([]goldsmith.File, error) {
+func (self *Tags) buildPages(context *goldsmith.Context) ([]goldsmith.File, error) {
 	var files []goldsmith.File
 	for tag, info := range self.info {
 		var err error

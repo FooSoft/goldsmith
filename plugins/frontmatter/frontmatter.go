@@ -66,12 +66,12 @@ func (*FrontMatter) Name() string {
 	return "frontmatter"
 }
 
-func (*FrontMatter) Initialize(context goldsmith.Context) error {
+func (*FrontMatter) Initialize(context *goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.md", "**/*.markdown", "**/*.rst", "**/*.txt", "**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (*FrontMatter) Process(context goldsmith.Context, inputFile goldsmith.File) error {
+func (*FrontMatter) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	meta, body, err := parse(inputFile)
 	if err != nil {
 		return err

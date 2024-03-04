@@ -9,18 +9,18 @@ type Plugin interface {
 // Initializer is used to optionally initialize a plugin and to specify a
 // filter to be used for determining which files will be processed.
 type Initializer interface {
-	Initialize(context Context) error
+	Initialize(context *Context) error
 }
 
 // Processor allows for optional processing of files passing through a plugin.
 type Processor interface {
-	Process(context Context, file File) error
+	Process(context *Context, file File) error
 }
 
 // Finalizer allows for optional finalization of a plugin after all files
 // queued in the chain have passed through it.
 type Finalizer interface {
-	Finalize(context Context) error
+	Finalize(context *Context) error
 }
 
 // Filter is used to determine which files should continue in the chain.

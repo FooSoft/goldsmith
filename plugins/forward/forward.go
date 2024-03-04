@@ -53,7 +53,7 @@ func (*Forward) Name() string {
 	return "forward"
 }
 
-func (self *Forward) Initialize(context goldsmith.Context) error {
+func (self *Forward) Initialize(context *goldsmith.Context) error {
 	for sourcePath, targetPath := range self.pathMap {
 		sourceFile, err := context.CreateFileFromReader(sourcePath, bytes.NewReader(nil))
 		if err != nil {

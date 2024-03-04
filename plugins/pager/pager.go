@@ -109,12 +109,12 @@ func (*Pager) Name() string {
 	return "pager"
 }
 
-func (*Pager) Initialize(context goldsmith.Context) error {
+func (*Pager) Initialize(context *goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *Pager) Process(context goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Pager) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -200,7 +200,7 @@ func (self *Pager) Process(context goldsmith.Context, inputFile goldsmith.File) 
 	return nil
 }
 
-func (self *Pager) Finalize(ctx goldsmith.Context) error {
+func (self *Pager) Finalize(ctx *goldsmith.Context) error {
 	for _, f := range self.files {
 		ctx.DispatchFile(f)
 	}

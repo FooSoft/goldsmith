@@ -13,7 +13,7 @@ func (*fileImporter) Name() string {
 	return "importer"
 }
 
-func (self *fileImporter) Initialize(context Context) error {
+func (self *fileImporter) Initialize(context *Context) error {
 	return filepath.Walk(self.sourceDir, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil

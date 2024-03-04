@@ -13,34 +13,7 @@ import (
 
 // Context corresponds to the current link in the chain and provides methods
 // that enable plugins to inject new files into the chain.
-type Context interface {
-	// CreateFileFrom data creates a new file instance from the provided data buffer.
-	CreateFileFromReader(sourcePath string, reader io.Reader) (File, error)
-
-	// CreateFileFromAsset creates a new file instance from the provided file path.
-	CreateFileFromAsset(sourcePath, dataPath string) (File, error)
-
-	// DispatchFile causes the file to get passed to the next link in the chain.
-	DispatchFile(file File)
-
-	// DispatchAndCacheFile caches the file data (excluding the metadata), taking
-	// dependencies on any input files that are needed to generate it, and then
-	// passes it to the next link in the chain.
-	DispatchAndCacheFile(outputFile File, inputFiles ...File)
-
-	// RetrieveCachedFile looks up file data (excluding the metadata), given an
-	// output path and any input files that are needed to generate it. The function
-	// will return nil if the desired file is not found in the cache.
-	RetrieveCachedFile(outputPath string, inputFiles ...File) File
-
-	// Specify internal filter(s) that exclude files from being processed.
-	Filter(filters ...Filter) Context
-
-	// Specify the maximum number of threads used for processing.
-	Threads(threads int) Context
-}
-
-type contextImpl struct {
+type Context struct {
 	goldsmith *Goldsmith
 
 	plugin Plugin
@@ -56,7 +29,7 @@ type contextImpl struct {
 }
 
 // CreateFileFrom data creates a new file instance from the provided data buffer.
-func (self *contextImpl) CreateFileFromReader(sourcePath string, reader io.Reader) (File, error) {
+func (self *Context) CreateFileFromReader(sourcePath string, reader io.Reader) (File, error) {
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
@@ -77,7 +50,7 @@ func (self *contextImpl) CreateFileFromReader(sourcePath string, reader io.Reade
 }
 
 // CreateFileFromAsset creates a new file instance from the provided file path.
-func (self *contextImpl) CreateFileFromAsset(sourcePath, dataPath string) (File, error) {
+func (self *Context) CreateFileFromAsset(sourcePath, dataPath string) (File, error) {
 	if filepath.IsAbs(sourcePath) {
 		return nil, errors.New("source paths must be relative")
 	}
@@ -109,14 +82,14 @@ func (self *contextImpl) CreateFileFromAsset(sourcePath, dataPath string) (File,
 }
 
 // DispatchFile causes the file to get passed to the next link in the chain.
-func (self *contextImpl) DispatchFile(file File) {
+func (self *Context) DispatchFile(file File) {
 	self.filesOut <- file
 }
 
 // DispatchAndCacheFile caches the file data (excluding the metadata), taking
 // dependencies on any input files that are needed to generate it, and then
 // passes it to the next link in the chain.
-func (self *contextImpl) DispatchAndCacheFile(outputFile File, inputFiles ...File) {
+func (self *Context) DispatchAndCacheFile(outputFile File, inputFiles ...File) {
 	if self.goldsmith.state.cache != nil {
 		self.goldsmith.state.cache.storeFile(self, outputFile, inputFiles)
 	}
@@ -127,7 +100,7 @@ func (self *contextImpl) DispatchAndCacheFile(outputFile File, inputFiles ...Fil
 // RetrieveCachedFile looks up file data (excluding the metadata), given an
 // output path and any input files that are needed to generate it. The function
 // will return nil if the desired file is not found in the cache.
-func (self *contextImpl) RetrieveCachedFile(outputPath string, inputFiles ...File) File {
+func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...File) File {
 	var outputFile File
 	if self.goldsmith.state.cache != nil {
 		outputFile, _ = self.goldsmith.state.cache.retrieveFile(self, outputPath, inputFiles)
@@ -137,7 +110,7 @@ func (self *contextImpl) RetrieveCachedFile(outputPath string, inputFiles ...Fil
 }
 
 // Specify internal filter(s) that exclude files from being processed.
-func (self *contextImpl) Filter(filters ...Filter) Context {
+func (self *Context) Filter(filters ...Filter) *Context {
 	for _, filter := range filters {
 		self.filtersInt.push(filter, self.index)
 	}
@@ -146,12 +119,12 @@ func (self *contextImpl) Filter(filters ...Filter) Context {
 }
 
 // Specify the maximum number of threads used for processing.
-func (self *contextImpl) Threads(threads int) Context {
+func (self *Context) Threads(threads int) *Context {
 	self.threads = threads
 	return self
 }
 
-func (self *contextImpl) step() {
+func (self *Context) step() {
 	defer close(self.filesOut)
 
 	if initializer, ok := self.plugin.(Initializer); ok {

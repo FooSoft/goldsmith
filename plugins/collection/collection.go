@@ -61,12 +61,12 @@ func (*Collection) Name() string {
 	return "collection"
 }
 
-func (*Collection) Initialize(context goldsmith.Context) error {
+func (*Collection) Initialize(context *goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *Collection) Process(context goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Collection) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	self.mutex.Lock()
 	defer func() {
 		inputFile.SetProp(self.groupsKey, self.groups)
@@ -96,7 +96,7 @@ func (self *Collection) Process(context goldsmith.Context, inputFile goldsmith.F
 	return nil
 }
 
-func (self *Collection) Finalize(context goldsmith.Context) error {
+func (self *Collection) Finalize(context *goldsmith.Context) error {
 	for _, files := range self.groups {
 		fg := &fileSorter{files, self.comparer}
 		sort.Sort(fg)

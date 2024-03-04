@@ -69,12 +69,12 @@ func (*Syntax) Name() string {
 	return "syntax"
 }
 
-func (*Syntax) Initialize(context goldsmith.Context) error {
+func (*Syntax) Initialize(context *goldsmith.Context) error {
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
 
-func (self *Syntax) Process(context goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Syntax) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
 	if outputFile := context.RetrieveCachedFile(inputFile.Path(), inputFile); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)
