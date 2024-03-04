@@ -5,7 +5,6 @@ package devserver
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -98,7 +97,7 @@ func build(dirs []string, callback func()) {
 func watch(dir string, watcher *fsnotify.Watcher) {
 	watcher.Add(dir)
 
-	items, err := ioutil.ReadDir(dir)
+	items, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
 	}

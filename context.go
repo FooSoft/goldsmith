@@ -117,8 +117,8 @@ func (self *contextImpl) DispatchFile(file File) {
 // dependencies on any input files that are needed to generate it, and then
 // passes it to the next link in the chain.
 func (self *contextImpl) DispatchAndCacheFile(outputFile File, inputFiles ...File) {
-	if self.goldsmith.cache != nil {
-		self.goldsmith.cache.storeFile(self, outputFile, inputFiles)
+	if self.goldsmith.state.cache != nil {
+		self.goldsmith.state.cache.storeFile(self, outputFile, inputFiles)
 	}
 
 	self.DispatchFile(outputFile)
@@ -129,8 +129,8 @@ func (self *contextImpl) DispatchAndCacheFile(outputFile File, inputFiles ...Fil
 // will return nil if the desired file is not found in the cache.
 func (self *contextImpl) RetrieveCachedFile(outputPath string, inputFiles ...File) File {
 	var outputFile File
-	if self.goldsmith.cache != nil {
-		outputFile, _ = self.goldsmith.cache.retrieveFile(self, outputPath, inputFiles)
+	if self.goldsmith.state.cache != nil {
+		outputFile, _ = self.goldsmith.state.cache.retrieveFile(self, outputPath, inputFiles)
 	}
 
 	return outputFile
