@@ -11,9 +11,9 @@ import (
 )
 
 func Test(self *testing.T) {
-	lister := func(file goldsmith.File) interface{} {
+	lister := func(file *goldsmith.File) interface{} {
 		if groupsRaw, ok := file.Prop("Groups"); ok {
-			if groups, ok := groupsRaw.(map[string][]goldsmith.File); ok {
+			if groups, ok := groupsRaw.(map[string][]*goldsmith.File); ok {
 				if group, ok := groups["group"]; ok {
 					return group
 				}

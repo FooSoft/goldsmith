@@ -19,14 +19,14 @@ type rule struct {
 
 type ruleApply struct {
 	rule
-	Props map[string]goldsmith.FileProp
+	Props goldsmith.FileProps
 }
 
 type ruleDrop struct {
 	rule
 }
 
-func (self *rule) accept(inputFile goldsmith.File) bool {
+func (self *rule) accept(inputFile *goldsmith.File) bool {
 	if !wildcard.New(filepath.Join(self.baseDir, "**")).Accept(inputFile) {
 		return false
 	}
@@ -52,7 +52,7 @@ func (self *rule) accept(inputFile goldsmith.File) bool {
 	return operator.Not(wildcard.New(rejectPaths...)).Accept(inputFile)
 }
 
-func (self *ruleApply) apply(inputFile goldsmith.File) {
+func (self *ruleApply) apply(inputFile *goldsmith.File) {
 	if self.accept(inputFile) {
 		for name, value := range self.Props {
 			inputFile.SetProp(name, value)
@@ -60,7 +60,7 @@ func (self *ruleApply) apply(inputFile goldsmith.File) {
 	}
 }
 
-func (self *ruleDrop) drop(inputFile goldsmith.File) bool {
+func (self *ruleDrop) drop(inputFile *goldsmith.File) bool {
 	return self.accept(inputFile)
 }
 
@@ -69,7 +69,7 @@ type ruleSet struct {
 	Drop  []*ruleDrop
 }
 
-func newRuleSet(inputFile goldsmith.File) (*ruleSet, error) {
+func newRuleSet(inputFile *goldsmith.File) (*ruleSet, error) {
 	data, err := io.ReadAll(inputFile)
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func newRuleSet(inputFile goldsmith.File) (*ruleSet, error) {
 	return &ruleSet, nil
 }
 
-func (self *ruleSet) process(inputFile goldsmith.File) bool {
+func (self *ruleSet) process(inputFile *goldsmith.File) bool {
 	for _, rule := range self.Apply {
 		rule.apply(inputFile)
 	}
@@ -110,7 +110,7 @@ type Rule struct {
 	filename string
 
 	ruleSets   []*ruleSet
-	inputFiles []goldsmith.File
+	inputFiles []*goldsmith.File
 	mutex      sync.Mutex
 }
 
@@ -128,7 +128,7 @@ func (*Rule) Name() string {
 	return "rule"
 }
 
-func (self *Rule) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Rule) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	if inputFile.Name() == self.filename {
 		ruleSet, err := newRuleSet(inputFile)
 		if err != nil {

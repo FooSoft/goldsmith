@@ -14,12 +14,12 @@ import (
 )
 
 // Processor callback function to modify documents.
-type Processor func(goldsmith.File, *goquery.Document) error
+type Processor func(*goldsmith.File, *goquery.Document) error
 
 // Document plugin context.
 type Document struct {
 	callback Processor
-	files    []goldsmith.File
+	files    []*goldsmith.File
 	mutex    sync.Mutex
 }
 
@@ -37,7 +37,7 @@ func (*Document) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Document) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Document) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	doc, err := goquery.NewDocumentFromReader(inputFile)
 	if err != nil {
 		return err

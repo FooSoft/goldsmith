@@ -14,7 +14,7 @@ type Initializer interface {
 
 // Processor allows for optional processing of files passing through a plugin.
 type Processor interface {
-	Process(context *Context, file File) error
+	Process(context *Context, file *File) error
 }
 
 // Finalizer allows for optional finalization of a plugin after all files
@@ -26,5 +26,5 @@ type Finalizer interface {
 // Filter is used to determine which files should continue in the chain.
 type Filter interface {
 	Name() string
-	Accept(file File) bool
+	Accept(file *File) bool
 }

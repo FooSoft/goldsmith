@@ -15,7 +15,7 @@ import (
 )
 
 // A Comparer callback function is used to sort files within a collection group.
-type Comparer func(i, j goldsmith.File) (less bool)
+type Comparer func(i, j *goldsmith.File) (less bool)
 
 // Collection chainable plugin context.
 type Collection struct {
@@ -23,8 +23,8 @@ type Collection struct {
 	groupsKey     string
 	comparer      Comparer
 
-	groups map[string][]goldsmith.File
-	files  []goldsmith.File
+	groups map[string][]*goldsmith.File
+	files  []*goldsmith.File
 	mutex  sync.Mutex
 }
 
@@ -33,7 +33,7 @@ func New() *Collection {
 	return &Collection{
 		collectionKey: "Collection",
 		groupsKey:     "Groups",
-		groups:        make(map[string][]goldsmith.File),
+		groups:        make(map[string][]*goldsmith.File),
 	}
 }
 
@@ -66,7 +66,7 @@ func (*Collection) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Collection) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Collection) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	self.mutex.Lock()
 	defer func() {
 		inputFile.SetProp(self.groupsKey, self.groups)
@@ -110,7 +110,7 @@ func (self *Collection) Finalize(context *goldsmith.Context) error {
 }
 
 type fileSorter struct {
-	files    []goldsmith.File
+	files    []*goldsmith.File
 	comparer Comparer
 }
 

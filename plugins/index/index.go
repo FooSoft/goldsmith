@@ -18,7 +18,7 @@ type Entry struct {
 	Name  string
 	Path  string
 	IsDir bool
-	File  goldsmith.File
+	File  *goldsmith.File
 }
 
 // Index chainable plugin context.
@@ -60,7 +60,7 @@ func (*Index) Name() string {
 	return "index"
 }
 
-func (self *Index) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Index) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -131,7 +131,7 @@ func (self *Index) Finalize(context *goldsmith.Context) error {
 
 type directory struct {
 	entries   entriesByName
-	indexFile goldsmith.File
+	indexFile *goldsmith.File
 }
 
 type entriesByName []Entry

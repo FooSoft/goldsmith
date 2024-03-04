@@ -15,7 +15,7 @@ type cache struct {
 	baseDir string
 }
 
-func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles []File) (File, error) {
+func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles []*File) (*File, error) {
 	cachePath, err := self.buildCachePath(context, outputPath, inputFiles)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles 
 	return outputFile, nil
 }
 
-func (self *cache) storeFile(context *Context, outputFile File, inputFiles []File) error {
+func (self *cache) storeFile(context *Context, outputFile *File, inputFiles []*File) error {
 	cachePath, err := self.buildCachePath(context, outputFile.Path(), inputFiles)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func (self *cache) storeFile(context *Context, outputFile File, inputFiles []Fil
 	return nil
 }
 
-func (self *cache) buildCachePath(context *Context, outputPath string, inputFiles []File) (string, error) {
+func (self *cache) buildCachePath(context *Context, outputPath string, inputFiles []*File) (string, error) {
 	hasher := crc32.NewIEEE()
 	hasher.Write([]byte(outputPath))
 

@@ -25,7 +25,7 @@ func (*Wildcard) Name() string {
 	return "wildcard"
 }
 
-func (self *Wildcard) Accept(file goldsmith.File) bool {
+func (self *Wildcard) Accept(file *goldsmith.File) bool {
 	filePath := self.adjustCase(file.Path())
 
 	for _, wildcard := range self.wildcards {

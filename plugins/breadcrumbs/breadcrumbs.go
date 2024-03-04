@@ -19,7 +19,7 @@ type Crumb struct {
 
 // Node represents information about a specific file in the site's structure.
 type Node struct {
-	File     goldsmith.File
+	File     *goldsmith.File
 	Parent   *Node
 	Children []*Node
 
@@ -75,7 +75,7 @@ func (*Breadcrumbs) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Breadcrumbs) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Breadcrumbs) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	var parentNameStr string
 	if parentName, ok := inputFile.Prop(self.parentKey); ok {
 		parentNameStr, _ = parentName.(string)

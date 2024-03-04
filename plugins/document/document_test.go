@@ -8,7 +8,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-func process(file goldsmith.File, doc *goquery.Document) error {
+func process(file *goldsmith.File, doc *goquery.Document) error {
 	doc.Find("h1").SetAttr("style", "color: red;")
 	return nil
 }

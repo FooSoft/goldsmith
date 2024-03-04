@@ -62,7 +62,7 @@ func (*Summary) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Summary) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Summary) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	doc, err := goquery.NewDocumentFromReader(inputFile)
 	if err != nil {
 		return err

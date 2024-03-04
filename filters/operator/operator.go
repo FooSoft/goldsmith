@@ -20,7 +20,7 @@ func (*operatorAnd) Name() string {
 	return "operator"
 }
 
-func (self *operatorAnd) Accept(file goldsmith.File) bool {
+func (self *operatorAnd) Accept(file *goldsmith.File) bool {
 	for _, filter := range self.filters {
 		if !filter.Accept(file) {
 			return false
@@ -42,7 +42,7 @@ func (*operatorNot) Name() string {
 	return "operator"
 }
 
-func (self *operatorNot) Accept(file goldsmith.File) bool {
+func (self *operatorNot) Accept(file *goldsmith.File) bool {
 	return !self.filter.Accept(file)
 }
 
@@ -58,7 +58,7 @@ func (*operatorOr) Name() string {
 	return "operator"
 }
 
-func (self *operatorOr) Accept(file goldsmith.File) bool {
+func (self *operatorOr) Accept(file *goldsmith.File) bool {
 	for _, filter := range self.filters {
 		if filter.Accept(file) {
 			return true

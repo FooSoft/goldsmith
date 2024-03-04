@@ -50,7 +50,7 @@ func (*Absolute) Initialize(context *goldsmith.Context) error {
 	return nil
 }
 
-func (self *Absolute) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Absolute) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	if outputFile := context.RetrieveCachedFile(inputFile.Path(), inputFile); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)

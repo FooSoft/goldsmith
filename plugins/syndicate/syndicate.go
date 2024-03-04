@@ -120,7 +120,7 @@ func (self *Syndicate) WithFeed(name string, config FeedConfig) *Syndicate {
 	return self
 }
 
-func (self *Syndicate) Process(context *goldsmith.Context, inputFile goldsmith.File) error {
+func (self *Syndicate) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	defer context.DispatchFile(inputFile)
 
 	getString := func(key string) string {

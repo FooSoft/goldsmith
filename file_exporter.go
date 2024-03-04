@@ -22,7 +22,7 @@ func (self *fileExporter) Initialize(context *Context) error {
 	return nil
 }
 
-func (self *fileExporter) Process(context *Context, file File) error {
+func (self *fileExporter) Process(context *Context, file *File) error {
 	slicePath := func(path string) string {
 		if filepath.IsAbs(path) {
 			var err error
