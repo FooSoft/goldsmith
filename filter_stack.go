@@ -1,11 +1,13 @@
 package goldsmith
 
-type filterEntry struct {
-	filter Filter
-	index  int
-}
+type (
+	filterEntry struct {
+		filter Filter
+		index  int
+	}
 
-type filterStack []filterEntry
+	filterStack []filterEntry
+)
 
 func (self *filterStack) accept(file *File) bool {
 	for _, entry := range *self {

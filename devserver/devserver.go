@@ -29,7 +29,9 @@ type Builder interface {
 // website until it is terminated.
 func DevServe(builder Builder, port int, sourceDir, targetDir, cacheDir string, watchDirs ...string) {
 	dirs := append(watchDirs, sourceDir)
-	build(dirs, func() { builder.Build(sourceDir, targetDir, cacheDir) })
+	build(dirs, func() {
+		builder.Build(sourceDir, targetDir, cacheDir)
+	})
 
 	httpAddr := fmt.Sprintf(":%d", port)
 	httpHandler := http.FileServer(http.Dir(targetDir))

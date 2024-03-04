@@ -12,20 +12,20 @@ import (
 type (
 	FileProp  any
 	FileProps map[string]FileProp
+
+	// File represents in-memory or on-disk files in a chain.
+	File struct {
+		relPath string
+		props   FileProps
+		modTime time.Time
+		size    int64
+
+		dataPath string
+		reader   *bytes.Reader
+
+		index int
+	}
 )
-
-// File represents in-memory or on-disk files in a chain.
-type File struct {
-	relPath string
-	props   FileProps
-	modTime time.Time
-	size    int64
-
-	dataPath string
-	reader   *bytes.Reader
-
-	index int
-}
 
 // Rename modifies the file path relative to the source directory.
 func (self *File) Rename(path string) error {
