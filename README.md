@@ -14,17 +14,17 @@ to understand, it is often best to learn by example:
 1.  Start by copying files from a source directory to a destination directory (the simplest possible use case):
 
     ```go
-    goldsmith.
-        Begin(srcDir). // read files from srcDir
-        End(dstDir)    // write files to dstDir
+    var gs goldsmith.Goldsmith
+    gs.Begin(srcDir). // read files from srcDir
+        End(dstDir)   // write files to dstDir
     ```
 
 2.  Now let's convert any Markdown files to HTML fragments (while still copying the rest), using the
     [Markdown](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/markdown) plugin:
 
     ```go
-    goldsmith.
-        Begin(srcDir).         // read files from srcDir
+    var gs goldsmith.Goldsmith
+    gs.Begin(srcDir).          // read files from srcDir
         Chain(markdown.New()). // convert *.md files to *.html files
         End(dstDir)            // write files to dstDir
     ```
@@ -35,8 +35,8 @@ to understand, it is often best to learn by example:
     [FrontMatter](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/frontmatter) plugin:
 
     ```go
-    goldsmith.
-        Begin(srcDir).            // read files from srcDir
+    var gs goldsmith.Goldsmith
+    gs.Begin(srcDir).             // read files from srcDir
         Chain(frontmatter.New()). // extract frontmatter and store it as metadata
         Chain(markdown.New()).    // convert *.md files to *.html files
         End(dstDir)               // write files to dstDir
@@ -48,8 +48,8 @@ to understand, it is often best to learn by example:
     [Layout](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/frontmatter) plugin:
 
     ```go
-    goldsmith.
-        Begin(srcDir).            // read files from srcDir
+    var gs goldsmith.Goldsmith
+    gs.Begin(srcDir).             // read files from srcDir
         Chain(frontmatter.New()). // extract frontmatter and store it as metadata
         Chain(markdown.New()).    // convert *.md files to *.html files
         Chain(layout.New()).      // apply *.gohtml templates to *.html files
@@ -61,8 +61,8 @@ to understand, it is often best to learn by example:
     [Minify](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/minify) plugin:
 
     ```go
-    goldsmith.
-        Begin(srcDir).            // read files from srcDir
+    var gs goldsmith.Goldsmith
+    gs.Begin(srcDir).             // read files from srcDir
         Chain(frontmatter.New()). // extract frontmatter and store it as metadata
         Chain(markdown.New()).    // convert *.md files to *.html files
         Chain(layout.New()).      // apply *.gohtml templates to *.html files
@@ -75,8 +75,8 @@ to understand, it is often best to learn by example:
     minification occur only when we are ready for distribution.
 
     ```go
-    goldsmith.
-        Begin(srcDir).                   // read files from srcDir
+    var gs goldsmith.Goldsmith
+    gs.Begin(srcDir).                    // read files from srcDir
         Chain(frontmatter.New()).        // extract frontmatter and store it as metadata
         Chain(markdown.New()).           // convert *.md files to *.html files
         Chain(layout.New()).             // apply *.gohtml templates to *.html files
@@ -111,8 +111,8 @@ to understand, it is often best to learn by example:
     }
 
     func (b *builder) Build(srcDir, dstDir, cacheDir string) {
-        errs := goldsmith.
-            Begin(srcDir).                     // read files from srcDir
+        var gs goldsmith.Goldsmith
+        errs := gs.Begin(srcDir).              // read files from srcDir
             Chain(frontmatter.New()).          // extract frontmatter and store it as metadata
             Chain(markdown.New()).             // convert *.md files to *.html files
             Chain(layout.New()).               // apply *.gohtml templates to *.html files
