@@ -30,7 +30,7 @@ to understand, it is often best to learn by example:
     ```
 
 3.  If we have any
-    [front matter](https://raw.githubusercontent.com/FooSoft/goldsmith-samples/master/basic/content/index.md) in our
+    [front matter](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/index.md) in our
     Markdown files, we need to extract it using the,
     [FrontMatter](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/frontmatter) plugin:
 
@@ -43,7 +43,7 @@ to understand, it is often best to learn by example:
     ```
 
 4.  Next, we should run our barebones HTML through a
-    [template](https://raw.githubusercontent.com/FooSoft/goldsmith-samples/master/basic/content/layouts/basic.gohtml) to
+    [template](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/layouts/basic.gohtml) to
     add elements like a header, footer, or a menu; for this we can use the
     [Layout](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/frontmatter) plugin:
 
