@@ -1,4 +1,3 @@
-// Package goldsmith generates static websites.
 package goldsmith
 
 import (
