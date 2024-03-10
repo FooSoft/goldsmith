@@ -20,7 +20,7 @@ to understand, it is often best to learn by example:
     ```
 
 2.  Now let's convert any Markdown files to HTML fragments (while still copying the rest), using the
-    [Markdown](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/markdown) plugin:
+    [Markdown](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/markdown) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -29,10 +29,10 @@ to understand, it is often best to learn by example:
         End(dstDir)            // write files to dstDir
     ```
 
-3.  If we have any
-    [front matter](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/index.md) in our
-    Markdown files, we need to extract it using the,
-    [FrontMatter](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/frontmatter) plugin:
+3.  If we have any [front
+    matter](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/index.md) in our Markdown
+    files, we need to extract it using the,
+    [FrontMatter](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/frontmatter) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -45,7 +45,7 @@ to understand, it is often best to learn by example:
 4.  Next, we should run our barebones HTML through a
     [template](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/layouts/basic.gohtml) to
     add elements like a header, footer, or a menu; for this we can use the
-    [Layout](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/frontmatter) plugin:
+    [Layout](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/frontmatter) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -58,7 +58,7 @@ to understand, it is often best to learn by example:
 
 5.  Now, let's [minify](https://en.wikipedia.org/wiki/Minification_(programming)) our files to reduce data transfer and
     load times for our site's visitors using the
-    [Minify](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/minify) plugin:
+    [Minify](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/minify) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -71,8 +71,8 @@ to understand, it is often best to learn by example:
     ```
 
 6.  Debugging problems in minified code can be tricky, so let's use the
-    [Condition](https://godoc.org/git.foosoft.net/alex/goldsmith-components/filters/condition) filter to make
-    minification occur only when we are ready for distribution.
+    [Condition](https://godoc.org/git.foosoft.net/alex/goldsmith/filters/condition) filter to make minification occur
+    only when we are ready for distribution.
 
     ```go
     var gs goldsmith.Goldsmith
@@ -87,8 +87,8 @@ to understand, it is often best to learn by example:
     ```
 
 7.  Now that we have all of our plugins chained up, let's look at a complete example which uses
-    [DevServer](https://godoc.org/git.foosoft.net/alex/goldsmith-components/devserver) to bootstrap a complete
-    development sever which automatically rebuilds the site whenever source files are updated.
+    [DevServer](https://godoc.org/git.foosoft.net/alex/goldsmith/devserver) to bootstrap a complete development sever
+    which automatically rebuilds the site whenever source files are updated.
 
     ```go
     package main
@@ -98,12 +98,12 @@ to understand, it is often best to learn by example:
         "log"
 
         "git.foosoft.net/alex/goldsmith"
-        "git.foosoft.net/alex/goldsmith-components/devserver"
-        "git.foosoft.net/alex/goldsmith-components/filters/condition"
-        "git.foosoft.net/alex/goldsmith-components/plugins/frontmatter"
-        "git.foosoft.net/alex/goldsmith-components/plugins/layout"
-        "git.foosoft.net/alex/goldsmith-components/plugins/markdown"
-        "git.foosoft.net/alex/goldsmith-components/plugins/minify"
+        "git.foosoft.net/alex/goldsmith/devserver"
+        "git.foosoft.net/alex/goldsmith/filters/condition"
+        "git.foosoft.net/alex/goldsmith/plugins/frontmatter"
+        "git.foosoft.net/alex/goldsmith/plugins/layout"
+        "git.foosoft.net/alex/goldsmith/plugins/markdown"
+        "git.foosoft.net/alex/goldsmith/plugins/minify"
     )
 
     type builder struct {
@@ -139,12 +139,9 @@ to understand, it is often best to learn by example:
 
 Below are some examples of Goldsmith usage which can used to base your site on:
 
-*   [Basic Sample](https://git.foosoft.net/alex/goldsmith-samples/src/branch/master/basic): a great starting point, this
-    is the sample site from the tutorial.
-*   [Bootstrap Sample](https://git.foosoft.net/alex/goldsmith-samples/src/branch/master/bootstrap): a slightly more
-    advanced sample using [Bootstrap](https://getbootstrap.com/).
-*   [FooSoft.net](https://git.foosoft.net/alex/goldsmith): I've been "dogfooding" Goldsmith by using it to [generate my
-    homepage](/posts/generating-the-foosoft.net-homepage) for nearly a decade.
+*   [Basic Sample](https://git.foosoft.net/alex/goldsmith-samples/src/branch/master/basic): a great starting point, this is the sample site from the tutorial.
+*   [Bootstrap Sample](https://git.foosoft.net/alex/goldsmith-samples/src/branch/master/bootstrap): a slightly more advanced sample using [Bootstrap](https://getbootstrap.com/).
+*   [FooSoft.net](https://git.foosoft.net/alex/goldsmith): I've been "dogfooding" Goldsmith by using it to [generate my homepage](/posts/generating-the-foosoft.net-homepage) for nearly a decade.
 
 ## Components
 
@@ -152,55 +149,32 @@ A growing set of plugins, filters, and other tools are provided to make it easie
 
 ### Plugins
 
-*   [Absolute](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/absolute): Convert relative HTML file
-    references to absolute paths.
-*   [Breadcrumbs](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/breadcrumbs): Generate metadata
-    required to build breadcrumb navigation.
-*   [Collection](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/collection): Group related pages
-    into named collections.
-*   [Document](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/document): Enable simple DOM
-    modification via an API similar to jQuery.
-*   [Forward](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/forward): Create simple redirections
-    for pages that have moved to a new URL.
-*   [FrontMatter](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/frontmatter): Extract the
-    JSON, YAML, or TOML metadata stored in your files.
-*   [Index](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/index): Create metadata for directory
-    file listings and generate directory index pages.
-*   [Layout](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/layout): Transform your HTML files with
-    Go templates.
-*   [LiveJs](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/livejs): Inject JavaScript code to
-    automatically reload pages when modified.
-*   [Markdown](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/markdown): Render Markdown documents
-    as HTML fragments.
-*   [Minify](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/minify): Remove superfluous data from a
-    variety of web formats.
-*   [Pager](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/pager): Split arrays of metadata into
-    standalone pages.
-*   [Rule](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/rule): Update metadata and filter files
-    based on paths.
-*   [Summary](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/summary): Extract summary and title
-    metadata from HTML files.
-*   [Syndicate](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/syndicate): Generate RSS, Atom, and
-    JSON feeds from existing metadata.
-*   [Syntax](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/syntax): Enable syntax highlighting for
-    pre-formatted code blocks.
-*   [Tags](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/tags): Generate tag clouds and indices
-    from file metadata.
-*   [Thumbnail](https://godoc.org/git.foosoft.net/alex/goldsmith-components/plugins/thumbnail): Build thumbnails for a
-    variety of common image formats.
+*   [Absolute](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/absolute): Convert relative HTML file references to absolute paths.
+*   [Breadcrumbs](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/breadcrumbs): Generate metadata required to build breadcrumb navigation.
+*   [Collection](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/collection): Group related pages into named collections.
+*   [Document](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/document): Enable simple DOM modification via an API similar to jQuery.
+*   [Forward](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/forward): Create simple redirections for pages that have moved to a new URL.
+*   [FrontMatter](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/frontmatter): Extract the JSON, YAML, or TOML metadata stored in your files.
+*   [Index](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/index): Create metadata for directory file listings and generate directory index pages.
+*   [Layout](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/layout): Transform your HTML files with Go templates.
+*   [LiveJs](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/livejs): Inject JavaScript code to automatically reload pages when modified.
+*   [Markdown](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/markdown): Render Markdown documents as HTML fragments.
+*   [Minify](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/minify): Remove superfluous data from a variety of web formats.
+*   [Pager](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/pager): Split arrays of metadata into standalone pages.
+*   [Rule](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/rule): Update metadata and filter files based on paths.
+*   [Summary](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/summary): Extract summary and title metadata from HTML files.
+*   [Syndicate](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/syndicate): Generate RSS, Atom, and JSON feeds from existing metadata.
+*   [Syntax](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/syntax): Enable syntax highlighting for pre-formatted code blocks.
+*   [Tags](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/tags): Generate tag clouds and indices from file metadata.
+*   [Thumbnail](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/thumbnail): Build thumbnails for a variety of common image formats.
 
 ### Filters
 
-*   [Condition](https://godoc.org/git.foosoft.net/alex/goldsmith-components/filters/condition): Filter files based on a
-    single condition.
-*   [Operator](https://godoc.org/git.foosoft.net/alex/goldsmith-components/filters/operator): Join filters using
-    logical `AND`, `OR`, and `NOT` operators.
-*   [Wildcard](https://godoc.org/git.foosoft.net/alex/goldsmith-components/filters/wildcard): Filter files using path
-    wildcards (`*`, `?`, etc.)
+*   [Condition](https://godoc.org/git.foosoft.net/alex/goldsmith/filters/condition): Filter files based on a single condition.
+*   [Operator](https://godoc.org/git.foosoft.net/alex/goldsmith/filters/operator): Join filters using logical `AND`, `OR`, and `NOT` operators.
+*   [Wildcard](https://godoc.org/git.foosoft.net/alex/goldsmith/filters/wildcard): Filter files using path wildcards (`*`, `?`, etc.)
 
 ### Other
 
-*   [DevServer](https://godoc.org/git.foosoft.net/alex/goldsmith-components/devserver): Simple framework for building,
-    updating, and viewing your site.
-*   [Harness](https://godoc.org/git.foosoft.net/alex/goldsmith-components/harness): Unit test harness for verifying
-    Goldsmith plugins and filters.
+*   [DevServer](https://godoc.org/git.foosoft.net/alex/goldsmith/devserver): Simple framework for building, updating, and viewing your site.
+*   [Harness](https://godoc.org/git.foosoft.net/alex/goldsmith/harness): Unit test harness for verifying Goldsmith plugins and filters.
