@@ -10,7 +10,6 @@ type chainState struct {
 
 	cache   *cache
 	filters filterStack
-	clean   bool
 	index   int
 
 	errors []error

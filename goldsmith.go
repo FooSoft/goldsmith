@@ -3,25 +3,20 @@ package goldsmith
 
 // Goldsmith chainable context.
 type Goldsmith struct {
+	CacheDir string
+	Clean    bool
+
 	chain *chainState
 }
 
 // Begin starts a chain, reading the files located in the source directory as input.
 func (self *Goldsmith) Begin(sourceDir string) *Goldsmith {
 	self.chain = &chainState{}
+	if len(self.CacheDir) > 0 {
+		self.chain.cache = &cache{self.CacheDir}
+	}
+
 	self.Chain(&fileImporter{sourceDir: sourceDir})
-	return self
-}
-
-// Cache enables caching in cacheDir for the remainder of the chain.
-func (self *Goldsmith) Cache(cacheDir string) *Goldsmith {
-	self.chain.cache = &cache{cacheDir}
-	return self
-}
-
-// Clean enables or disables removal of leftover files in the target directory.
-func (self *Goldsmith) Clean(clean bool) *Goldsmith {
-	self.chain.clean = clean
 	return self
 }
 
@@ -61,7 +56,8 @@ func (self *Goldsmith) FilterPop() *Goldsmith {
 
 // End stops a chain, writing all recieved files to targetDir as output.
 func (self *Goldsmith) End(targetDir string) []error {
-	self.Chain(&fileExporter{targetDir: targetDir, clean: self.chain.clean})
+	self.Chain(&fileExporter{targetDir: targetDir, clean: self.Clean})
+
 	for _, context := range self.chain.contexts {
 		go context.step()
 	}
