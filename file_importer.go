@@ -15,6 +15,10 @@ func (*fileImporter) Name() string {
 
 func (self *fileImporter) Initialize(context *Context) error {
 	return filepath.Walk(self.sourceDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if info.IsDir() {
 			return nil
 		}
