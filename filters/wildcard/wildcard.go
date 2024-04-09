@@ -1,6 +1,7 @@
 package wildcard
 
 import (
+	"path/filepath"
 	"strings"
 
 	"git.foosoft.net/alex/goldsmith"
@@ -26,10 +27,10 @@ func (*Wildcard) Name() string {
 }
 
 func (self *Wildcard) Accept(file *goldsmith.File) bool {
-	filePath := self.adjustCase(file.Path())
+	filePath := self.adjustPath(file.Path())
 
 	for _, wildcard := range self.wildcards {
-		wildcard = self.adjustCase(wildcard)
+		wildcard = self.adjustPath(wildcard)
 		if matched, _ := doublestar.PathMatch(wildcard, filePath); matched {
 			return true
 		}
@@ -38,7 +39,9 @@ func (self *Wildcard) Accept(file *goldsmith.File) bool {
 	return false
 }
 
-func (self *Wildcard) adjustCase(str string) string {
+func (self *Wildcard) adjustPath(str string) string {
+	str = filepath.FromSlash(str)
+
 	if self.caseSensitive {
 		return str
 	}
