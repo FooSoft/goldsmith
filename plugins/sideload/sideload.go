@@ -2,6 +2,7 @@ package sideload
 
 import (
 	"bytes"
+	"io"
 	"io/fs"
 	"path/filepath"
 
@@ -10,11 +11,16 @@ import (
 
 type (
 	Sideload struct {
-		files       []*goldsmith.File
-		fileSystems []sideloadFs
+		files       []File
+		fileSystems []sfs
 	}
 
-	sideloadFs interface {
+	File struct {
+		Path   string
+		Reader io.Reader
+	}
+
+	sfs interface {
 		fs.ReadDirFS
 		fs.ReadFileFS
 	}
@@ -29,38 +35,43 @@ func (*Sideload) Name() string {
 }
 
 func (self *Sideload) Finalize(context *goldsmith.Context) error {
-	files := self.files
-
 	for _, fileSystem := range self.fileSystems {
-		currFiles, err := self.gatherFsFiles(context, fileSystem, ".")
+		files, err := self.gatherFsFiles(context, fileSystem, ".")
 		if err != nil {
 			return err
 		}
 
-		files = append(files, currFiles...)
+		for _, file := range files {
+			context.DispatchFile(file)
+		}
 	}
 
-	for _, file := range files {
-		context.DispatchFile(file)
+	for _, file := range self.files {
+		gsFile, err := context.CreateFileFromReader(file.Path, file.Reader)
+		if err != nil {
+			return err
+		}
+
+		context.DispatchFile(gsFile)
 	}
 
 	return nil
 }
 
-func (self *Sideload) Files(files ...*goldsmith.File) *Sideload {
+func (self *Sideload) Files(files ...File) *Sideload {
 	self.files = append(self.files, files...)
 	return self
 }
 
 func (self *Sideload) FileSystems(fileSystems ...fs.FS) *Sideload {
 	for _, fileSystem := range fileSystems {
-		self.fileSystems = append(self.fileSystems, fileSystem.(sideloadFs))
+		self.fileSystems = append(self.fileSystems, fileSystem.(sfs))
 	}
 
 	return self
 }
 
-func (self *Sideload) gatherFsFiles(context *goldsmith.Context, fileSystem sideloadFs, path string) ([]*goldsmith.File, error) {
+func (self *Sideload) gatherFsFiles(context *goldsmith.Context, fileSystem sfs, path string) ([]*goldsmith.File, error) {
 	entries, err := fileSystem.ReadDir(path)
 	if err != nil {
 		return nil, err

@@ -2,6 +2,7 @@ package sideload
 
 import (
 	"io/fs"
+	"strings"
 	"testing"
 
 	"embed"
@@ -10,19 +11,35 @@ import (
 	"git.foosoft.net/alex/goldsmith/harness"
 )
 
-//go:embed testdata/source
+//go:embed testdata/fs/source
 var embedFs embed.FS
 
-func Test(self *testing.T) {
-	subFs, err := fs.Sub(embedFs, "testdata/source")
-	if err != nil {
-		panic(err)
-	}
-
-	harness.Validate(
+func TestFs(self *testing.T) {
+	harness.ValidateCase(
 		self,
+		"fs",
 		func(gs *goldsmith.Goldsmith) {
+			subFs, err := fs.Sub(embedFs, "testdata/fs/source")
+			if err != nil {
+				panic(err)
+			}
+
 			gs.Chain(New().FileSystems(subFs))
+		},
+	)
+}
+
+func TestFile(self *testing.T) {
+	harness.ValidateCase(
+		self,
+		"file",
+		func(gs *goldsmith.Goldsmith) {
+			file := File{
+				Path:   "hello.txt",
+				Reader: strings.NewReader("hello world"),
+			}
+
+			gs.Chain(New().Files(file))
 		},
 	)
 }
