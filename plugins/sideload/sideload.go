@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 	"io/fs"
-	"path/filepath"
+	"path"
 
 	"git.foosoft.net/alex/goldsmith"
 )
@@ -71,15 +71,15 @@ func (self *Sideload) FileSystems(fileSystems ...fs.FS) *Sideload {
 	return self
 }
 
-func (self *Sideload) gatherFsFiles(context *goldsmith.Context, fileSystem sfs, path string) ([]*goldsmith.File, error) {
-	entries, err := fileSystem.ReadDir(path)
+func (self *Sideload) gatherFsFiles(context *goldsmith.Context, fileSystem sfs, searchPath string) ([]*goldsmith.File, error) {
+	entries, err := fileSystem.ReadDir(searchPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var files []*goldsmith.File
 	for _, entry := range entries {
-		currPath := filepath.Join(path, entry.Name())
+		currPath := path.Join(searchPath, entry.Name())
 		if entry.IsDir() {
 			currFiles, err := self.gatherFsFiles(context, fileSystem, currPath)
 			if err != nil {
