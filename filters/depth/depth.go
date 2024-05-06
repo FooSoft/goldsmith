@@ -24,7 +24,7 @@ func (self *Depth) Accept(file *goldsmith.File) bool {
 		return true
 	}
 
-	if parts := strings.Split(file.Path(), string(filepath.Separator)); len(parts) <= self.depth {
+	if parts := strings.Split(filepath.FromSlash(file.Path()), string(filepath.Separator)); len(parts) <= self.depth {
 		return true
 	}
 
