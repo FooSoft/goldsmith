@@ -1,15 +1,10 @@
 # Goldsmith
 
-Goldsmith is a fast and easily extensible static website generator written in Go. In contrast to many other generators,
-Goldsmith does not force any design paradigms or file organization rules on the user, making it possible to generate
-anything from blogs to image galleries using the same tool.
+Goldsmith is a fast and easily extensible static website generator written in Go. In contrast to many other generators, Goldsmith does not force any design paradigms or file organization rules on the user, making it possible to generate anything from blogs to image galleries using the same tool.
 
 ## Tutorial
 
-Goldsmith does not use any configuration files, and all behavior customization happens in code. Goldsmith uses the
-[builder pattern](https://en.wikipedia.org/wiki/Builder_pattern) to establish a chain, which modifies files as they pass
-through it. Although the [Goldsmith](https://godoc.org/git.foosoft.net/alex/goldsmith) API is short and (hopefully) easy
-to understand, it is often best to learn by example:
+Goldsmith does not use any configuration files, and all behavior customization happens in code. Goldsmith uses the [builder pattern](https://en.wikipedia.org/wiki/Builder_pattern) to establish a chain, which modifies files as they pass through it. Although the [Goldsmith](https://godoc.org/git.foosoft.net/alex/goldsmith) API is short and (hopefully) easy to understand, it is often best to learn by example:
 
 1.  Start by copying files from a source directory to a destination directory (the simplest possible use case):
 
@@ -19,8 +14,7 @@ to understand, it is often best to learn by example:
         End(dstDir)   // write files to dstDir
     ```
 
-2.  Now let's convert any Markdown files to HTML fragments (while still copying the rest), using the
-    [Markdown](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/markdown) plugin:
+2.  Now let's convert any Markdown files to HTML fragments (while still copying the rest), using the [Markdown](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/markdown) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -29,10 +23,7 @@ to understand, it is often best to learn by example:
         End(dstDir)            // write files to dstDir
     ```
 
-3.  If we have any [front
-    matter](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/index.md) in our Markdown
-    files, we need to extract it using the,
-    [FrontMatter](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/frontmatter) plugin:
+3.  If we have any [front matter](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/index.md) in our Markdown files, we need to extract it using the, [FrontMatter](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/frontmatter) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -42,10 +33,7 @@ to understand, it is often best to learn by example:
         End(dstDir)               // write files to dstDir
     ```
 
-4.  Next, we should run our barebones HTML through a
-    [template](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/layouts/basic.gohtml) to
-    add elements like a header, footer, or a menu; for this we can use the
-    [Layout](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/frontmatter) plugin:
+4.  Next, we should run our barebones HTML through a [template](https://git.foosoft.net/alex/goldsmith-samples/raw/branch/master/basic/content/layouts/basic.gohtml) to add elements like a header, footer, or a menu; for this we can use the [Layout](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/frontmatter) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -56,9 +44,7 @@ to understand, it is often best to learn by example:
         End(dstDir)               // write files to dstDir
     ```
 
-5.  Now, let's [minify](https://en.wikipedia.org/wiki/Minification_(programming)) our files to reduce data transfer and
-    load times for our site's visitors using the
-    [Minify](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/minify) plugin:
+5.  Now, let's [minify](https://en.wikipedia.org/wiki/Minification_(programming)) our files to reduce data transfer and load times for our site's visitors using the [Minify](https://godoc.org/git.foosoft.net/alex/goldsmith/plugins/minify) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -70,9 +56,7 @@ to understand, it is often best to learn by example:
         End(dstDir)               // write files to dstDir
     ```
 
-6.  Debugging problems in minified code can be tricky, so let's use the
-    [Condition](https://godoc.org/git.foosoft.net/alex/goldsmith/filters/condition) filter to make minification occur
-    only when we are ready for distribution.
+6.  Debugging problems in minified code can be tricky, so let's use the [Condition](https://godoc.org/git.foosoft.net/alex/goldsmith/filters/condition) filter to make minification occur only when we are ready for distribution.
 
     ```go
     var gs goldsmith.Goldsmith
@@ -86,9 +70,7 @@ to understand, it is often best to learn by example:
         End(dstDir)                      // write files to dstDir
     ```
 
-7.  Now that we have all of our plugins chained up, let's look at a complete example which uses
-    [DevServer](https://godoc.org/git.foosoft.net/alex/goldsmith/devserver) to bootstrap a complete development sever
-    which automatically rebuilds the site whenever source files are updated.
+7.  Now that we have all of our plugins chained up, let's look at a complete example which uses [DevServer](https://godoc.org/git.foosoft.net/alex/goldsmith/devserver) to bootstrap a complete development sever which automatically rebuilds the site whenever source files are updated.
 
     ```go
     package main
