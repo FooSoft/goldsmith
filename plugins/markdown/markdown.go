@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"git.foosoft.net/alex/goldsmith"
-	"git.foosoft.net/alex/goldsmith/filters/wildcard"
+	"codeberg.org/foosoft/goldsmith"
+	"codeberg.org/foosoft/goldsmith/filters/wildcard"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"

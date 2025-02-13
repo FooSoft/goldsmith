@@ -48,8 +48,8 @@ import (
 	"io"
 	"strings"
 
-	"git.foosoft.net/alex/goldsmith"
-	"git.foosoft.net/alex/goldsmith/filters/wildcard"
+	"codeberg.org/foosoft/goldsmith"
+	"codeberg.org/foosoft/goldsmith/filters/wildcard"
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v2"
 )

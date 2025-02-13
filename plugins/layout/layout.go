@@ -9,8 +9,8 @@ import (
 	"html/template"
 	"sync"
 
-	"git.foosoft.net/alex/goldsmith"
-	"git.foosoft.net/alex/goldsmith/filters/wildcard"
+	"codeberg.org/foosoft/goldsmith"
+	"codeberg.org/foosoft/goldsmith/filters/wildcard"
 )
 
 // Layout chainable context.

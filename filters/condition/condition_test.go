@@ -3,8 +3,8 @@ package condition
 import (
 	"testing"
 
-	"git.foosoft.net/alex/goldsmith"
-	"git.foosoft.net/alex/goldsmith/harness"
+	"codeberg.org/foosoft/goldsmith"
+	"codeberg.org/foosoft/goldsmith/harness"
 )
 
 func TestEnabled(self *testing.T) {

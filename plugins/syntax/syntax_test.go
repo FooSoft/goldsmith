@@ -3,11 +3,11 @@ package syntax
 import (
 	"testing"
 
-	"git.foosoft.net/alex/goldsmith"
-	"git.foosoft.net/alex/goldsmith/harness"
-	"git.foosoft.net/alex/goldsmith/plugins/frontmatter"
-	"git.foosoft.net/alex/goldsmith/plugins/layout"
-	"git.foosoft.net/alex/goldsmith/plugins/markdown"
+	"codeberg.org/foosoft/goldsmith"
+	"codeberg.org/foosoft/goldsmith/harness"
+	"codeberg.org/foosoft/goldsmith/plugins/frontmatter"
+	"codeberg.org/foosoft/goldsmith/plugins/layout"
+	"codeberg.org/foosoft/goldsmith/plugins/markdown"
 )
 
 func Test(self *testing.T) {

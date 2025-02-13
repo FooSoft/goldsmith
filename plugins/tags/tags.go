@@ -11,8 +11,8 @@ import (
 	"sync"
 	"unicode"
 
-	"git.foosoft.net/alex/goldsmith"
-	"git.foosoft.net/alex/goldsmith/filters/wildcard"
+	"codeberg.org/foosoft/goldsmith"
+	"codeberg.org/foosoft/goldsmith/filters/wildcard"
 )
 
 // TagInfo contains site-wide information about a particular tag.

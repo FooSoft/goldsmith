@@ -7,8 +7,8 @@ import (
 
 	"embed"
 
-	"git.foosoft.net/alex/goldsmith"
-	"git.foosoft.net/alex/goldsmith/harness"
+	"codeberg.org/foosoft/goldsmith"
+	"codeberg.org/foosoft/goldsmith/harness"
 )
 
 //go:embed testdata/fs/source

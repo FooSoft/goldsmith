@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"git.foosoft.net/alex/goldsmith"
-	"git.foosoft.net/alex/goldsmith/filters/wildcard"
+	"codeberg.org/foosoft/goldsmith"
+	"codeberg.org/foosoft/goldsmith/filters/wildcard"
 	"github.com/disintegration/imaging"
 )
 
