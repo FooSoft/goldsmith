@@ -1,7 +1,7 @@
 package operator
 
 import (
-	"codeberg.org/foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith"
 )
 
 type Operator interface {

@@ -3,9 +3,9 @@ package operator
 import (
 	"testing"
 
-	"codeberg.org/foosoft/goldsmith"
-	"codeberg.org/foosoft/goldsmith/filters/condition"
-	"codeberg.org/foosoft/goldsmith/harness"
+	"git.sr.ht/~foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith/filters/condition"
+	"git.sr.ht/~foosoft/goldsmith/harness"
 )
 
 func TestAndFalse(t *testing.T) {

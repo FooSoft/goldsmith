@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	"codeberg.org/foosoft/goldsmith"
-	"codeberg.org/foosoft/goldsmith/filters/wildcard"
+	"git.sr.ht/~foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith/filters/wildcard"
 )
 
 // Crumb provides organizational information about this node and ones before it.

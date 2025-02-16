@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"codeberg.org/foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith"
 )
 
 // StagingCallback callback function is used to set up a goldsmith chain.

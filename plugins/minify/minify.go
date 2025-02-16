@@ -16,8 +16,8 @@ import (
 	"github.com/tdewolff/minify/v2/svg"
 	"github.com/tdewolff/minify/v2/xml"
 
-	"codeberg.org/foosoft/goldsmith"
-	"codeberg.org/foosoft/goldsmith/filters/wildcard"
+	"git.sr.ht/~foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith/filters/wildcard"
 )
 
 // Minify chainable context.

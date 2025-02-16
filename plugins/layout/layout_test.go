@@ -3,9 +3,9 @@ package layout
 import (
 	"testing"
 
-	"codeberg.org/foosoft/goldsmith"
-	"codeberg.org/foosoft/goldsmith/harness"
-	"codeberg.org/foosoft/goldsmith/plugins/frontmatter"
+	"git.sr.ht/~foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith/harness"
+	"git.sr.ht/~foosoft/goldsmith/plugins/frontmatter"
 )
 
 func Test(self *testing.T) {

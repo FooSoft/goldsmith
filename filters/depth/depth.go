@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"codeberg.org/foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith"
 )
 
 type Depth struct {

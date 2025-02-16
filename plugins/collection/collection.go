@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"codeberg.org/foosoft/goldsmith"
-	"codeberg.org/foosoft/goldsmith/filters/wildcard"
+	"git.sr.ht/~foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith/filters/wildcard"
 )
 
 // A Comparer callback function is used to sort files within a collection group.

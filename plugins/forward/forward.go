@@ -4,7 +4,7 @@ package forward
 import (
 	"bytes"
 
-	"codeberg.org/foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith"
 )
 
 // Forward plugin context.

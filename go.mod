@@ -1,4 +1,4 @@
-module codeberg.org/foosoft/goldsmith
+module git.sr.ht/~foosoft/goldsmith
 
 go 1.23
 

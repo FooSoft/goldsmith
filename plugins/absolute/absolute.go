@@ -13,8 +13,8 @@ import (
 	"net/url"
 	"path"
 
-	"codeberg.org/foosoft/goldsmith"
-	"codeberg.org/foosoft/goldsmith/filters/wildcard"
+	"git.sr.ht/~foosoft/goldsmith"
+	"git.sr.ht/~foosoft/goldsmith/filters/wildcard"
 	"github.com/PuerkitoBio/goquery"
 )
 
