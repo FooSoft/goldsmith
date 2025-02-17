@@ -23,7 +23,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)            // write files to dstDir
     ```
 
-3.  If we have any [front matter](https://git.sr.ht/~foosoft/goldsmith-samples/raw/branch/master/basic/content/index.md) in our Markdown files, we need to extract it using the, [FrontMatter](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/frontmatter) plugin:
+3.  If we have any front matter in our Markdown files, we need to extract it using the, [FrontMatter](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/frontmatter) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -121,9 +121,9 @@ Goldsmith does not use any configuration files, and all behavior customization h
 
 Below are some examples of Goldsmith usage which can used to base your site on:
 
-*   [Basic Sample](https://git.sr.ht/~foosoft/goldsmith-samples/src/branch/master/basic): a great starting point, this is the sample site from the tutorial.
-*   [Bootstrap Sample](https://git.sr.ht/~foosoft/goldsmith-samples/src/branch/master/bootstrap): a slightly more advanced sample using [Bootstrap](https://getbootstrap.com/).
-*   [FooSoft.net](https://git.sr.ht/~foosoft/goldsmith): I've been "dogfooding" Goldsmith by using it to [generate my homepage](/posts/generating-the-foosoft.net-homepage) for nearly a decade.
+*   [Basic Sample](https://git.sr.ht/~foosoft/goldsmith-samples/tree/master/item/basic): a great starting point, this is the sample site from the tutorial.
+*   [Bootstrap Sample](https://git.sr.ht/~foosoft/goldsmith-samples/tree/master/item/bootstrap): a slightly more advanced sample using [Bootstrap](https://getbootstrap.com/).
+*   [FooSoft.net](https://foosoft.net): I've been "dogfooding" Goldsmith by using it to [generate my homepage](https://foosoft.net/posts/generating-the-foosoft.net-homepage) for nearly a decade.
 
 ## Components
 
