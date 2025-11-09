@@ -1,4 +1,4 @@
-module git.sr.ht/~foosoft/goldsmith
+module go.foosoft.net/goldsmith
 
 go 1.23.0
 

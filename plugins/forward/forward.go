@@ -4,7 +4,7 @@ package forward
 import (
 	"bytes"
 
-	"git.sr.ht/~foosoft/goldsmith"
+	"go.foosoft.net/goldsmith"
 )
 
 // Forward plugin context.

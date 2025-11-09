@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"git.sr.ht/~foosoft/goldsmith"
-	"git.sr.ht/~foosoft/goldsmith/filters/operator"
-	"git.sr.ht/~foosoft/goldsmith/filters/wildcard"
+	"go.foosoft.net/goldsmith"
+	"go.foosoft.net/goldsmith/filters/operator"
+	"go.foosoft.net/goldsmith/filters/wildcard"
 	"github.com/BurntSushi/toml"
 )
 

@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"path"
 
-	"git.sr.ht/~foosoft/goldsmith"
+	"go.foosoft.net/goldsmith"
 )
 
 type (

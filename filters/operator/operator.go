@@ -1,7 +1,7 @@
 package operator
 
 import (
-	"git.sr.ht/~foosoft/goldsmith"
+	"go.foosoft.net/goldsmith"
 )
 
 type Operator interface {

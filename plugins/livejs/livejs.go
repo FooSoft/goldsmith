@@ -9,8 +9,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	"git.sr.ht/~foosoft/goldsmith"
-	"git.sr.ht/~foosoft/goldsmith/filters/wildcard"
+	"go.foosoft.net/goldsmith"
+	"go.foosoft.net/goldsmith/filters/wildcard"
 	"github.com/PuerkitoBio/goquery"
 )
 

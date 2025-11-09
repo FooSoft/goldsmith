@@ -3,11 +3,11 @@ package tags
 import (
 	"testing"
 
-	"git.sr.ht/~foosoft/goldsmith"
-	"git.sr.ht/~foosoft/goldsmith/harness"
-	"git.sr.ht/~foosoft/goldsmith/plugins/frontmatter"
-	"git.sr.ht/~foosoft/goldsmith/plugins/layout"
-	"git.sr.ht/~foosoft/goldsmith/plugins/markdown"
+	"go.foosoft.net/goldsmith"
+	"go.foosoft.net/goldsmith/harness"
+	"go.foosoft.net/goldsmith/plugins/frontmatter"
+	"go.foosoft.net/goldsmith/plugins/layout"
+	"go.foosoft.net/goldsmith/plugins/markdown"
 )
 
 func Test(self *testing.T) {

@@ -3,8 +3,8 @@ package document
 import (
 	"testing"
 
-	"git.sr.ht/~foosoft/goldsmith"
-	"git.sr.ht/~foosoft/goldsmith/harness"
+	"go.foosoft.net/goldsmith"
+	"go.foosoft.net/goldsmith/harness"
 	"github.com/PuerkitoBio/goquery"
 )
 

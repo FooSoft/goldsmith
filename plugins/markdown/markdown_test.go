@@ -8,8 +8,8 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
 
-	"git.sr.ht/~foosoft/goldsmith"
-	"git.sr.ht/~foosoft/goldsmith/harness"
+	"go.foosoft.net/goldsmith"
+	"go.foosoft.net/goldsmith/harness"
 )
 
 func Test(self *testing.T) {

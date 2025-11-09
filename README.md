@@ -4,7 +4,7 @@ Goldsmith is a fast and easily extensible static website generator written in Go
 
 ## Tutorial
 
-Goldsmith does not use any configuration files, and all behavior customization happens in code. Goldsmith uses the [builder pattern](https://en.wikipedia.org/wiki/Builder_pattern) to establish a chain, which modifies files as they pass through it. Although the [Goldsmith](https://godoc.org/git.sr.ht/~foosoft/goldsmith) API is short and (hopefully) easy to understand, it is often best to learn by example:
+Goldsmith does not use any configuration files, and all behavior customization happens in code. Goldsmith uses the [builder pattern](https://en.wikipedia.org/wiki/Builder_pattern) to establish a chain, which modifies files as they pass through it. Although the [Goldsmith](https://godoc.org/go.foosoft.net/goldsmith) API is short and (hopefully) easy to understand, it is often best to learn by example:
 
 1.  Start by copying files from a source directory to a destination directory (the simplest possible use case):
 
@@ -14,7 +14,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)   // write files to dstDir
     ```
 
-2.  Now let's convert any Markdown files to HTML fragments (while still copying the rest), using the [Markdown](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/markdown) plugin:
+2.  Now let's convert any Markdown files to HTML fragments (while still copying the rest), using the [Markdown](https://godoc.org/go.foosoft.net/goldsmith/plugins/markdown) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -23,7 +23,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)            // write files to dstDir
     ```
 
-3.  If we have any front matter in our Markdown files, we need to extract it using the, [FrontMatter](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/frontmatter) plugin:
+3.  If we have any front matter in our Markdown files, we need to extract it using the, [FrontMatter](https://godoc.org/go.foosoft.net/goldsmith/plugins/frontmatter) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -33,7 +33,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)               // write files to dstDir
     ```
 
-4.  Next, we should run our barebones HTML through a [template](https://git.sr.ht/~foosoft/goldsmith-samples/raw/branch/master/basic/content/layouts/basic.gohtml) to add elements like a header, footer, or a menu; for this we can use the [Layout](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/frontmatter) plugin:
+4.  Next, we should run our barebones HTML through a [template](https://go.foosoft.net/goldsmith-samples/raw/branch/master/basic/content/layouts/basic.gohtml) to add elements like a header, footer, or a menu; for this we can use the [Layout](https://godoc.org/go.foosoft.net/goldsmith/plugins/frontmatter) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -44,7 +44,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)               // write files to dstDir
     ```
 
-5.  Now, let's [minify](https://en.wikipedia.org/wiki/Minification_(programming)) our files to reduce data transfer and load times for our site's visitors using the [Minify](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/minify) plugin:
+5.  Now, let's [minify](https://en.wikipedia.org/wiki/Minification_(programming)) our files to reduce data transfer and load times for our site's visitors using the [Minify](https://godoc.org/go.foosoft.net/goldsmith/plugins/minify) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -56,7 +56,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)               // write files to dstDir
     ```
 
-6.  Debugging problems in minified code can be tricky, so let's use the [Condition](https://godoc.org/git.sr.ht/~foosoft/goldsmith/filters/condition) filter to make minification occur only when we are ready for distribution.
+6.  Debugging problems in minified code can be tricky, so let's use the [Condition](https://godoc.org/go.foosoft.net/goldsmith/filters/condition) filter to make minification occur only when we are ready for distribution.
 
     ```go
     var gs goldsmith.Goldsmith
@@ -70,7 +70,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)                      // write files to dstDir
     ```
 
-7.  Now that we have all of our plugins chained up, let's look at a complete example which uses [DevServer](https://godoc.org/git.sr.ht/~foosoft/goldsmith/devserver) to bootstrap a complete development sever which automatically rebuilds the site whenever source files are updated.
+7.  Now that we have all of our plugins chained up, let's look at a complete example which uses [DevServer](https://godoc.org/go.foosoft.net/goldsmith/devserver) to bootstrap a complete development sever which automatically rebuilds the site whenever source files are updated.
 
     ```go
     package main
@@ -79,13 +79,13 @@ Goldsmith does not use any configuration files, and all behavior customization h
         "flag"
         "log"
 
-        "git.sr.ht/~foosoft/goldsmith"
-        "git.sr.ht/~foosoft/goldsmith/devserver"
-        "git.sr.ht/~foosoft/goldsmith/filters/condition"
-        "git.sr.ht/~foosoft/goldsmith/plugins/frontmatter"
-        "git.sr.ht/~foosoft/goldsmith/plugins/layout"
-        "git.sr.ht/~foosoft/goldsmith/plugins/markdown"
-        "git.sr.ht/~foosoft/goldsmith/plugins/minify"
+        "go.foosoft.net/goldsmith"
+        "go.foosoft.net/goldsmith/devserver"
+        "go.foosoft.net/goldsmith/filters/condition"
+        "go.foosoft.net/goldsmith/plugins/frontmatter"
+        "go.foosoft.net/goldsmith/plugins/layout"
+        "go.foosoft.net/goldsmith/plugins/markdown"
+        "go.foosoft.net/goldsmith/plugins/minify"
     )
 
     type builder struct {
@@ -121,8 +121,8 @@ Goldsmith does not use any configuration files, and all behavior customization h
 
 Below are some examples of Goldsmith usage which can used to base your site on:
 
-*   [Basic Sample](https://git.sr.ht/~foosoft/goldsmith-samples/tree/master/item/basic): a great starting point, this is the sample site from the tutorial.
-*   [Bootstrap Sample](https://git.sr.ht/~foosoft/goldsmith-samples/tree/master/item/bootstrap): a slightly more advanced sample using [Bootstrap](https://getbootstrap.com/).
+*   [Basic Sample](https://go.foosoft.net/goldsmith-samples/tree/master/item/basic): a great starting point, this is the sample site from the tutorial.
+*   [Bootstrap Sample](https://go.foosoft.net/goldsmith-samples/tree/master/item/bootstrap): a slightly more advanced sample using [Bootstrap](https://getbootstrap.com/).
 *   [FooSoft.net](https://foosoft.net): I've been "dogfooding" Goldsmith by using it to [generate my homepage](https://foosoft.net/posts/generating-the-foosoft.net-homepage) for nearly a decade.
 
 ## Components
@@ -131,32 +131,32 @@ A growing set of plugins, filters, and other tools are provided to make it easie
 
 ### Plugins
 
-*   [Absolute](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/absolute): Convert relative HTML file references to absolute paths.
-*   [Breadcrumbs](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/breadcrumbs): Generate metadata required to build breadcrumb navigation.
-*   [Collection](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/collection): Group related pages into named collections.
-*   [Document](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/document): Enable simple DOM modification via an API similar to jQuery.
-*   [Forward](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/forward): Create simple redirections for pages that have moved to a new URL.
-*   [FrontMatter](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/frontmatter): Extract the JSON, YAML, or TOML metadata stored in your files.
-*   [Index](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/index): Create metadata for directory file listings and generate directory index pages.
-*   [Layout](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/layout): Transform your HTML files with Go templates.
-*   [LiveJs](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/livejs): Inject JavaScript code to automatically reload pages when modified.
-*   [Markdown](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/markdown): Render Markdown documents as HTML fragments.
-*   [Minify](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/minify): Remove superfluous data from a variety of web formats.
-*   [Pager](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/pager): Split arrays of metadata into standalone pages.
-*   [Rule](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/rule): Update metadata and filter files based on paths.
-*   [Summary](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/summary): Extract summary and title metadata from HTML files.
-*   [Syndicate](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/syndicate): Generate RSS, Atom, and JSON feeds from existing metadata.
-*   [Syntax](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/syntax): Enable syntax highlighting for pre-formatted code blocks.
-*   [Tags](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/tags): Generate tag clouds and indices from file metadata.
-*   [Thumbnail](https://godoc.org/git.sr.ht/~foosoft/goldsmith/plugins/thumbnail): Build thumbnails for a variety of common image formats.
+*   [Absolute](https://godoc.org/go.foosoft.net/goldsmith/plugins/absolute): Convert relative HTML file references to absolute paths.
+*   [Breadcrumbs](https://godoc.org/go.foosoft.net/goldsmith/plugins/breadcrumbs): Generate metadata required to build breadcrumb navigation.
+*   [Collection](https://godoc.org/go.foosoft.net/goldsmith/plugins/collection): Group related pages into named collections.
+*   [Document](https://godoc.org/go.foosoft.net/goldsmith/plugins/document): Enable simple DOM modification via an API similar to jQuery.
+*   [Forward](https://godoc.org/go.foosoft.net/goldsmith/plugins/forward): Create simple redirections for pages that have moved to a new URL.
+*   [FrontMatter](https://godoc.org/go.foosoft.net/goldsmith/plugins/frontmatter): Extract the JSON, YAML, or TOML metadata stored in your files.
+*   [Index](https://godoc.org/go.foosoft.net/goldsmith/plugins/index): Create metadata for directory file listings and generate directory index pages.
+*   [Layout](https://godoc.org/go.foosoft.net/goldsmith/plugins/layout): Transform your HTML files with Go templates.
+*   [LiveJs](https://godoc.org/go.foosoft.net/goldsmith/plugins/livejs): Inject JavaScript code to automatically reload pages when modified.
+*   [Markdown](https://godoc.org/go.foosoft.net/goldsmith/plugins/markdown): Render Markdown documents as HTML fragments.
+*   [Minify](https://godoc.org/go.foosoft.net/goldsmith/plugins/minify): Remove superfluous data from a variety of web formats.
+*   [Pager](https://godoc.org/go.foosoft.net/goldsmith/plugins/pager): Split arrays of metadata into standalone pages.
+*   [Rule](https://godoc.org/go.foosoft.net/goldsmith/plugins/rule): Update metadata and filter files based on paths.
+*   [Summary](https://godoc.org/go.foosoft.net/goldsmith/plugins/summary): Extract summary and title metadata from HTML files.
+*   [Syndicate](https://godoc.org/go.foosoft.net/goldsmith/plugins/syndicate): Generate RSS, Atom, and JSON feeds from existing metadata.
+*   [Syntax](https://godoc.org/go.foosoft.net/goldsmith/plugins/syntax): Enable syntax highlighting for pre-formatted code blocks.
+*   [Tags](https://godoc.org/go.foosoft.net/goldsmith/plugins/tags): Generate tag clouds and indices from file metadata.
+*   [Thumbnail](https://godoc.org/go.foosoft.net/goldsmith/plugins/thumbnail): Build thumbnails for a variety of common image formats.
 
 ### Filters
 
-*   [Condition](https://godoc.org/git.sr.ht/~foosoft/goldsmith/filters/condition): Filter files based on a single condition.
-*   [Operator](https://godoc.org/git.sr.ht/~foosoft/goldsmith/filters/operator): Join filters using logical `AND`, `OR`, and `NOT` operators.
-*   [Wildcard](https://godoc.org/git.sr.ht/~foosoft/goldsmith/filters/wildcard): Filter files using path wildcards (`*`, `?`, etc.)
+*   [Condition](https://godoc.org/go.foosoft.net/goldsmith/filters/condition): Filter files based on a single condition.
+*   [Operator](https://godoc.org/go.foosoft.net/goldsmith/filters/operator): Join filters using logical `AND`, `OR`, and `NOT` operators.
+*   [Wildcard](https://godoc.org/go.foosoft.net/goldsmith/filters/wildcard): Filter files using path wildcards (`*`, `?`, etc.)
 
 ### Other
 
-*   [DevServer](https://godoc.org/git.sr.ht/~foosoft/goldsmith/devserver): Simple framework for building, updating, and viewing your site.
-*   [Harness](https://godoc.org/git.sr.ht/~foosoft/goldsmith/harness): Unit test harness for verifying Goldsmith plugins and filters.
+*   [DevServer](https://godoc.org/go.foosoft.net/goldsmith/devserver): Simple framework for building, updating, and viewing your site.
+*   [Harness](https://godoc.org/go.foosoft.net/goldsmith/harness): Unit test harness for verifying Goldsmith plugins and filters.

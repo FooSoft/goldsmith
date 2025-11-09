@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"git.sr.ht/~foosoft/goldsmith"
+	"go.foosoft.net/goldsmith"
 )
 
 // Entry contains information about a directory item.

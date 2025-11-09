@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"git.sr.ht/~foosoft/goldsmith"
+	"go.foosoft.net/goldsmith"
 	"github.com/gorilla/feeds"
 )
 
