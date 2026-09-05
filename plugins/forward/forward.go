@@ -64,6 +64,7 @@ func (self *Forward) Initialize(context *goldsmith.Context) error {
 			sourceFile.SetProp(name, value)
 		}
 
+		sourceFile.SetProp(self.sourceKey, sourcePath)
 		sourceFile.SetProp(self.targetKey, targetPath)
 		context.DispatchFile(sourceFile)
 	}

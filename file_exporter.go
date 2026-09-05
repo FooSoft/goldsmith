@@ -51,17 +51,17 @@ func (self *fileExporter) Process(context *Context, file *File) error {
 	if err != nil {
 		return err
 	}
-	defer fw.Close()
-
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		fw.Close()
 		return err
 	}
 
 	if _, err := file.WriteTo(fw); err != nil {
+		fw.Close()
 		return err
 	}
 
-	return nil
+	return fw.Close()
 }
 
 func (self *fileExporter) Finalize(context *Context) error {

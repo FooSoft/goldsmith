@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -29,8 +28,11 @@ type Context struct {
 
 // CreateFileFrom data creates a new file instance from the provided data buffer.
 func (self *Context) CreateFileFromReader(relPath string, reader io.Reader) (*File, error) {
-	if filepath.IsAbs(relPath) {
-		return nil, errors.New("file paths must be relative")
+	if err := validateRelativePath(relPath); err != nil {
+		return nil, err
+	}
+	if reader == nil {
+		return nil, errors.New("file reader cannot be nil")
 	}
 
 	data, err := io.ReadAll(reader)
@@ -52,8 +54,8 @@ func (self *Context) CreateFileFromReader(relPath string, reader io.Reader) (*Fi
 
 // CreateFileFromAsset creates a new file instance from the provided file path.
 func (self *Context) CreateFileFromAsset(relPath, dataPath string) (*File, error) {
-	if filepath.IsAbs(relPath) {
-		return nil, errors.New("file paths must be relative")
+	if err := validateRelativePath(relPath); err != nil {
+		return nil, err
 	}
 
 	info, err := os.Stat(dataPath)
@@ -86,7 +88,9 @@ func (self *Context) DispatchFile(file *File) {
 // passes it to the next link in the chain.
 func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File) {
 	if self.chain.cache != nil {
-		self.chain.cache.storeFile(outputFile, inputFiles)
+		if err := self.chain.cache.storeFile(outputFile, inputFiles); err != nil {
+			self.chain.fault("cache", outputFile, err)
+		}
 	}
 
 	self.DispatchFile(outputFile)
@@ -98,7 +102,11 @@ func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File)
 func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) *File {
 	var outputFile *File
 	if self.chain.cache != nil {
-		outputFile, _ = self.chain.cache.retrieveFile(self, outputPath, inputFiles)
+		var err error
+		outputFile, err = self.chain.cache.retrieveFile(self, outputPath, inputFiles)
+		if err != nil {
+			self.chain.fault("cache", nil, err)
+		}
 	}
 
 	return outputFile
@@ -146,6 +154,7 @@ func (self *Context) step() {
 					if processor != nil && self.filtersInt.accept(inputFile) && self.filtersExt.accept(inputFile) {
 						if _, err := inputFile.Seek(0, io.SeekStart); err != nil {
 							self.chain.fault("core", inputFile, err)
+							continue
 						}
 						if err := processor.Process(self, inputFile); err != nil {
 							self.chain.fault(self.plugin.Name(), inputFile, err)

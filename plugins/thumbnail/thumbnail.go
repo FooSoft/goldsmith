@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/disintegration/imaging"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/filters/wildcard"
-	"github.com/disintegration/imaging"
 )
 
 // Namer callback function builds thumbnail file paths based on the original file path.
@@ -76,7 +76,17 @@ func (*Thumbnail) Name() string {
 	return "thumbnail"
 }
 
-func (*Thumbnail) Initialize(context *goldsmith.Context) error {
+func (self *Thumbnail) Initialize(context *goldsmith.Context) error {
+	if self.size <= 0 {
+		return errors.New("thumbnail size must be greater than zero")
+	}
+	if self.namer == nil {
+		return errors.New("thumbnail namer cannot be nil")
+	}
+	if self.style == Pad && self.color == nil {
+		return errors.New("thumbnail padding color cannot be nil")
+	}
+
 	context.Filter(wildcard.New("**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.png"))
 	return nil
 }

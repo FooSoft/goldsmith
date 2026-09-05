@@ -59,6 +59,10 @@ func (self *cache) storeFile(outputFile *File, inputFiles []*File) error {
 	}
 
 	if _, err := outputFile.WriteTo(fp); err != nil {
+		fp.Close()
+		return err
+	}
+	if err := fp.Close(); err != nil {
 		return err
 	}
 
@@ -73,11 +77,12 @@ func (self *cache) buildCachePath(outputPath string, inputFiles []*File) (string
 	hasher := crc32.NewIEEE()
 	hasher.Write([]byte(outputPath))
 
-	sort.Slice(inputFiles, func(i, j int) bool {
-		return strings.Compare(inputFiles[i].Path(), inputFiles[j].Path()) < 0
+	inputs := append([]*File(nil), inputFiles...)
+	sort.Slice(inputs, func(i, j int) bool {
+		return strings.Compare(inputs[i].Path(), inputs[j].Path()) < 0
 	})
 
-	for _, inputFile := range inputFiles {
+	for _, inputFile := range inputs {
 		modTimeBuff := make([]byte, 8)
 		binary.LittleEndian.PutUint64(modTimeBuff, uint64(inputFile.ModTime().UnixNano()))
 		hasher.Write([]byte(inputFile.Path()))

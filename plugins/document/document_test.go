@@ -3,9 +3,9 @@ package document
 import (
 	"testing"
 
+	"github.com/PuerkitoBio/goquery"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/harness"
-	"github.com/PuerkitoBio/goquery"
 )
 
 func process(file *goldsmith.File, doc *goquery.Document) error {
@@ -22,4 +22,10 @@ func Test(self *testing.T) {
 			gs.Chain(New(process))
 		},
 	)
+}
+
+func TestNilProcessorReturnsError(t *testing.T) {
+	if err := New(nil).Initialize(new(goldsmith.Context)); err == nil {
+		t.Fatal("nil document processor was accepted")
+	}
 }

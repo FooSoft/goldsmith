@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"go.foosoft.net/goldsmith"
 	"github.com/gorilla/feeds"
+	"go.foosoft.net/goldsmith"
 )
 
 type feed struct {
@@ -169,7 +169,7 @@ func (self *Syndicate) Process(context *goldsmith.Context, inputFile *goldsmith.
 	self.lock.Unlock()
 
 	if !ok {
-		return fmt.Errorf("feed %s has is not configured", feedName)
+		return fmt.Errorf("feed %s is not configured", feedName)
 	}
 
 	baseUrl, err := url.Parse(self.baseUrl)
@@ -312,7 +312,9 @@ func (self *feed) output(context *goldsmith.Context) error {
 
 func (self *Syndicate) Finalize(context *goldsmith.Context) error {
 	for _, feed := range self.feeds {
-		feed.output(context)
+		if err := feed.output(context); err != nil {
+			return err
+		}
 	}
 
 	return nil

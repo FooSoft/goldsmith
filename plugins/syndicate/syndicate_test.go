@@ -1,6 +1,7 @@
 package syndicate
 
 import (
+	"strings"
 	"testing"
 
 	"go.foosoft.net/goldsmith"
@@ -44,4 +45,15 @@ func Test(self *testing.T) {
 				Chain(New("https://foosoft.net", "FeedName").WithFeed("posts", feedConfig))
 		},
 	)
+}
+
+func TestFinalizeReportsOutputErrors(t *testing.T) {
+	plugin := New("https://example.com", "Feed").WithFeed("invalid", FeedConfig{
+		AtomPath: "../outside.atom",
+	})
+
+	err := plugin.Finalize(new(goldsmith.Context))
+	if err == nil || !strings.Contains(err.Error(), "escapes its root") {
+		t.Fatalf("expected an unsafe feed path error, got %v", err)
+	}
 }

@@ -15,3 +15,12 @@ func Test(self *testing.T) {
 		},
 	)
 }
+
+func TestRejectsInvalidConfiguration(t *testing.T) {
+	if err := New().Size(0).Initialize(new(goldsmith.Context)); err == nil {
+		t.Fatal("zero thumbnail size was accepted")
+	}
+	if err := New().Namer(nil).Initialize(new(goldsmith.Context)); err == nil {
+		t.Fatal("nil thumbnail namer was accepted")
+	}
+}

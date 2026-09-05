@@ -13,15 +13,16 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/PuerkitoBio/goquery"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/filters/wildcard"
-	"github.com/PuerkitoBio/goquery"
 )
 
 // Absolute chainable plugin context.
 type Absolute struct {
 	attributes []string
 	baseUrl    *url.URL
+	baseUrlErr error
 }
 
 // New creates absolute new instance of the Absolute plugin.
@@ -37,7 +38,7 @@ func (self *Absolute) Attributes(attributes ...string) *Absolute {
 
 // BaseUrl sets the base URL which is prepended to absolute-converted relative paths.
 func (self *Absolute) BaseUrl(baseUrl string) *Absolute {
-	self.baseUrl, _ = url.Parse(baseUrl)
+	self.baseUrl, self.baseUrlErr = url.Parse(baseUrl)
 	return self
 }
 
@@ -45,7 +46,11 @@ func (*Absolute) Name() string {
 	return "absolute"
 }
 
-func (*Absolute) Initialize(context *goldsmith.Context) error {
+func (self *Absolute) Initialize(context *goldsmith.Context) error {
+	if self.baseUrlErr != nil {
+		return fmt.Errorf("invalid base URL: %w", self.baseUrlErr)
+	}
+
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -80,7 +85,7 @@ func (self *Absolute) Process(context *goldsmith.Context, inputFile *goldsmith.F
 				return
 			}
 
-			if currUrl.IsAbs() {
+			if currUrl.IsAbs() || currUrl.Host != "" {
 				return
 			}
 

@@ -119,7 +119,12 @@ func (self *Breadcrumbs) Finalize(context *goldsmith.Context) error {
 
 	for _, node := range self.allNodes {
 		var ancestors []*Node
+		seen := map[*Node]bool{node: true}
 		for currentNode := node.Parent; currentNode != nil; currentNode = currentNode.Parent {
+			if seen[currentNode] {
+				return fmt.Errorf("breadcrumb cycle involving %s", node.File.Path())
+			}
+			seen[currentNode] = true
 			ancestors = append([]*Node{currentNode}, ancestors...)
 		}
 

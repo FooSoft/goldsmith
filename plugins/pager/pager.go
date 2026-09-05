@@ -109,7 +109,17 @@ func (*Pager) Name() string {
 	return "pager"
 }
 
-func (*Pager) Initialize(context *goldsmith.Context) error {
+func (self *Pager) Initialize(context *goldsmith.Context) error {
+	if self.itemsPerPage <= 0 {
+		return errors.New("items per page must be greater than zero")
+	}
+	if self.lister == nil {
+		return errors.New("pager lister cannot be nil")
+	}
+	if self.namer == nil {
+		return errors.New("pager namer cannot be nil")
+	}
+
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -132,6 +142,7 @@ func (self *Pager) Process(context *goldsmith.Context, inputFile *goldsmith.File
 	if _, err := buff.ReadFrom(inputFile); err != nil {
 		return err
 	}
+	data := append([]byte(nil), buff.Bytes()...)
 
 	values := self.lister(inputFile)
 	valueCount, err := sliceLength(values)
@@ -142,6 +153,9 @@ func (self *Pager) Process(context *goldsmith.Context, inputFile *goldsmith.File
 	pageCount := valueCount / self.itemsPerPage
 	if valueCount%self.itemsPerPage > 0 {
 		pageCount++
+	}
+	if pageCount == 0 {
+		pageCount = 1
 	}
 
 	pages := make([]Page, pageCount, pageCount)
@@ -172,7 +186,7 @@ func (self *Pager) Process(context *goldsmith.Context, inputFile *goldsmith.File
 		if i == 0 {
 			page.File = inputFile
 		} else {
-			page.File, err = context.CreateFileFromReader(self.namer(inputFile.Path(), page.Index), &buff)
+			page.File, err = context.CreateFileFromReader(self.namer(inputFile.Path(), page.Index), bytes.NewReader(data))
 			if err != nil {
 				return err
 			}
@@ -224,7 +238,7 @@ func (self *Pager) isEnabledForFile(file *goldsmith.File) (bool, error) {
 
 func sliceLength(slice interface{}) (int, error) {
 	sliceVal := reflect.Indirect(reflect.ValueOf(slice))
-	if sliceVal.Kind() != reflect.Slice {
+	if !sliceVal.IsValid() || sliceVal.Kind() != reflect.Slice {
 		return -1, errors.New("invalid slice")
 	}
 
@@ -233,10 +247,10 @@ func sliceLength(slice interface{}) (int, error) {
 
 func sliceCrop(slice interface{}, start, end int) (interface{}, error) {
 	sliceVal := reflect.Indirect(reflect.ValueOf(slice))
-	if sliceVal.Kind() != reflect.Slice {
+	if !sliceVal.IsValid() || sliceVal.Kind() != reflect.Slice {
 		return nil, errors.New("invalid slice")
 	}
-	if start < 0 || start > end {
+	if start < 0 || start > end || end > sliceVal.Len() {
 		return nil, errors.New("invalid slice range")
 	}
 

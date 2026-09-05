@@ -6,11 +6,12 @@ package document
 
 import (
 	"bytes"
+	"errors"
 	"sync"
 
+	"github.com/PuerkitoBio/goquery"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/filters/wildcard"
-	"github.com/PuerkitoBio/goquery"
 )
 
 // Processor callback function to modify documents.
@@ -32,7 +33,11 @@ func (*Document) Name() string {
 	return "document"
 }
 
-func (*Document) Initialize(context *goldsmith.Context) error {
+func (self *Document) Initialize(context *goldsmith.Context) error {
+	if self.callback == nil {
+		return errors.New("document processor cannot be nil")
+	}
+
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -53,6 +58,9 @@ func (self *Document) Process(context *goldsmith.Context, inputFile *goldsmith.F
 	}
 
 	outputFile, err := context.CreateFileFromReader(inputFile.Path(), bytes.NewReader([]byte(html)))
+	if err != nil {
+		return err
+	}
 	outputFile.CopyProps(inputFile)
 
 	self.mutex.Lock()

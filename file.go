@@ -2,10 +2,12 @@ package goldsmith
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -29,11 +31,32 @@ type (
 
 // Rename modifies the file path relative to the source directory.
 func (self *File) Rename(path string) error {
+	if err := validateRelativePath(path); err != nil {
+		return err
+	}
+
+	self.relPath = path
+	return nil
+}
+
+func validateRelativePath(path string) error {
+	if path == "" {
+		return errors.New("file path cannot be empty")
+	}
+
+	path = filepath.FromSlash(path)
 	if filepath.IsAbs(path) {
 		return fmt.Errorf("unexpected absolute path: %s", path)
 	}
 
-	self.relPath = path
+	cleanPath := filepath.Clean(path)
+	if cleanPath == ".." || strings.HasPrefix(cleanPath, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("file path escapes its root: %s", path)
+	}
+	if cleanPath == "." {
+		return fmt.Errorf("file path must name a file: %s", path)
+	}
+
 	return nil
 }
 

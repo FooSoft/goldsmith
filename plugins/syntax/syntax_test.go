@@ -1,6 +1,9 @@
 package syntax
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.foosoft.net/goldsmith"
@@ -21,4 +24,29 @@ func Test(self *testing.T) {
 				Chain(layout.New())
 		},
 	)
+}
+
+func TestLanguageClassAfterOtherClasses(t *testing.T) {
+	root := t.TempDir()
+	sourceDir := filepath.Join(root, "source")
+	targetDir := filepath.Join(root, "target")
+	if err := os.Mkdir(sourceDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	input := `<html><body><code class="extra language-go">package main</code></body></html>`
+	if err := os.WriteFile(filepath.Join(sourceDir, "index.html"), []byte(input), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	gs := new(goldsmith.Goldsmith)
+	if errs := gs.Begin(sourceDir).Chain(New()).End(targetDir); len(errs) > 0 {
+		t.Fatal(errs)
+	}
+	output, err := os.ReadFile(filepath.Join(targetDir, "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(output), "font-weight:bold\">package") {
+		t.Fatalf("Go syntax was not highlighted: %s", output)
+	}
 }

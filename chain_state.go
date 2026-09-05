@@ -24,7 +24,7 @@ func (self *chainState) fault(name string, file *File, err error) {
 	if file == nil {
 		faultError = fmt.Errorf("[%s]: %w", name, err)
 	} else {
-		faultError = fmt.Errorf("[%s@%v]: %w", name, file, err)
+		faultError = fmt.Errorf("[%s@%s]: %w", name, file.Path(), err)
 	}
 
 	self.errors = append(self.errors, faultError)

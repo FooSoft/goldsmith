@@ -6,13 +6,14 @@ package syntax
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
-	"go.foosoft.net/goldsmith"
-	"go.foosoft.net/goldsmith/filters/wildcard"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
+	"go.foosoft.net/goldsmith"
+	"go.foosoft.net/goldsmith/filters/wildcard"
 )
 
 type Placement int
@@ -89,7 +90,16 @@ func (self *Syntax) Process(context *goldsmith.Context, inputFile *goldsmith.Fil
 	var errs []error
 	doc.Find(fmt.Sprintf("[class*=%s]", self.prefix)).Each(func(i int, sel *goquery.Selection) {
 		class := sel.AttrOr("class", "")
-		language := class[len(self.prefix):]
+		var language string
+		for _, name := range strings.Fields(class) {
+			if strings.HasPrefix(name, self.prefix) {
+				language = strings.TrimPrefix(name, self.prefix)
+				break
+			}
+		}
+		if language == "" {
+			return
+		}
 		lexer := lexers.Get(language)
 		if lexer == nil {
 			lexer = lexers.Fallback

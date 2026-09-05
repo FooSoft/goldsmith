@@ -111,17 +111,26 @@ func (self *Tags) Process(context *goldsmith.Context, inputFile *goldsmith.File)
 		self.mutex.Unlock()
 	}()
 
-	tagsArr, ok := inputFile.Props()[self.tagsKey].([]interface{})
+	tagsRaw, ok := inputFile.Prop(self.tagsKey)
 	if !ok {
 		return nil
 	}
 
-	for _, tag := range tagsArr {
-		tagRaw, ok := tag.(string)
-		if !ok {
-			continue
+	var tags []string
+	switch values := tagsRaw.(type) {
+	case []string:
+		tags = append(tags, values...)
+	case []interface{}:
+		for _, value := range values {
+			if tag, ok := value.(string); ok {
+				tags = append(tags, tag)
+			}
 		}
+	default:
+		return nil
+	}
 
+	for _, tagRaw := range tags {
 		tagSafe := safeTag(tagRaw)
 		if len(tagSafe) == 0 {
 			continue
@@ -230,7 +239,7 @@ func safeTag(tagRaw string) string {
 		}
 	}
 
-	return tagSafe
+	return strings.Trim(tagSafe, "-")
 }
 
 type tagInfoByCount []*TagInfo

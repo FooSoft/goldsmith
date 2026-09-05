@@ -1,6 +1,7 @@
 package collection
 
 import (
+	"strings"
 	"testing"
 
 	"go.foosoft.net/goldsmith"
@@ -19,4 +20,22 @@ func Test(self *testing.T) {
 				Chain(layout.New())
 		},
 	)
+}
+
+func TestCollectionAcceptsInterfaceSlice(t *testing.T) {
+	context := new(goldsmith.Context)
+	file, err := context.CreateFileFromReader("page.html", strings.NewReader("content"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.SetProp("Collection", []interface{}{"first", "second"})
+
+	plugin := New()
+	if err := plugin.Process(context, file); err != nil {
+		t.Fatal(err)
+	}
+	groups, ok := file.Props()["Groups"].(map[string][]*goldsmith.File)
+	if !ok || len(groups["first"]) != 1 || len(groups["second"]) != 1 {
+		t.Fatalf("collection groups were not populated: %#v", groups)
+	}
 }

@@ -41,16 +41,15 @@
 package frontmatter
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/filters/wildcard"
-	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v2"
 )
 
@@ -107,72 +106,52 @@ func parse(reader io.Reader) (map[string]interface{}, *bytes.Buffer, error) {
 		jsonCloserHtml = "} -->"
 	)
 
-	var (
-		body, front bytes.Buffer
-		closer      string
-	)
-
 	meta := make(map[string]interface{})
-	scanner := bufio.NewScanner(reader)
-	header := false
-	first := true
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if first {
-			first = false
-
-			if len(closer) == 0 {
-				switch strings.TrimSpace(line) {
-				case tomlOpener:
-					header = true
-					closer = tomlCloser
-				case yamlOpener:
-					header = true
-					closer = yamlCloser
-				case jsonOpener:
-					header = true
-					closer = jsonCloser
-					front.WriteString(jsonOpener)
-				case tomlOpenerHtml:
-					header = true
-					closer = tomlCloserHtml
-				case yamlOpenerHtml:
-					header = true
-					closer = yamlCloserHtml
-				case jsonOpenerHtml:
-					header = true
-					closer = jsonCloserHtml
-					front.WriteString(jsonOpener)
-				}
-			}
-
-			if header {
-				continue
-			}
-		}
-
-		if header {
-			if strings.TrimSpace(line) == closer {
-				header = false
-				if closer == jsonCloser || closer == jsonCloserHtml {
-					front.WriteString(jsonCloser)
-				}
-			} else {
-				front.Write([]byte(line + "\n"))
-			}
-		} else {
-			body.Write([]byte(line + "\n"))
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
+	data, err := io.ReadAll(reader)
+	if err != nil {
 		return nil, nil, err
 	}
 
-	if header {
-		return nil, nil, errors.New("unterminated front matter block")
+	firstLine, offset := readLine(data, 0)
+	var closer string
+	switch strings.TrimSpace(string(firstLine)) {
+	case tomlOpener:
+		closer = tomlCloser
+	case yamlOpener:
+		closer = yamlCloser
+	case jsonOpener:
+		closer = jsonCloser
+	case tomlOpenerHtml:
+		closer = tomlCloserHtml
+	case yamlOpenerHtml:
+		closer = yamlCloserHtml
+	case jsonOpenerHtml:
+		closer = jsonCloserHtml
+	default:
+		return meta, bytes.NewBuffer(data), nil
+	}
+
+	var front bytes.Buffer
+	if closer == jsonCloser || closer == jsonCloserHtml {
+		front.WriteString(jsonOpener)
+	}
+
+	for {
+		if offset >= len(data) {
+			return nil, nil, errors.New("unterminated front matter block")
+		}
+
+		line, next := readLine(data, offset)
+		if strings.TrimSpace(string(line)) == closer {
+			if closer == jsonCloser || closer == jsonCloserHtml {
+				front.WriteString(jsonCloser)
+			}
+			offset = next
+			break
+		}
+
+		front.Write(line)
+		offset = next
 	}
 
 	switch closer {
@@ -190,5 +169,18 @@ func parse(reader io.Reader) (map[string]interface{}, *bytes.Buffer, error) {
 		}
 	}
 
-	return meta, &body, nil
+	return meta, bytes.NewBuffer(data[offset:]), nil
+}
+
+func readLine(data []byte, offset int) ([]byte, int) {
+	if offset >= len(data) {
+		return nil, len(data)
+	}
+
+	if end := bytes.IndexByte(data[offset:], '\n'); end >= 0 {
+		end += offset + 1
+		return data[offset:end], end
+	}
+
+	return data[offset:], len(data)
 }

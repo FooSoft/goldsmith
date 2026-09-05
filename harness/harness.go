@@ -59,7 +59,15 @@ func validate(sourceDir, targetDir, cacheDir, referenceDir string, stager Stagin
 			return errs
 		}
 
-		if hashDirState(targetDir) != hashDirState(referenceDir) {
+		targetHash, err := hashDirState(targetDir)
+		if err != nil {
+			return []error{err}
+		}
+		referenceHash, err := hashDirState(referenceDir)
+		if err != nil {
+			return []error{err}
+		}
+		if targetHash != referenceHash {
 			return []error{errors.New("directory contents do not match")}
 		}
 	}
@@ -74,11 +82,14 @@ func execute(sourceDir, targetDir, cacheDir string, stager StagingCallback) []er
 	return gs.End(targetDir)
 }
 
-func hashDirState(dir string) uint32 {
+func hashDirState(dir string) (uint32, error) {
 	hasher := crc32.NewIEEE()
 
-	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			if path == dir && os.IsNotExist(err) {
+				return nil
+			}
 			return err
 		}
 
@@ -97,9 +108,12 @@ func hashDirState(dir string) uint32 {
 			if err != nil {
 				return err
 			}
-			defer fp.Close()
 
 			if _, err := io.Copy(hasher, fp); err != nil {
+				fp.Close()
+				return err
+			}
+			if err := fp.Close(); err != nil {
 				return err
 			}
 		}
@@ -107,5 +121,5 @@ func hashDirState(dir string) uint32 {
 		return nil
 	})
 
-	return hasher.Sum32()
+	return hasher.Sum32(), err
 }

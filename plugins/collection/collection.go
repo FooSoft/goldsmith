@@ -85,6 +85,12 @@ func (self *Collection) Process(context *goldsmith.Context, inputFile *goldsmith
 		collectionNames = append(collectionNames, t)
 	case []string:
 		collectionNames = append(collectionNames, t...)
+	case []interface{}:
+		for _, value := range t {
+			if name, ok := value.(string); ok {
+				collectionNames = append(collectionNames, name)
+			}
+		}
 	}
 
 	for _, collectionName := range collectionNames {
