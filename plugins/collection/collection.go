@@ -7,7 +7,6 @@ package collection
 
 import (
 	"sort"
-	"strings"
 	"sync"
 
 	"go.foosoft.net/goldsmith"
@@ -61,7 +60,9 @@ func (*Collection) Name() string {
 	return "collection"
 }
 
-func (*Collection) Initialize(context *goldsmith.Context) error {
+func (self *Collection) Initialize(context *goldsmith.Context) error {
+	self.groups = make(map[string][]*goldsmith.File)
+	self.files = nil
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -93,10 +94,14 @@ func (self *Collection) Process(context *goldsmith.Context, inputFile *goldsmith
 		}
 	}
 
+	seen := make(map[string]struct{})
 	for _, collectionName := range collectionNames {
-		files, _ := self.groups[collectionName]
-		files = append(files, inputFile)
-		self.groups[collectionName] = files
+		if _, duplicate := seen[collectionName]; duplicate {
+			continue
+		}
+		seen[collectionName] = struct{}{}
+
+		self.groups[collectionName] = append(self.groups[collectionName], inputFile)
 	}
 
 	return nil
@@ -107,6 +112,9 @@ func (self *Collection) Finalize(context *goldsmith.Context) error {
 		fg := &fileSorter{files, self.comparer}
 		sort.Sort(fg)
 	}
+	sort.Slice(self.files, func(i, j int) bool {
+		return self.files[i].Path() < self.files[j].Path()
+	})
 
 	for _, file := range self.files {
 		context.DispatchFile(file)
@@ -130,7 +138,7 @@ func (self fileSorter) Swap(i, j int) {
 
 func (self fileSorter) Less(i, j int) bool {
 	if self.comparer == nil {
-		return strings.Compare(self.files[i].Path(), self.files[j].Path()) < 0
+		return self.files[i].Path() < self.files[j].Path()
 	}
 
 	return self.comparer(self.files[i], self.files[j])

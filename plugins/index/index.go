@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 
 	"go.foosoft.net/goldsmith"
@@ -60,6 +59,12 @@ func (*Index) Name() string {
 	return "index"
 }
 
+func (self *Index) Initialize(context *goldsmith.Context) error {
+	self.dirsHandled = make(map[string]bool)
+	self.dirLists = make(map[string]*directory)
+	return nil
+}
+
 func (self *Index) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
@@ -91,8 +96,10 @@ func (self *Index) Process(context *goldsmith.Context, inputFile *goldsmith.File
 			}
 		}
 
-		entry := Entry{Name: currentBase, Path: currentPath, IsDir: currentIsDir, File: inputFile}
-		list.entries = append(list.entries, entry)
+		if currentIsDir || currentBase != self.indexName {
+			entry := Entry{Name: currentBase, Path: currentPath, IsDir: currentIsDir, File: inputFile}
+			list.entries = append(list.entries, entry)
+		}
 
 		if currentDir == "." {
 			break
@@ -106,7 +113,14 @@ func (self *Index) Process(context *goldsmith.Context, inputFile *goldsmith.File
 }
 
 func (self *Index) Finalize(context *goldsmith.Context) error {
-	for name, list := range self.dirLists {
+	dirNames := make([]string, 0, len(self.dirLists))
+	for name := range self.dirLists {
+		dirNames = append(dirNames, name)
+	}
+	sort.Strings(dirNames)
+
+	for _, name := range dirNames {
+		list := self.dirLists[name]
 		sort.Sort(list.entries)
 
 		indexFile := list.indexFile
@@ -150,7 +164,7 @@ func (self entriesByName) Less(i, j int) bool {
 		return false
 	}
 
-	return strings.Compare(e1.Name, e2.Name) == -1
+	return e1.Name < e2.Name
 }
 
 func (self entriesByName) Swap(i, j int) {

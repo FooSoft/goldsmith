@@ -6,15 +6,16 @@ package markdown
 
 import (
 	"bytes"
+	"errors"
 	"path"
 	"strings"
 
-	"go.foosoft.net/goldsmith"
-	"go.foosoft.net/goldsmith/filters/wildcard"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	"go.foosoft.net/goldsmith"
+	"go.foosoft.net/goldsmith/filters/wildcard"
 )
 
 // Markdown chainable context.
@@ -33,7 +34,7 @@ func New() *Markdown {
 	)
 }
 
-// New creates a new instance of the Markdown plugin with user-provided goldmark instance.
+// NewWithGoldmark creates a Markdown plugin with a user-provided Goldmark instance.
 func NewWithGoldmark(md goldmark.Markdown) *Markdown {
 	return &Markdown{md}
 }
@@ -43,6 +44,10 @@ func (*Markdown) Name() string {
 }
 
 func (self *Markdown) Initialize(context *goldsmith.Context) error {
+	if self.md == nil {
+		return errors.New("markdown processor cannot be nil")
+	}
+
 	context.Filter(wildcard.New("**/*.md", "**/*.markdown"))
 	return nil
 }

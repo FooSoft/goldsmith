@@ -7,6 +7,7 @@ package document
 import (
 	"bytes"
 	"errors"
+	"sort"
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
@@ -38,6 +39,7 @@ func (self *Document) Initialize(context *goldsmith.Context) error {
 		return errors.New("document processor cannot be nil")
 	}
 
+	self.files = nil
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -70,6 +72,9 @@ func (self *Document) Process(context *goldsmith.Context, inputFile *goldsmith.F
 }
 
 func (self *Document) Finalize(context *goldsmith.Context) error {
+	sort.Slice(self.files, func(i, j int) bool {
+		return self.files[i].Path() < self.files[j].Path()
+	})
 	for _, file := range self.files {
 		context.DispatchFile(file)
 	}

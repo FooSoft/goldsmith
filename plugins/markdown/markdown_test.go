@@ -24,3 +24,9 @@ func Test(self *testing.T) {
 		},
 	)
 }
+
+func TestNilProcessorReturnsError(t *testing.T) {
+	if err := NewWithGoldmark(nil).Initialize(new(goldsmith.Context)); err == nil {
+		t.Fatal("nil Markdown processor was accepted")
+	}
+}

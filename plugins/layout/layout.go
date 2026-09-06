@@ -7,6 +7,8 @@ package layout
 import (
 	"bytes"
 	"html/template"
+	"sort"
+	"strings"
 	"sync"
 
 	"go.foosoft.net/goldsmith"
@@ -65,6 +67,8 @@ func (*Layout) Name() string {
 }
 
 func (self *Layout) Initialize(context *goldsmith.Context) error {
+	self.inputFiles = nil
+	self.templateFiles = nil
 	self.template = template.New("").Funcs(self.helpers)
 	context.Filter(wildcard.New("**/*.html", "**/*.htm", "**/*.tmpl", "**/*.gohtml"))
 	return nil
@@ -74,7 +78,7 @@ func (self *Layout) Process(context *goldsmith.Context, inputFile *goldsmith.Fil
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
-	switch inputFile.Ext() {
+	switch strings.ToLower(inputFile.Ext()) {
 	case ".html", ".htm":
 		if _, ok := self.getFileLayout(inputFile); ok {
 			var buff bytes.Buffer
@@ -95,13 +99,20 @@ func (self *Layout) Process(context *goldsmith.Context, inputFile *goldsmith.Fil
 }
 
 func (self *Layout) Finalize(context *goldsmith.Context) error {
+	sort.Slice(self.templateFiles, func(i, j int) bool {
+		return self.templateFiles[i].Path() < self.templateFiles[j].Path()
+	})
+	sort.Slice(self.inputFiles, func(i, j int) bool {
+		return self.inputFiles[i].Path() < self.inputFiles[j].Path()
+	})
+
 	for _, templateFile := range self.templateFiles {
 		var buff bytes.Buffer
 		if _, err := templateFile.WriteTo(&buff); err != nil {
 			return err
 		}
 
-		if _, err := self.template.Parse(string(buff.Bytes())); err != nil {
+		if _, err := self.template.Parse(buff.String()); err != nil {
 			return err
 		}
 	}
@@ -129,8 +140,11 @@ func (self *Layout) Finalize(context *goldsmith.Context) error {
 }
 
 func (self *Layout) getFileLayout(file *goldsmith.File) (string, bool) {
-	if name, ok := file.Props()[self.layoutKey].(string); ok {
-		return name, true
+	if value, ok := file.Prop(self.layoutKey); ok {
+		name, ok := value.(string)
+		if ok {
+			return name, true
+		}
 	}
 
 	if self.defaultLayout != nil {

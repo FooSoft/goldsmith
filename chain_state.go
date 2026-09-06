@@ -6,7 +6,8 @@ import (
 )
 
 type chainState struct {
-	contexts []*Context
+	contexts  []*Context
+	sourceDir string
 
 	cache   *cache
 	filters filterStack

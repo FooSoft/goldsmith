@@ -23,7 +23,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)            // write files to dstDir
     ```
 
-3.  If we have any front matter in our Markdown files, we need to extract it using the, [FrontMatter](https://godoc.org/go.foosoft.net/goldsmith/plugins/frontmatter) plugin:
+3.  If we have any front matter in our Markdown files, we need to extract it using the [FrontMatter](https://godoc.org/go.foosoft.net/goldsmith/plugins/frontmatter) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -33,7 +33,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)               // write files to dstDir
     ```
 
-4.  Next, we should run our barebones HTML through a [template](https://go.foosoft.net/goldsmith-samples/raw/branch/master/basic/content/layouts/basic.gohtml) to add elements like a header, footer, or a menu; for this we can use the [Layout](https://godoc.org/go.foosoft.net/goldsmith/plugins/frontmatter) plugin:
+4.  Next, we should run our barebones HTML through a [template](https://go.foosoft.net/goldsmith-samples/raw/branch/master/basic/content/layouts/basic.gohtml) to add elements like a header, footer, or a menu; for this we can use the [Layout](https://godoc.org/go.foosoft.net/goldsmith/plugins/layout) plugin:
 
     ```go
     var gs goldsmith.Goldsmith
@@ -70,7 +70,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
         End(dstDir)                      // write files to dstDir
     ```
 
-7.  Now that we have all of our plugins chained up, let's look at a complete example which uses [DevServer](https://godoc.org/go.foosoft.net/goldsmith/devserver) to bootstrap a complete development sever which automatically rebuilds the site whenever source files are updated.
+7.  Now that we have all of our plugins chained up, let's look at a complete example which uses [DevServer](https://godoc.org/go.foosoft.net/goldsmith/devserver) to bootstrap a complete development server which automatically rebuilds the site whenever source files are updated.
 
     ```go
     package main
@@ -119,7 +119,7 @@ Goldsmith does not use any configuration files, and all behavior customization h
 
 ## Samples
 
-Below are some examples of Goldsmith usage which can used to base your site on:
+Below are some examples of Goldsmith usage which can be used as a basis for your site:
 
 *   [Basic Sample](https://go.foosoft.net/goldsmith-samples/tree/master/item/basic): a great starting point, this is the sample site from the tutorial.
 *   [Bootstrap Sample](https://go.foosoft.net/goldsmith-samples/tree/master/item/bootstrap): a slightly more advanced sample using [Bootstrap](https://getbootstrap.com/).

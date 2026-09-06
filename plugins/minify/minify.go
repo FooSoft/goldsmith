@@ -7,6 +7,7 @@ package minify
 import (
 	"bytes"
 	"path/filepath"
+	"strings"
 
 	min "github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
@@ -49,7 +50,7 @@ func (*Minify) Process(context *goldsmith.Context, inputFile *goldsmith.File) er
 		err  error
 	)
 
-	switch m := min.New(); filepath.Ext(inputFile.Path()) {
+	switch m := min.New(); strings.ToLower(filepath.Ext(inputFile.Path())) {
 	case ".css":
 		err = css.Minify(m, &buff, inputFile, nil)
 	case ".html", ".htm":

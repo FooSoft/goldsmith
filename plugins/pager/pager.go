@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 
@@ -120,6 +121,7 @@ func (self *Pager) Initialize(context *goldsmith.Context) error {
 		return errors.New("pager namer cannot be nil")
 	}
 
+	self.files = nil
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -142,7 +144,7 @@ func (self *Pager) Process(context *goldsmith.Context, inputFile *goldsmith.File
 	if _, err := buff.ReadFrom(inputFile); err != nil {
 		return err
 	}
-	data := append([]byte(nil), buff.Bytes()...)
+	data := buff.Bytes()
 
 	values := self.lister(inputFile)
 	valueCount, err := sliceLength(values)
@@ -158,7 +160,7 @@ func (self *Pager) Process(context *goldsmith.Context, inputFile *goldsmith.File
 		pageCount = 1
 	}
 
-	pages := make([]Page, pageCount, pageCount)
+	pages := make([]Page, pageCount)
 	for i := 0; i < pageCount; i++ {
 		page := &pages[i]
 		page.Index = i + 1
@@ -215,6 +217,9 @@ func (self *Pager) Process(context *goldsmith.Context, inputFile *goldsmith.File
 }
 
 func (self *Pager) Finalize(ctx *goldsmith.Context) error {
+	sort.Slice(self.files, func(i, j int) bool {
+		return self.files[i].Path() < self.files[j].Path()
+	})
 	for _, f := range self.files {
 		ctx.DispatchFile(f)
 	}
@@ -254,11 +259,8 @@ func sliceCrop(slice interface{}, start, end int) (interface{}, error) {
 		return nil, errors.New("invalid slice range")
 	}
 
-	sliceValNew := reflect.Indirect(reflect.New(sliceVal.Type()))
-	for i := start; i < end; i++ {
-		sliceElemNew := sliceVal.Index(i)
-		sliceValNew.Set(reflect.Append(sliceValNew, sliceElemNew))
-	}
+	sliceValNew := reflect.MakeSlice(sliceVal.Type(), end-start, end-start)
+	reflect.Copy(sliceValNew, sliceVal.Slice(start, end))
 
 	return sliceValNew.Interface(), nil
 }

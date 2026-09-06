@@ -1,11 +1,12 @@
+// Package wildcard filters files using path patterns.
 package wildcard
 
 import (
 	"path/filepath"
 	"strings"
 
-	"go.foosoft.net/goldsmith"
 	"github.com/bmatcuk/doublestar/v4"
+	"go.foosoft.net/goldsmith"
 )
 
 type Wildcard struct {

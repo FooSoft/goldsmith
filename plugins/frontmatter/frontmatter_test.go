@@ -56,3 +56,23 @@ func TestParseSupportsLongLines(t *testing.T) {
 		t.Fatalf("got a body of %d bytes, want %d", body.Len(), len(expected))
 	}
 }
+
+func TestParseSupportsNestedJSON(t *testing.T) {
+	input := "{\n\"Nested\": {\n\"Values\": [1, 2]\n}\n}\nbody"
+	meta, body, err := parse(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nested, ok := meta["Nested"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("nested metadata has type %T", meta["Nested"])
+	}
+	values, ok := nested["Values"].([]interface{})
+	if !ok || len(values) != 2 {
+		t.Fatalf("nested values were not parsed: %#v", nested["Values"])
+	}
+	if body.String() != "body" {
+		t.Fatalf("got body %q, want %q", body.String(), "body")
+	}
+}

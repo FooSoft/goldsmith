@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -26,7 +27,7 @@ type Context struct {
 	filesOut chan *File
 }
 
-// CreateFileFrom data creates a new file instance from the provided data buffer.
+// CreateFileFromReader creates a new file instance from the provided reader.
 func (self *Context) CreateFileFromReader(relPath string, reader io.Reader) (*File, error) {
 	if err := validateRelativePath(relPath); err != nil {
 		return nil, err
@@ -41,7 +42,7 @@ func (self *Context) CreateFileFromReader(relPath string, reader io.Reader) (*Fi
 	}
 
 	file := &File{
-		relPath: relPath,
+		relPath: filepath.Clean(filepath.FromSlash(relPath)),
 		props:   make(FileProps),
 		modTime: time.Now(),
 		size:    int64(len(data)),
@@ -67,7 +68,7 @@ func (self *Context) CreateFileFromAsset(relPath, dataPath string) (*File, error
 	}
 
 	file := &File{
-		relPath:  relPath,
+		relPath:  filepath.Clean(filepath.FromSlash(relPath)),
 		props:    make(FileProps),
 		modTime:  info.ModTime(),
 		size:     info.Size(),
@@ -112,7 +113,7 @@ func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) 
 	return outputFile
 }
 
-// Specify internal filter(s) that exclude files from being processed.
+// Filter specifies internal filters that exclude files from being processed.
 func (self *Context) Filter(filters ...Filter) *Context {
 	for _, filter := range filters {
 		self.filtersInt.push(filter, self.index)
@@ -121,7 +122,7 @@ func (self *Context) Filter(filters ...Filter) *Context {
 	return self
 }
 
-// Specify the maximum number of threads used for processing.
+// Threads specifies the maximum number of threads used for processing.
 func (self *Context) Threads(threads int) *Context {
 	self.threads = threads
 	return self
@@ -133,6 +134,10 @@ func (self *Context) step() {
 	if initializer, ok := self.plugin.(Initializer); ok {
 		if err := initializer.Initialize(self); err != nil {
 			self.chain.fault(self.plugin.Name(), nil, err)
+			if self.filesIn != nil {
+				for range self.filesIn {
+				}
+			}
 			return
 		}
 	}
@@ -142,7 +147,11 @@ func (self *Context) step() {
 
 		threads := self.threads
 		if threads < 1 {
-			threads = runtime.NumCPU()
+			if processor == nil {
+				threads = 1
+			} else {
+				threads = runtime.NumCPU()
+			}
 		}
 
 		var wg sync.WaitGroup

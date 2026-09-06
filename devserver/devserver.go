@@ -4,12 +4,12 @@
 package devserver
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"path"
-	"sync"
+	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -28,10 +28,12 @@ type Builder interface {
 // not return and will continue watching for file changes and serving your
 // website until it is terminated.
 func DevServe(builder Builder, port int, sourceDir, targetDir, cacheDir string, watchDirs ...string) {
-	dirs := append(watchDirs, sourceDir)
-	build(dirs, func() {
+	dirs := append(append([]string(nil), watchDirs...), sourceDir)
+	if err := build(dirs, func() {
 		builder.Build(sourceDir, targetDir, cacheDir)
-	})
+	}); err != nil {
+		log.Fatal(err)
+	}
 
 	httpAddr := fmt.Sprintf(":%d", port)
 	httpHandler := http.FileServer(http.Dir(targetDir))
@@ -39,24 +41,48 @@ func DevServe(builder Builder, port int, sourceDir, targetDir, cacheDir string, 
 	log.Fatal(http.ListenAndServe(httpAddr, httpHandler))
 }
 
-func build(dirs []string, callback func()) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
+func build(dirs []string, callback func()) error {
+	if callback == nil {
+		return errors.New("build callback cannot be nil")
 	}
 
-	var mutex sync.Mutex
-	timestamp := time.Now()
-	dirty := true
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+
+	for _, dir := range dirs {
+		if err := watch(dir, watcher); err != nil {
+			watcher.Close()
+			return err
+		}
+	}
 
 	go func() {
+		defer watcher.Close()
+
+		const debounce = 100 * time.Millisecond
+		timer := time.NewTimer(debounce)
+		defer timer.Stop()
+		timerC := timer.C
+		resetTimer := func() {
+			if !timer.Stop() && timerC != nil {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			timer.Reset(debounce)
+			timerC = timer.C
+		}
+
 		for {
 			select {
-			case event := <-watcher.Events:
-				mutex.Lock()
-				timestamp = time.Now()
-				dirty = true
-				mutex.Unlock()
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				resetTimer()
 
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					info, err := os.Stat(event.Name)
@@ -64,52 +90,49 @@ func build(dirs []string, callback func()) {
 						continue
 					}
 					if err != nil {
-						log.Fatal(err)
+						log.Printf("watch %s: %v", event.Name, err)
+						continue
 					}
 
 					if info.IsDir() {
-						watch(event.Name, watcher)
-					} else {
-						watcher.Add(event.Name)
+						if err := watch(event.Name, watcher); err != nil && !os.IsNotExist(err) {
+							log.Printf("watch %s: %v", event.Name, err)
+						}
 					}
 				}
-			case err := <-watcher.Errors:
-				log.Fatal(err)
-			}
-		}
-	}()
-
-	go func() {
-		for range time.Tick(10 * time.Millisecond) {
-			if dirty && time.Now().Sub(timestamp) > 100*time.Millisecond {
-				mutex.Lock()
-				dirty = false
-				mutex.Unlock()
-
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Printf("file watcher: %v", err)
+			case <-timerC:
+				timerC = nil
 				callback()
 			}
 		}
 	}()
 
-	for _, dir := range dirs {
-		watch(dir, watcher)
-	}
+	return nil
 }
 
-func watch(dir string, watcher *fsnotify.Watcher) {
-	watcher.Add(dir)
+func watch(dir string, watcher *fsnotify.Watcher) error {
+	if err := watcher.Add(dir); err != nil {
+		return err
+	}
 
 	items, err := os.ReadDir(dir)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	for _, item := range items {
-		fullPath := path.Join(dir, item.Name())
+		fullPath := filepath.Join(dir, item.Name())
 		if item.IsDir() {
-			watch(fullPath, watcher)
-		} else {
-			watcher.Add(fullPath)
+			if err := watch(fullPath, watcher); err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }

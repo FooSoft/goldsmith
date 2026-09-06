@@ -1,14 +1,13 @@
 package goldsmith
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"hash/crc32"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 )
 
 type cache struct {
@@ -33,7 +32,7 @@ func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles 
 	return outputFile, nil
 }
 
-func (self *cache) storeFile(outputFile *File, inputFiles []*File) error {
+func (self *cache) storeFile(outputFile *File, inputFiles []*File) (resultErr error) {
 	cachePath, err := self.buildCachePath(outputFile.Path(), inputFiles)
 	if err != nil {
 		return err
@@ -43,18 +42,26 @@ func (self *cache) storeFile(outputFile *File, inputFiles []*File) error {
 		return err
 	}
 
-	fp, err := os.Create(cachePath)
+	fp, err := os.CreateTemp(self.baseDir, ".goldsmith-*")
 	if err != nil {
 		return err
 	}
-	defer fp.Close()
+	tempPath := fp.Name()
+	defer os.Remove(tempPath)
 
 	offset, err := outputFile.Seek(0, io.SeekCurrent)
 	if err != nil {
+		fp.Close()
 		return err
 	}
+	defer func() {
+		if _, err := outputFile.Seek(offset, io.SeekStart); resultErr == nil && err != nil {
+			resultErr = err
+		}
+	}()
 
 	if _, err := outputFile.Seek(0, io.SeekStart); err != nil {
+		fp.Close()
 		return err
 	}
 
@@ -66,7 +73,7 @@ func (self *cache) storeFile(outputFile *File, inputFiles []*File) error {
 		return err
 	}
 
-	if _, err := outputFile.Seek(offset, io.SeekStart); err != nil {
+	if err := os.Rename(tempPath, cachePath); err != nil {
 		return err
 	}
 
@@ -74,24 +81,52 @@ func (self *cache) storeFile(outputFile *File, inputFiles []*File) error {
 }
 
 func (self *cache) buildCachePath(outputPath string, inputFiles []*File) (string, error) {
-	hasher := crc32.NewIEEE()
-	hasher.Write([]byte(outputPath))
+	if err := validateRelativePath(outputPath); err != nil {
+		return "", err
+	}
+	outputPath = filepath.ToSlash(filepath.Clean(filepath.FromSlash(outputPath)))
+
+	hasher := sha256.New()
+	writeString := func(value string) {
+		var size [8]byte
+		binary.LittleEndian.PutUint64(size[:], uint64(len(value)))
+		hasher.Write(size[:])
+		hasher.Write([]byte(value))
+	}
+	writeString(outputPath)
 
 	inputs := append([]*File(nil), inputFiles...)
 	sort.Slice(inputs, func(i, j int) bool {
-		return strings.Compare(inputs[i].Path(), inputs[j].Path()) < 0
+		if inputs[i] == nil {
+			return inputs[j] != nil
+		}
+		if inputs[j] == nil {
+			return false
+		}
+		if inputs[i].Path() != inputs[j].Path() {
+			return inputs[i].Path() < inputs[j].Path()
+		}
+		if !inputs[i].ModTime().Equal(inputs[j].ModTime()) {
+			return inputs[i].ModTime().Before(inputs[j].ModTime())
+		}
+		return inputs[i].Size() < inputs[j].Size()
 	})
 
 	for _, inputFile := range inputs {
-		modTimeBuff := make([]byte, 8)
-		binary.LittleEndian.PutUint64(modTimeBuff, uint64(inputFile.ModTime().UnixNano()))
-		hasher.Write([]byte(inputFile.Path()))
-		hasher.Write(modTimeBuff)
+		if inputFile == nil {
+			return "", fmt.Errorf("cache dependency cannot be nil")
+		}
+
+		var fileInfo [16]byte
+		binary.LittleEndian.PutUint64(fileInfo[:8], uint64(inputFile.ModTime().UnixNano()))
+		binary.LittleEndian.PutUint64(fileInfo[8:], uint64(inputFile.Size()))
+		writeString(inputFile.Path())
+		hasher.Write(fileInfo[:])
 	}
 
 	cachePath := filepath.Join(self.baseDir, fmt.Sprintf(
-		"gs_%.8x%s",
-		hasher.Sum32(),
+		"gs_%x%s",
+		hasher.Sum(nil)[:16],
 		filepath.Ext(outputPath),
 	))
 

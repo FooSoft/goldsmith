@@ -1,3 +1,4 @@
+// Package condition filters files based on a boolean condition.
 package condition
 
 import (

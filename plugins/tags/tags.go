@@ -5,6 +5,7 @@ package tags
 
 import (
 	"bytes"
+	"fmt"
 	"path"
 	"sort"
 	"strings"
@@ -93,7 +94,11 @@ func (*Tags) Name() string {
 	return "tags"
 }
 
-func (*Tags) Initialize(context *goldsmith.Context) error {
+func (self *Tags) Initialize(context *goldsmith.Context) error {
+	self.info = make(map[string]*TagInfo)
+	self.infoByName = nil
+	self.infoByCount = nil
+	self.files = nil
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -186,6 +191,9 @@ func (self *Tags) Finalize(context *goldsmith.Context) error {
 
 		self.files = append(self.files, files...)
 	}
+	sort.Slice(self.files, func(i, j int) bool {
+		return self.files[i].Path() < self.files[j].Path()
+	})
 
 	for _, file := range self.files {
 		context.DispatchFile(file)
@@ -196,9 +204,17 @@ func (self *Tags) Finalize(context *goldsmith.Context) error {
 
 func (self *Tags) buildPages(context *goldsmith.Context) ([]*goldsmith.File, error) {
 	var files []*goldsmith.File
-	for tag, info := range self.info {
+	paths := make(map[string]string)
+	for _, info := range self.infoByName {
+		tag := info.RawName
+		pagePath := self.tagPagePath(tag)
+		if previousTag, exists := paths[pagePath]; exists {
+			return nil, fmt.Errorf("tags %q and %q generate the same page path %q", previousTag, tag, pagePath)
+		}
+		paths[pagePath] = tag
+
 		var err error
-		info.IndexFile, err = context.CreateFileFromReader(self.tagPagePath(tag), bytes.NewReader(nil))
+		info.IndexFile, err = context.CreateFileFromReader(pagePath, bytes.NewReader(nil))
 		if err != nil {
 			return nil, err
 		}
@@ -228,18 +244,18 @@ func safeTag(tagRaw string) string {
 	tagRaw = strings.ToLower(tagRaw)
 
 	var valid bool
-	var tagSafe string
+	var tagSafe strings.Builder
 	for _, c := range tagRaw {
 		if unicode.IsLetter(c) || unicode.IsNumber(c) {
-			tagSafe += string(c)
+			tagSafe.WriteRune(c)
 			valid = true
 		} else if valid {
-			tagSafe += "-"
+			tagSafe.WriteByte('-')
 			valid = false
 		}
 	}
 
-	return strings.Trim(tagSafe, "-")
+	return strings.Trim(tagSafe.String(), "-")
 }
 
 type tagInfoByCount []*TagInfo
@@ -253,13 +269,10 @@ func (self tagInfoByCount) Swap(i, j int) {
 }
 
 func (self tagInfoByCount) Less(i, j int) bool {
-	if len(self[i].TaggedFiles) > len(self[j].TaggedFiles) {
-		return true
-	} else if len(self[i].TaggedFiles) == len(self[j].TaggedFiles) && strings.Compare(self[i].RawName, self[j].RawName) < 0 {
-		return true
+	if len(self[i].TaggedFiles) != len(self[j].TaggedFiles) {
+		return len(self[i].TaggedFiles) > len(self[j].TaggedFiles)
 	}
-
-	return false
+	return self[i].RawName < self[j].RawName
 }
 
 type tagInfoByName []*TagInfo
@@ -273,13 +286,10 @@ func (self tagInfoByName) Swap(i, j int) {
 }
 
 func (self tagInfoByName) Less(i, j int) bool {
-	if strings.Compare(self[i].RawName, self[j].RawName) < 0 {
-		return true
-	} else if self[i].RawName == self[j].RawName && len(self[i].TaggedFiles) > len(self[j].TaggedFiles) {
-		return true
+	if self[i].RawName != self[j].RawName {
+		return self[i].RawName < self[j].RawName
 	}
-
-	return false
+	return len(self[i].TaggedFiles) > len(self[j].TaggedFiles)
 }
 
 type filesByPath []*goldsmith.File
@@ -293,5 +303,5 @@ func (self filesByPath) Swap(i, j int) {
 }
 
 func (self filesByPath) Less(i, j int) bool {
-	return strings.Compare(self[i].Path(), self[j].Path()) < 0
+	return self[i].Path() < self[j].Path()
 }

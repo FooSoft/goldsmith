@@ -6,9 +6,9 @@ package summary
 import (
 	"html/template"
 
+	"github.com/PuerkitoBio/goquery"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/filters/wildcard"
-	"github.com/PuerkitoBio/goquery"
 )
 
 // Summary chainable context.
@@ -68,21 +68,16 @@ func (self *Summary) Process(context *goldsmith.Context, inputFile *goldsmith.Fi
 		return err
 	}
 
-	meta := make(map[string]template.HTML)
 	if match := doc.Find(self.titlePath); match.Length() > 0 {
 		if html, err := match.Html(); err == nil {
-			meta[self.titleKey] = template.HTML(html)
+			inputFile.SetProp(self.titleKey, template.HTML(html))
 		}
 	}
 
 	if match := doc.Find(self.summaryPath); match.Length() > 0 {
 		if html, err := match.Html(); err == nil {
-			meta[self.summaryKey] = template.HTML(html)
+			inputFile.SetProp(self.summaryKey, template.HTML(html))
 		}
-	}
-
-	for key, value := range meta {
-		inputFile.SetProp(key, value)
 	}
 
 	context.DispatchFile(inputFile)

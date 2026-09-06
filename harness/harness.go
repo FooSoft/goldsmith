@@ -1,12 +1,12 @@
 // Package harness provides a simple way to test goldsmith plugins and filters.
 // It executes a goldsmith chain on provided "source" data and compares the
-// generated "target" resuts with the known to be good "reference" data.
+// generated "target" results with the known-good "reference" data.
 package harness
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
-	"fmt"
-	"hash/crc32"
 	"io"
 	"log"
 	"os"
@@ -21,16 +21,19 @@ type StagingCallback func(gs *goldsmith.Goldsmith)
 
 // Validate enables validation of a single, unnamed case (test data is stored in "testdata").
 func Validate(t *testing.T, stager StagingCallback) {
+	t.Helper()
 	ValidateCase(t, "", stager)
 }
 
-// ValidateCase enables enables of a single, named case (test data is stored in "testdata/caseName").
+// ValidateCase enables validation of a single, named case (test data is stored in "testdata/caseName").
 func ValidateCase(t *testing.T, caseName string, stager StagingCallback) {
+	t.Helper()
+	tempDir := t.TempDir()
 	var (
 		caseDir      = filepath.Join("testdata", caseName)
 		sourceDir    = filepath.Join(caseDir, "source")
-		targetDir    = filepath.Join(caseDir, "target")
-		cacheDir     = filepath.Join(caseDir, "cache")
+		targetDir    = filepath.Join(tempDir, "target")
+		cacheDir     = filepath.Join(tempDir, "cache")
 		referenceDir = filepath.Join(caseDir, "reference")
 	)
 
@@ -44,16 +47,6 @@ func ValidateCase(t *testing.T, caseName string, stager StagingCallback) {
 }
 
 func validate(sourceDir, targetDir, cacheDir, referenceDir string, stager StagingCallback) []error {
-	if err := os.RemoveAll(targetDir); err != nil {
-		return []error{err}
-	}
-
-	if err := os.RemoveAll(cacheDir); err != nil {
-		return []error{err}
-	}
-
-	defer os.RemoveAll(cacheDir)
-
 	for i := 0; i < 2; i++ {
 		if errs := execute(sourceDir, targetDir, cacheDir, stager); errs != nil {
 			return errs
@@ -82,8 +75,17 @@ func execute(sourceDir, targetDir, cacheDir string, stager StagingCallback) []er
 	return gs.End(targetDir)
 }
 
-func hashDirState(dir string) (uint32, error) {
-	hasher := crc32.NewIEEE()
+func hashDirState(dir string) ([sha256.Size]byte, error) {
+	hasher := sha256.New()
+	writeUint64 := func(value uint64) {
+		var data [8]byte
+		binary.LittleEndian.PutUint64(data[:], value)
+		hasher.Write(data[:])
+	}
+	writeString := func(value string) {
+		writeUint64(uint64(len(value)))
+		hasher.Write([]byte(value))
+	}
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -98,9 +100,12 @@ func hashDirState(dir string) (uint32, error) {
 			return err
 		}
 
-		summary := fmt.Sprintf("%s %t", relPath, info.IsDir())
-		if _, err := hasher.Write([]byte(summary)); err != nil {
-			return err
+		writeString(relPath)
+		if info.IsDir() {
+			hasher.Write([]byte{1})
+		} else {
+			hasher.Write([]byte{0})
+			writeUint64(uint64(info.Size()))
 		}
 
 		if !info.IsDir() {
@@ -121,5 +126,7 @@ func hashDirState(dir string) (uint32, error) {
 		return nil
 	})
 
-	return hasher.Sum32(), err
+	var result [sha256.Size]byte
+	copy(result[:], hasher.Sum(nil))
+	return result, err
 }

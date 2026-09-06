@@ -9,9 +9,9 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/PuerkitoBio/goquery"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/filters/wildcard"
-	"github.com/PuerkitoBio/goquery"
 )
 
 //go:embed js/live.js
@@ -62,6 +62,6 @@ func (self *LiveJs) Process(context *goldsmith.Context, inputFile *goldsmith.Fil
 	}
 
 	outputFile.CopyProps(inputFile)
-	context.DispatchAndCacheFile(outputFile)
+	context.DispatchAndCacheFile(outputFile, inputFile)
 	return nil
 }

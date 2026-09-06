@@ -25,6 +25,7 @@ func Test(self *testing.T) {
 
 		return nil
 	}
+	plugin := New(lister).ItemsPerPage(4)
 
 	harness.Validate(
 		self,
@@ -32,7 +33,7 @@ func Test(self *testing.T) {
 			gs.
 				Chain(frontmatter.New()).
 				Chain(collection.New()).
-				Chain(New(lister).ItemsPerPage(4)).
+				Chain(plugin).
 				Chain(layout.New())
 		},
 	)

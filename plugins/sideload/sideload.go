@@ -1,3 +1,4 @@
+// Package sideload injects files from readers and file systems into a chain.
 package sideload
 
 import (

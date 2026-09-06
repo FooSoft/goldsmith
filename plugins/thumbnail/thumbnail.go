@@ -19,7 +19,7 @@ import (
 // An empty path can be returned if a thumbnail should not be generated for the current file.
 type Namer func(string, int) string
 
-// Desired thumbnailing styles.
+// Style identifies a thumbnail resizing style.
 type Style int
 
 const (
@@ -45,10 +45,10 @@ func New() *Thumbnail {
 	}
 
 	return &Thumbnail{
-		128,
-		Fit,
-		color.Transparent,
-		namer,
+		size:  128,
+		style: Fit,
+		color: color.Transparent,
+		namer: namer,
 	}
 }
 
@@ -61,6 +61,12 @@ func (self *Thumbnail) Size(dims int) *Thumbnail {
 // Style sets the desired thumbnailing style.
 func (self *Thumbnail) Style(style Style) *Thumbnail {
 	self.style = style
+	return self
+}
+
+// Color sets the background color used by padded thumbnails (default: transparent).
+func (self *Thumbnail) Color(color color.Color) *Thumbnail {
+	self.color = color
 	return self
 }
 
@@ -82,6 +88,9 @@ func (self *Thumbnail) Initialize(context *goldsmith.Context) error {
 	}
 	if self.namer == nil {
 		return errors.New("thumbnail namer cannot be nil")
+	}
+	if self.style != Fit && self.style != Crop && self.style != Pad {
+		return errors.New("unsupported thumbnailing style")
 	}
 	if self.style == Pad && self.color == nil {
 		return errors.New("thumbnail padding color cannot be nil")

@@ -36,13 +36,14 @@ func Test(self *testing.T) {
 		ContentKey:      "Content",
 		ContentFromFile: true,
 	}
+	plugin := New("https://foosoft.net", "FeedName").WithFeed("posts", feedConfig)
 
 	harness.Validate(
 		self,
 		func(gs *goldsmith.Goldsmith) {
 			gs.
 				Chain(frontmatter.New()).
-				Chain(New("https://foosoft.net", "FeedName").WithFeed("posts", feedConfig))
+				Chain(plugin)
 		},
 	)
 }

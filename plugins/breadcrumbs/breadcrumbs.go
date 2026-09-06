@@ -5,6 +5,7 @@ package breadcrumbs
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 
 	"go.foosoft.net/goldsmith"
@@ -70,7 +71,9 @@ func (*Breadcrumbs) Name() string {
 	return "breadcrumbs"
 }
 
-func (*Breadcrumbs) Initialize(context *goldsmith.Context) error {
+func (self *Breadcrumbs) Initialize(context *goldsmith.Context) error {
+	self.allNodes = nil
+	self.namedNodes = make(map[string]*Node)
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -104,6 +107,10 @@ func (self *Breadcrumbs) Process(context *goldsmith.Context, inputFile *goldsmit
 }
 
 func (self *Breadcrumbs) Finalize(context *goldsmith.Context) error {
+	sort.Slice(self.allNodes, func(i, j int) bool {
+		return self.allNodes[i].File.Path() < self.allNodes[j].File.Path()
+	})
+
 	for _, node := range self.allNodes {
 		if len(node.parentName) == 0 {
 			continue

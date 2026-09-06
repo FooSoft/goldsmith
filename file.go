@@ -35,7 +35,7 @@ func (self *File) Rename(path string) error {
 		return err
 	}
 
-	self.relPath = path
+	self.relPath = filepath.Clean(filepath.FromSlash(path))
 	return nil
 }
 
@@ -45,7 +45,7 @@ func validateRelativePath(path string) error {
 	}
 
 	path = filepath.FromSlash(path)
-	if filepath.IsAbs(path) {
+	if filepath.IsAbs(path) || filepath.VolumeName(path) != "" {
 		return fmt.Errorf("unexpected absolute path: %s", path)
 	}
 
@@ -99,7 +99,7 @@ func (self *File) Read(data []byte) (int, error) {
 	return self.reader.Read(data)
 }
 
-// Write writes file data into the provided writer.
+// WriteTo writes file data into the provided writer.
 func (self *File) WriteTo(writer io.Writer) (int64, error) {
 	if err := self.load(); err != nil {
 		return 0, err

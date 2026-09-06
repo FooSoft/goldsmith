@@ -14,12 +14,11 @@ func process(file *goldsmith.File, doc *goquery.Document) error {
 }
 
 func Test(self *testing.T) {
-	type Processor func(*goquery.Document) error
-
+	plugin := New(process)
 	harness.Validate(
 		self,
 		func(gs *goldsmith.Goldsmith) {
-			gs.Chain(New(process))
+			gs.Chain(plugin)
 		},
 	)
 }

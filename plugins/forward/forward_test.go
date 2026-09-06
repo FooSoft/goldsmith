@@ -30,3 +30,10 @@ func Test(self *testing.T) {
 		},
 	)
 }
+
+func TestAddPathMappingAfterNilMap(t *testing.T) {
+	plugin := New(nil).PathMap(nil).AddPathMapping("old.html", "new.html")
+	if plugin.pathMap["old.html"] != "new.html" {
+		t.Fatalf("path mapping was not added: %v", plugin.pathMap)
+	}
+}

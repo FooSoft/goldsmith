@@ -1,3 +1,4 @@
+// Package depth filters files based on their directory depth.
 package depth
 
 import (

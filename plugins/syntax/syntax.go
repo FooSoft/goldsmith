@@ -5,7 +5,7 @@ package syntax
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -70,7 +70,14 @@ func (*Syntax) Name() string {
 	return "syntax"
 }
 
-func (*Syntax) Initialize(context *goldsmith.Context) error {
+func (self *Syntax) Initialize(context *goldsmith.Context) error {
+	if self.prefix == "" {
+		return errors.New("syntax class prefix cannot be empty")
+	}
+	if self.placement != PlaceInside && self.placement != PlaceInline {
+		return errors.New("unsupported syntax placement")
+	}
+
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
 	return nil
 }
@@ -88,7 +95,7 @@ func (self *Syntax) Process(context *goldsmith.Context, inputFile *goldsmith.Fil
 	}
 
 	var errs []error
-	doc.Find(fmt.Sprintf("[class*=%s]", self.prefix)).Each(func(i int, sel *goquery.Selection) {
+	doc.Find("[class]").Each(func(i int, sel *goquery.Selection) {
 		class := sel.AttrOr("class", "")
 		var language string
 		for _, name := range strings.Fields(class) {
@@ -130,18 +137,25 @@ func (self *Syntax) Process(context *goldsmith.Context, inputFile *goldsmith.Fil
 
 		switch self.placement {
 		case PlaceInside:
-			sel.SetHtml(string(buff.Bytes()))
+			sel.SetHtml(buff.String())
 		case PlaceInline:
-			if docCode, err := goquery.NewDocumentFromReader(&buff); err == nil {
-				selPre := docCode.Find("pre")
-				if style, exists := selPre.Attr("style"); exists {
-					sel.SetAttr("style", style)
-				}
-
-				if htmlPre, err := selPre.Html(); err == nil {
-					sel.SetHtml(htmlPre)
-				}
+			docCode, err := goquery.NewDocumentFromReader(&buff)
+			if err != nil {
+				errs = append(errs, err)
+				return
 			}
+
+			selPre := docCode.Find("pre")
+			if style, exists := selPre.Attr("style"); exists {
+				sel.SetAttr("style", style)
+			}
+
+			htmlPre, err := selPre.Html()
+			if err != nil {
+				errs = append(errs, err)
+				return
+			}
+			sel.SetHtml(htmlPre)
 		}
 	})
 

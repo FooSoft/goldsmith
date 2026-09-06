@@ -53,10 +53,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Frontmatter chainable plugin context.
+// FrontMatter is the chainable front matter plugin context.
 type FrontMatter struct{}
 
-// New creates a new instance of the Frontmatter plugin.
+// New creates a new instance of the FrontMatter plugin.
 func New() *FrontMatter {
 	return new(FrontMatter)
 }
@@ -132,7 +132,9 @@ func parse(reader io.Reader) (map[string]interface{}, *bytes.Buffer, error) {
 	}
 
 	var front bytes.Buffer
-	if closer == jsonCloser || closer == jsonCloserHtml {
+	jsonFormat := closer == jsonCloser || closer == jsonCloserHtml
+	jsonDepth := 1
+	if jsonFormat {
 		front.WriteString(jsonOpener)
 	}
 
@@ -142,8 +144,9 @@ func parse(reader io.Reader) (map[string]interface{}, *bytes.Buffer, error) {
 		}
 
 		line, next := readLine(data, offset)
-		if strings.TrimSpace(string(line)) == closer {
-			if closer == jsonCloser || closer == jsonCloserHtml {
+		trimmedLine := strings.TrimSpace(string(line))
+		if trimmedLine == closer && (!jsonFormat || jsonDepth == 1) {
+			if jsonFormat {
 				front.WriteString(jsonCloser)
 			}
 			offset = next
@@ -151,6 +154,9 @@ func parse(reader io.Reader) (map[string]interface{}, *bytes.Buffer, error) {
 		}
 
 		front.Write(line)
+		if jsonFormat {
+			jsonDepth = updateJSONDepth(line, jsonDepth)
+		}
 		offset = next
 	}
 
@@ -170,6 +176,33 @@ func parse(reader io.Reader) (map[string]interface{}, *bytes.Buffer, error) {
 	}
 
 	return meta, bytes.NewBuffer(data[offset:]), nil
+}
+
+func updateJSONDepth(data []byte, depth int) int {
+	var inString, escaped bool
+	for _, value := range data {
+		if inString {
+			if escaped {
+				escaped = false
+			} else if value == '\\' {
+				escaped = true
+			} else if value == '"' {
+				inString = false
+			}
+			continue
+		}
+
+		switch value {
+		case '"':
+			inString = true
+		case '{', '[':
+			depth++
+		case '}', ']':
+			depth--
+		}
+	}
+
+	return depth
 }
 
 func readLine(data []byte, offset int) ([]byte, int) {

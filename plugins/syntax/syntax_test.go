@@ -50,3 +50,12 @@ func TestLanguageClassAfterOtherClasses(t *testing.T) {
 		t.Fatalf("Go syntax was not highlighted: %s", output)
 	}
 }
+
+func TestRejectsInvalidConfiguration(t *testing.T) {
+	if err := New().Prefix("").Initialize(new(goldsmith.Context)); err == nil {
+		t.Fatal("empty syntax prefix was accepted")
+	}
+	if err := New().Placement(Placement(99)).Initialize(new(goldsmith.Context)); err == nil {
+		t.Fatal("invalid syntax placement was accepted")
+	}
+}

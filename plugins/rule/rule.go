@@ -1,14 +1,16 @@
+// Package rule applies path-based metadata and filtering rules.
 package rule
 
 import (
 	"io"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 
-	"go.foosoft.net/goldsmith"
-	"go.foosoft.net/goldsmith/filters/operator"
-	"go.foosoft.net/goldsmith/filters/wildcard"
 	"github.com/BurntSushi/toml"
+	"go.foosoft.net/goldsmith"
+	"go.foosoft.net/goldsmith/filters/wildcard"
 )
 
 type rule struct {
@@ -49,7 +51,7 @@ func (self *rule) accept(inputFile *goldsmith.File) bool {
 		return false
 	}
 
-	return operator.Not(wildcard.New(rejectPaths...)).Accept(inputFile)
+	return !wildcard.New(rejectPaths...).Accept(inputFile)
 }
 
 func (self *ruleApply) apply(inputFile *goldsmith.File) {
@@ -67,6 +69,16 @@ func (self *ruleDrop) drop(inputFile *goldsmith.File) bool {
 type ruleSet struct {
 	Apply []*ruleApply
 	Drop  []*ruleDrop
+}
+
+func (self *ruleSet) baseDir() string {
+	if len(self.Apply) > 0 {
+		return self.Apply[0].baseDir
+	}
+	if len(self.Drop) > 0 {
+		return self.Drop[0].baseDir
+	}
+	return "."
 }
 
 func newRuleSet(inputFile *goldsmith.File) (*ruleSet, error) {
@@ -128,6 +140,12 @@ func (*Rule) Name() string {
 	return "rule"
 }
 
+func (self *Rule) Initialize(context *goldsmith.Context) error {
+	self.ruleSets = nil
+	self.inputFiles = nil
+	return nil
+}
+
 func (self *Rule) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	if inputFile.Name() == self.filename {
 		ruleSet, err := newRuleSet(inputFile)
@@ -148,6 +166,20 @@ func (self *Rule) Process(context *goldsmith.Context, inputFile *goldsmith.File)
 }
 
 func (self *Rule) Finalize(context *goldsmith.Context) error {
+	sort.Slice(self.ruleSets, func(i, j int) bool {
+		left := filepath.ToSlash(self.ruleSets[i].baseDir())
+		right := filepath.ToSlash(self.ruleSets[j].baseDir())
+		leftDepth := strings.Count(left, "/")
+		rightDepth := strings.Count(right, "/")
+		if leftDepth != rightDepth {
+			return leftDepth < rightDepth
+		}
+		return left < right
+	})
+	sort.Slice(self.inputFiles, func(i, j int) bool {
+		return self.inputFiles[i].Path() < self.inputFiles[j].Path()
+	})
+
 	for _, inputFile := range self.inputFiles {
 		var block bool
 		for _, ruleSet := range self.ruleSets {

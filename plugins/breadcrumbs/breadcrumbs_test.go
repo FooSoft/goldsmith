@@ -11,12 +11,13 @@ import (
 )
 
 func Test(self *testing.T) {
+	plugin := New()
 	harness.Validate(
 		self,
 		func(gs *goldsmith.Goldsmith) {
 			gs.
 				Chain(frontmatter.New()).
-				Chain(New()).
+				Chain(plugin).
 				Chain(layout.New())
 		},
 	)

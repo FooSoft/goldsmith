@@ -1,3 +1,4 @@
+// Package operator combines filters with logical operators.
 package operator
 
 import (

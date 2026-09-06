@@ -3,6 +3,7 @@ package forward
 
 import (
 	"bytes"
+	"sort"
 
 	"go.foosoft.net/goldsmith"
 )
@@ -27,6 +28,9 @@ func New(sourceProps map[string]interface{}) *Forward {
 
 // AddPathMapping adds a single path mapping between an old path and a new path.
 func (self *Forward) AddPathMapping(sourcePath, targetPath string) *Forward {
+	if self.pathMap == nil {
+		self.pathMap = make(map[string]string)
+	}
 	self.pathMap[sourcePath] = targetPath
 	return self
 }
@@ -43,7 +47,7 @@ func (self *Forward) SourceKey(key string) *Forward {
 	return self
 }
 
-// SourceKey sets the metadata key used to access the new path (default: "PathNew").
+// TargetKey sets the metadata key used to access the new path (default: "PathNew").
 func (self *Forward) TargetKey(key string) *Forward {
 	self.targetKey = key
 	return self
@@ -54,7 +58,14 @@ func (*Forward) Name() string {
 }
 
 func (self *Forward) Initialize(context *goldsmith.Context) error {
-	for sourcePath, targetPath := range self.pathMap {
+	sourcePaths := make([]string, 0, len(self.pathMap))
+	for sourcePath := range self.pathMap {
+		sourcePaths = append(sourcePaths, sourcePath)
+	}
+	sort.Strings(sourcePaths)
+
+	for _, sourcePath := range sourcePaths {
+		targetPath := self.pathMap[sourcePath]
 		sourceFile, err := context.CreateFileFromReader(sourcePath, bytes.NewReader(nil))
 		if err != nil {
 			return err

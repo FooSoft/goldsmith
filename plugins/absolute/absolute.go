@@ -72,21 +72,20 @@ func (self *Absolute) Process(context *goldsmith.Context, inputFile *goldsmith.F
 		return err
 	}
 
-	for _, attribute := range self.attributes {
-		cssPath := fmt.Sprintf("*[%s]", attribute)
-		doc.Find(cssPath).Each(func(index int, selection *goquery.Selection) {
+	doc.Find("*").Each(func(index int, selection *goquery.Selection) {
+		for _, attribute := range self.attributes {
 			value, exists := selection.Attr(attribute)
 			if !exists {
-				return
+				continue
 			}
 
 			currUrl, err := url.Parse(value)
 			if err != nil {
-				return
+				continue
 			}
 
 			if currUrl.IsAbs() || currUrl.Host != "" {
-				return
+				continue
 			}
 
 			currUrl = fileUrl.ResolveReference(currUrl)
@@ -100,8 +99,8 @@ func (self *Absolute) Process(context *goldsmith.Context, inputFile *goldsmith.F
 			}
 
 			selection.SetAttr(attribute, currUrl.String())
-		})
-	}
+		}
+	})
 
 	html, err := doc.Html()
 	if err != nil {

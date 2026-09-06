@@ -1,3 +1,4 @@
+// Package syndicate generates Atom, RSS, and JSON feeds from file metadata.
 package syndicate
 
 import (
@@ -115,6 +116,17 @@ func (*Syndicate) Name() string {
 	return "syndicate"
 }
 
+func (self *Syndicate) Initialize(context *goldsmith.Context) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	for _, feed := range self.feeds {
+		feed.lock.Lock()
+		feed.items = nil
+		feed.lock.Unlock()
+	}
+	return nil
+}
+
 func (self *Syndicate) WithFeed(name string, config FeedConfig) *Syndicate {
 	self.feeds[name] = &feed{config: config}
 	return self
@@ -123,43 +135,7 @@ func (self *Syndicate) WithFeed(name string, config FeedConfig) *Syndicate {
 func (self *Syndicate) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	defer context.DispatchFile(inputFile)
 
-	getString := func(key string) string {
-		if len(key) == 0 {
-			return ""
-		}
-
-		prop, ok := inputFile.Prop(key)
-		if !ok {
-			return ""
-		}
-
-		result, ok := prop.(string)
-		if !ok {
-			return ""
-		}
-
-		return result
-	}
-
-	getDate := func(key string) time.Time {
-		if len(key) == 0 {
-			return time.Time{}
-		}
-
-		prop, ok := inputFile.Prop(key)
-		if !ok {
-			return time.Time{}
-		}
-
-		result, ok := prop.(time.Time)
-		if !ok {
-			return time.Time{}
-		}
-
-		return result
-	}
-
-	feedName := getString(self.feedNameKey)
+	feedName := fileProp[string](inputFile, self.feedNameKey)
 	if len(feedName) == 0 {
 		return nil
 	}
@@ -183,14 +159,14 @@ func (self *Syndicate) Process(context *goldsmith.Context, inputFile *goldsmith.
 	}
 
 	item := item{
-		title:       getString(feed.config.ItemConfig.TitleKey),
-		authorName:  getString(feed.config.ItemConfig.AuthorNameKey),
-		authorEmail: getString(feed.config.ItemConfig.AuthorEmailKey),
-		description: getString(feed.config.ItemConfig.DescriptionKey),
-		id:          getString(feed.config.ItemConfig.IdKey),
-		updated:     getDate(feed.config.ItemConfig.UpdatedKey),
-		created:     getDate(feed.config.ItemConfig.CreatedKey),
-		content:     getString(feed.config.ItemConfig.ContentKey),
+		title:       fileProp[string](inputFile, feed.config.ItemConfig.TitleKey),
+		authorName:  fileProp[string](inputFile, feed.config.ItemConfig.AuthorNameKey),
+		authorEmail: fileProp[string](inputFile, feed.config.ItemConfig.AuthorEmailKey),
+		description: fileProp[string](inputFile, feed.config.ItemConfig.DescriptionKey),
+		id:          fileProp[string](inputFile, feed.config.ItemConfig.IdKey),
+		updated:     fileProp[time.Time](inputFile, feed.config.ItemConfig.UpdatedKey),
+		created:     fileProp[time.Time](inputFile, feed.config.ItemConfig.CreatedKey),
+		content:     fileProp[string](inputFile, feed.config.ItemConfig.ContentKey),
 		url:         baseUrl.ResolveReference(currUrl).String(),
 	}
 
@@ -200,7 +176,7 @@ func (self *Syndicate) Process(context *goldsmith.Context, inputFile *goldsmith.
 			return err
 		}
 
-		item.content = string(buff.Bytes())
+		item.content = buff.String()
 	}
 
 	if len(item.id) == 0 {
@@ -212,6 +188,19 @@ func (self *Syndicate) Process(context *goldsmith.Context, inputFile *goldsmith.
 	feed.lock.Unlock()
 
 	return nil
+}
+
+func fileProp[T any](file *goldsmith.File, key string) (result T) {
+	if key == "" {
+		return result
+	}
+
+	value, ok := file.Prop(key)
+	if !ok {
+		return result
+	}
+	result, _ = value.(T)
+	return result
 }
 
 func (self *feed) output(context *goldsmith.Context) error {
@@ -311,7 +300,14 @@ func (self *feed) output(context *goldsmith.Context) error {
 }
 
 func (self *Syndicate) Finalize(context *goldsmith.Context) error {
-	for _, feed := range self.feeds {
+	names := make([]string, 0, len(self.feeds))
+	for name := range self.feeds {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		feed := self.feeds[name]
 		if err := feed.output(context); err != nil {
 			return err
 		}
