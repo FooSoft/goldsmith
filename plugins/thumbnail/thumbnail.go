@@ -97,6 +97,11 @@ func (self *Thumbnail) Initialize(context *goldsmith.Context) error {
 	}
 
 	context.Filter(wildcard.New("**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.png"))
+	var r, g, b, a uint32
+	if self.style == Pad {
+		r, g, b, a = self.color.RGBA()
+	}
+	context.CacheKey(fmt.Sprintf("%d/%d/%d/%d/%d/%d", self.size, self.style, r, g, b, a))
 	return nil
 }
 
@@ -158,5 +163,10 @@ func (self *Thumbnail) thumbnail(context *goldsmith.Context, inputFile *goldsmit
 		return nil, err
 	}
 
-	return context.CreateFileFromReader(thumbPath, &thumbBuff)
+	outputFile, err := context.CreateFileFromReader(thumbPath, &thumbBuff)
+	if err != nil {
+		return nil, err
+	}
+	outputFile.CopyProps(inputFile)
+	return outputFile, nil
 }

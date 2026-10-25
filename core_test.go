@@ -58,7 +58,7 @@ func TestCacheKeyDoesNotReorderInputs(t *testing.T) {
 		{relPath: "a.txt", modTime: time.Unix(2, 0)},
 	}
 
-	if _, err := (&cache{baseDir: t.TempDir()}).buildCachePath("out.txt", inputs); err != nil {
+	if _, err := (&cache{baseDir: t.TempDir()}).buildCachePath("out.txt", inputs, ""); err != nil {
 		t.Fatal(err)
 	}
 	if inputs[0].Path() != "z.txt" || inputs[1].Path() != "a.txt" {
@@ -69,11 +69,11 @@ func TestCacheKeyDoesNotReorderInputs(t *testing.T) {
 func TestCacheKeyIncludesFileSize(t *testing.T) {
 	modTime := time.Unix(1, 0)
 	cache := &cache{baseDir: t.TempDir()}
-	first, err := cache.buildCachePath("out.txt", []*File{{relPath: "input.txt", modTime: modTime, size: 1}})
+	first, err := cache.buildCachePath("out.txt", []*File{{relPath: "input.txt", modTime: modTime, size: 1}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := cache.buildCachePath("out.txt", []*File{{relPath: "input.txt", modTime: modTime, size: 2}})
+	second, err := cache.buildCachePath("out.txt", []*File{{relPath: "input.txt", modTime: modTime, size: 2}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestCacheKeyIncludesFileSize(t *testing.T) {
 		t.Fatal("cache key did not change with the input size")
 	}
 
-	if _, err := cache.buildCachePath("out.txt", []*File{nil}); err == nil {
+	if _, err := cache.buildCachePath("out.txt", []*File{nil}, ""); err == nil {
 		t.Fatal("nil cache dependency was accepted")
 	}
 }
@@ -90,11 +90,11 @@ func TestCacheKeyIgnoresDependencyOrder(t *testing.T) {
 	first := &File{relPath: "input.txt", modTime: time.Unix(1, 0), size: 1}
 	second := &File{relPath: "input.txt", modTime: time.Unix(2, 0), size: 2}
 	cache := &cache{baseDir: t.TempDir()}
-	forward, err := cache.buildCachePath("out.txt", []*File{first, second})
+	forward, err := cache.buildCachePath("out.txt", []*File{first, second}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	reverse, err := cache.buildCachePath("out.txt", []*File{second, first})
+	reverse, err := cache.buildCachePath("out.txt", []*File{second, first}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestCacheStorePreservesFileOffset(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := (&cache{baseDir: t.TempDir()}).storeFile(file, nil); err != nil {
+	if err := (&cache{baseDir: t.TempDir()}).storeFile(file, nil, ""); err != nil {
 		t.Fatal(err)
 	}
 	if offset, err := file.Seek(0, io.SeekCurrent); err != nil || offset != 3 {
@@ -421,4 +421,40 @@ func TestEndBeforeBeginReturnsError(t *testing.T) {
 	if errs := gs.End(t.TempDir()); len(errs) != 1 || !strings.Contains(errs[0].Error(), "Begin") {
 		t.Fatalf("expected a missing-Begin error, got %v", errs)
 	}
+}
+
+func TestFailedBuildDoesNotCleanExistingOutput(t *testing.T) {
+	root := t.TempDir()
+	sourceDir := filepath.Join(root, "source")
+	targetDir := filepath.Join(root, "target")
+	for _, dir := range []string{sourceDir, targetDir} {
+		if err := os.Mkdir(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "input.txt"), []byte("input"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	existing := filepath.Join(targetDir, "existing.txt")
+	if err := os.WriteFile(existing, []byte("previous build"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, plugin := range []Plugin{new(failingInitializerPlugin), new(failingProcessorPlugin)} {
+		gs := Goldsmith{Clean: true}
+		if errs := gs.Begin(sourceDir).Chain(plugin).End(targetDir); len(errs) != 1 {
+			t.Fatalf("expected build error, got %v", errs)
+		}
+		if data, err := os.ReadFile(existing); err != nil || string(data) != "previous build" {
+			t.Fatalf("failed build removed existing output: %q, %v", data, err)
+		}
+	}
+}
+
+type failingProcessorPlugin struct{}
+
+func (*failingProcessorPlugin) Name() string { return "failing-processor" }
+
+func (*failingProcessorPlugin) Process(context *Context, file *File) error {
+	context.DispatchFile(file)
+	return errors.New("processing failed")
 }

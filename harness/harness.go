@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -39,10 +38,8 @@ func ValidateCase(t *testing.T, caseName string, stager StagingCallback) {
 
 	if errs := validate(sourceDir, targetDir, cacheDir, referenceDir, stager); len(errs) > 0 {
 		for _, err := range errs {
-			log.Println(err)
+			t.Error(err)
 		}
-
-		t.Fail()
 	}
 }
 
@@ -98,6 +95,9 @@ func hashDirState(dir string) ([sha256.Size]byte, error) {
 		relPath, err := filepath.Rel(dir, path)
 		if err != nil {
 			return err
+		}
+		if relPath == "." && info.IsDir() {
+			return nil
 		}
 
 		writeString(relPath)

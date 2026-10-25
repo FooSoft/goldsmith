@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PuerkitoBio/goquery"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/harness"
 	"go.foosoft.net/goldsmith/plugins/frontmatter"
@@ -24,6 +25,48 @@ func Test(self *testing.T) {
 				Chain(layout.New())
 		},
 	)
+}
+
+func TestPlacementOptionsAndCacheConfiguration(t *testing.T) {
+	root := t.TempDir()
+	source := filepath.Join(root, "source")
+	if err := os.Mkdir(source, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	input := `<html><body><code class="code-go">package main</code><code class="code-unknown-language">plain &lt;text&gt;</code></body></html>`
+	if err := os.WriteFile(filepath.Join(source, "index.html"), []byte(input), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, placement := range []Placement{PlaceInside, PlaceInline} {
+		for range 2 { // Exercise fresh generation and cache retrieval.
+			gs := goldsmith.Goldsmith{CacheDir: filepath.Join(root, "cache")}
+			target := filepath.Join(root, "target")
+			if errs := gs.Begin(source).Chain(New().Prefix("code-").Style("unknown-style").LineNumbers(true).Placement(placement)).End(target); len(errs) > 0 {
+				t.Fatal(errs)
+			}
+			data, err := os.ReadFile(filepath.Join(target, "index.html"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(data)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			code := doc.Find(".code-go")
+			if code.Find("span").Length() == 0 {
+				t.Fatal("code was not highlighted")
+			}
+			if (code.Find("pre").Length() > 0) != (placement == PlaceInside) {
+				t.Fatalf("unexpected preformatted block for placement %d: %s", placement, data)
+			}
+			if !strings.Contains(doc.Find(".code-unknown-language").Text(), "plain <text>") {
+				t.Fatal("fallback lexer lost source text")
+			}
+			if !strings.Contains(code.Text(), "1") {
+				t.Fatal("line numbers missing")
+			}
+		}
+	}
 }
 
 func TestLanguageClassAfterOtherClasses(t *testing.T) {

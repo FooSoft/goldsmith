@@ -3,6 +3,7 @@ package goldsmith
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -20,8 +21,9 @@ type Context struct {
 	filtersExt filterStack
 	filtersInt filterStack
 
-	threads int
-	index   int
+	threads  int
+	index    int
+	cacheKey string
 
 	filesIn  chan *File
 	filesOut chan *File
@@ -89,7 +91,7 @@ func (self *Context) DispatchFile(file *File) {
 // passes it to the next link in the chain.
 func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File) {
 	if self.chain.cache != nil {
-		if err := self.chain.cache.storeFile(outputFile, inputFiles); err != nil {
+		if err := self.chain.cache.storeFile(outputFile, inputFiles, self.cacheNamespace()); err != nil {
 			self.chain.fault("cache", outputFile, err)
 		}
 	}
@@ -111,6 +113,18 @@ func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) 
 	}
 
 	return outputFile
+}
+
+// CacheKey identifies the plugin configuration used to generate cached files.
+// Plugins with configurable output should set this during Initialize. Cached
+// files are also isolated by plugin type, name, and position in the chain.
+func (self *Context) CacheKey(key string) *Context {
+	self.cacheKey = key
+	return self
+}
+
+func (self *Context) cacheNamespace() string {
+	return fmt.Sprintf("%T/%q/%d/%q", self.plugin, self.plugin.Name(), self.index, self.cacheKey)
 }
 
 // Filter specifies internal filters that exclude files from being processed.

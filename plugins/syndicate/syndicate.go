@@ -40,11 +40,11 @@ func (self itemList) Len() int {
 }
 
 func (self itemList) Less(i, j int) bool {
-	if self[i].created != self[j].created {
+	if !self[i].created.Equal(self[j].created) {
 		return self[i].created.Before(self[j].created)
 	}
 
-	if self[i].updated != self[j].updated {
+	if !self[i].updated.Equal(self[j].updated) {
 		return self[i].updated.Before(self[j].updated)
 	}
 

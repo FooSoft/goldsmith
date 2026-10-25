@@ -6,6 +6,7 @@ package syntax
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -79,6 +80,7 @@ func (self *Syntax) Initialize(context *goldsmith.Context) error {
 	}
 
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
+	context.CacheKey(fmt.Sprintf("%q/%t/%q/%d", self.style, self.numbers, self.prefix, self.placement))
 	return nil
 }
 

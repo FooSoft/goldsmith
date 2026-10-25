@@ -125,6 +125,21 @@ Below are some examples of Goldsmith usage which can be used as a basis for your
 *   [Bootstrap Sample](https://go.foosoft.net/goldsmith-samples/tree/master/item/bootstrap): a slightly more advanced sample using [Bootstrap](https://getbootstrap.com/).
 *   [FooSoft.net](https://foosoft.net): I've been "dogfooding" Goldsmith by using it to [generate my homepage](https://foosoft.net/posts/generating-the-foosoft.net-homepage) for nearly a decade.
 
+## Testing
+
+Run the full test suite, race detector, and statement coverage report with:
+
+```sh
+go test -race -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out
+go vet ./...
+```
+
+Plugin fixture tests build twice to exercise fresh generation and cache retrieval.
+Custom plugins that cache configurable output should call `Context.CacheKey` during
+`Initialize` with a stable key containing all options that affect the output.
+Cache entries are also separated by plugin type, name, and position in the chain.
+
 ## Components
 
 A growing set of plugins, filters, and other tools are provided to make it easier to get started with Goldsmith.

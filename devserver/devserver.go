@@ -29,11 +29,13 @@ type Builder interface {
 // website until it is terminated.
 func DevServe(builder Builder, port int, sourceDir, targetDir, cacheDir string, watchDirs ...string) {
 	dirs := append(append([]string(nil), watchDirs...), sourceDir)
-	if err := build(dirs, func() {
+	watcher, err := build(dirs, func() {
 		builder.Build(sourceDir, targetDir, cacheDir)
-	}); err != nil {
+	})
+	if err != nil {
 		log.Fatal(err)
 	}
+	defer watcher.Close()
 
 	httpAddr := fmt.Sprintf(":%d", port)
 	httpHandler := http.FileServer(http.Dir(targetDir))
@@ -41,20 +43,20 @@ func DevServe(builder Builder, port int, sourceDir, targetDir, cacheDir string, 
 	log.Fatal(http.ListenAndServe(httpAddr, httpHandler))
 }
 
-func build(dirs []string, callback func()) error {
+func build(dirs []string, callback func()) (*fsnotify.Watcher, error) {
 	if callback == nil {
-		return errors.New("build callback cannot be nil")
+		return nil, errors.New("build callback cannot be nil")
 	}
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, dir := range dirs {
 		if err := watch(dir, watcher); err != nil {
 			watcher.Close()
-			return err
+			return nil, err
 		}
 	}
 
@@ -112,7 +114,7 @@ func build(dirs []string, callback func()) error {
 		}
 	}()
 
-	return nil
+	return watcher, nil
 }
 
 func watch(dir string, watcher *fsnotify.Watcher) error {

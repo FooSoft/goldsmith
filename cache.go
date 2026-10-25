@@ -15,7 +15,7 @@ type cache struct {
 }
 
 func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles []*File) (*File, error) {
-	cachePath, err := self.buildCachePath(outputPath, inputFiles)
+	cachePath, err := self.buildCachePath(outputPath, inputFiles, context.cacheNamespace())
 	if err != nil {
 		return nil, err
 	}
@@ -32,8 +32,8 @@ func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles 
 	return outputFile, nil
 }
 
-func (self *cache) storeFile(outputFile *File, inputFiles []*File) (resultErr error) {
-	cachePath, err := self.buildCachePath(outputFile.Path(), inputFiles)
+func (self *cache) storeFile(outputFile *File, inputFiles []*File, namespace string) (resultErr error) {
+	cachePath, err := self.buildCachePath(outputFile.Path(), inputFiles, namespace)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (self *cache) storeFile(outputFile *File, inputFiles []*File) (resultErr er
 	return nil
 }
 
-func (self *cache) buildCachePath(outputPath string, inputFiles []*File) (string, error) {
+func (self *cache) buildCachePath(outputPath string, inputFiles []*File, namespace string) (string, error) {
 	if err := validateRelativePath(outputPath); err != nil {
 		return "", err
 	}
@@ -93,6 +93,7 @@ func (self *cache) buildCachePath(outputPath string, inputFiles []*File) (string
 		hasher.Write(size[:])
 		hasher.Write([]byte(value))
 	}
+	writeString(namespace)
 	writeString(outputPath)
 
 	inputs := append([]*File(nil), inputFiles...)

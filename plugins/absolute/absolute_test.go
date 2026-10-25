@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PuerkitoBio/goquery"
 	"go.foosoft.net/goldsmith"
 	"go.foosoft.net/goldsmith/harness"
 )
@@ -17,6 +18,55 @@ func Test(self *testing.T) {
 			gs.Chain(New().BaseUrl("https://foosoft.net"))
 		},
 	)
+}
+
+func TestURLResolutionAndCacheConfiguration(t *testing.T) {
+	root := t.TempDir()
+	source := filepath.Join(root, "source")
+	if err := os.MkdirAll(filepath.Join(source, "dir"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	input := `<a id="dir" href="../archive/">directory</a>
+<a id="escaped" href="../a%2Fb/?q=a%20b#part">escaped</a>
+<a id="fragment" href="#part">fragment</a>
+<a id="query" href="?q=1">query</a>
+<a id="root" href="/">root</a>
+<a id="external" href="mailto:me@example.com">external</a>`
+	if err := os.WriteFile(filepath.Join(source, "dir", "page #1.html"), []byte(input), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, base := range []string{"", "https://example.com/base%20dir/", "https://other.example/"} {
+		gs := goldsmith.Goldsmith{CacheDir: filepath.Join(root, "cache")}
+		target := filepath.Join(root, "target")
+		plugin := New()
+		if base != "" {
+			plugin.BaseUrl(base)
+		}
+		if errs := gs.Begin(source).Chain(plugin).End(target); len(errs) > 0 {
+			t.Fatal(errs)
+		}
+		data, err := os.ReadFile(filepath.Join(target, "dir", "page #1.html"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(data)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		prefix := strings.TrimRight(base, "/")
+		for id, want := range map[string]string{
+			"dir":      prefix + "/archive/",
+			"escaped":  prefix + "/a%2Fb/?q=a%20b#part",
+			"fragment": prefix + "/dir/page%20%231.html#part",
+			"query":    prefix + "/dir/page%20%231.html?q=1",
+			"root":     prefix + "/",
+			"external": "mailto:me@example.com",
+		} {
+			if got := doc.Find("#"+id).AttrOr("href", ""); got != want {
+				t.Errorf("base %q, %s: got %q, want %q", base, id, got, want)
+			}
+		}
+	}
 }
 
 func TestProtocolRelativeURLIsPreserved(t *testing.T) {

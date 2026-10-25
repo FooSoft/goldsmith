@@ -77,8 +77,15 @@ func (self *fileExporter) Process(context *Context, file *File) error {
 }
 
 func (self *fileExporter) Finalize(context *Context) error {
+	clean := self.clean
+	if context.chain != nil {
+		context.chain.mutex.Lock()
+		clean = clean && len(context.chain.errors) == 0
+		context.chain.mutex.Unlock()
+	}
+
 	if self.root == nil {
-		if !self.clean {
+		if !clean {
 			return nil
 		}
 		if err := self.openRoot(false); err != nil {
@@ -90,7 +97,7 @@ func (self *fileExporter) Finalize(context *Context) error {
 	}
 
 	var finalizeErr error
-	if self.clean {
+	if clean {
 		finalizeErr = fs.WalkDir(self.root.FS(), ".", func(path string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
 				return walkErr

@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
-	"path"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"go.foosoft.net/goldsmith"
@@ -52,6 +52,7 @@ func (self *Absolute) Initialize(context *goldsmith.Context) error {
 	}
 
 	context.Filter(wildcard.New("**/*.html", "**/*.htm"))
+	context.CacheKey(fmt.Sprintf("%q/%v", self.attributes, self.baseUrl))
 	return nil
 }
 
@@ -62,10 +63,7 @@ func (self *Absolute) Process(context *goldsmith.Context, inputFile *goldsmith.F
 		return nil
 	}
 
-	fileUrl, err := url.Parse(inputFile.Path())
-	if err != nil {
-		return err
-	}
+	fileUrl := &url.URL{Path: "/" + inputFile.Path()}
 
 	doc, err := goquery.NewDocumentFromReader(inputFile)
 	if err != nil {
@@ -91,7 +89,8 @@ func (self *Absolute) Process(context *goldsmith.Context, inputFile *goldsmith.F
 			currUrl = fileUrl.ResolveReference(currUrl)
 			if self.baseUrl != nil {
 				rebasedUrl := *self.baseUrl
-				rebasedUrl.Path = path.Join(rebasedUrl.Path, currUrl.Path)
+				rebasedUrl.Path = strings.TrimRight(self.baseUrl.Path, "/") + currUrl.Path
+				rebasedUrl.RawPath = strings.TrimRight(self.baseUrl.EscapedPath(), "/") + currUrl.EscapedPath()
 				rebasedUrl.Fragment = currUrl.Fragment
 				rebasedUrl.RawFragment = currUrl.RawFragment
 				rebasedUrl.RawQuery = currUrl.RawQuery
