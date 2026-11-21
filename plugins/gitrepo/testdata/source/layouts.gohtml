@@ -1,0 +1,32 @@
+{{define "header"}}<h1>{{.Repo.Name}}</h1>
+<p>{{.Repo.Description}} | git clone {{.Repo.CloneURL}} | branch {{.Repo.Branch}}</p>
+<nav><a href="{{.RepoRoot}}log.html">Log</a> <a href="{{.RepoRoot}}files.html">Files</a> <a href="{{.RepoRoot}}refs.html">Refs</a>{{with .Repo.Readme}} <a href="{{$.RepoRoot}}{{.Page}}">README</a>{{end}}{{with .Repo.License}} <a href="{{$.RepoRoot}}{{.Page}}">LICENSE</a>{{end}}</nav>
+{{end}}
+
+{{define "gitindex"}}{{template "header" .Props}}{{.Props.Content}}
+<p>Latest: <a href="{{.Props.Repo.Head.Page}}">{{.Props.Repo.Head.ShortHash}}</a> {{.Props.Repo.Head.Subject}}</p>
+{{end}}
+
+{{define "gitlog"}}{{template "header" .Props}}<table>
+{{range .Props.Repo.Commits}}<tr><td>{{.AuthorDate.Format "2006-01-02 15:04"}}</td><td><a href="{{$.Props.RepoRoot}}{{.Page}}">{{.Subject}}</a></td><td>{{.Author}}</td></tr>
+{{end}}</table>
+{{end}}
+
+{{define "gitfiles"}}{{template "header" .Props}}<table>
+{{range .Props.Repo.Files}}<tr><td>{{.Mode}}</td><td><a href="{{$.Props.RepoRoot}}{{.Page}}">{{.Path}}</a></td><td>{{.Size}}B</td></tr>
+{{end}}</table>
+{{end}}
+
+{{define "gitrefs"}}{{template "header" .Props}}<h2>Branches</h2>
+{{range .Props.Repo.Branches}}<p>{{.Name}} {{.Commit.ShortHash}} {{.Commit.Subject}}</p>
+{{end}}<h2>Tags</h2>
+{{range .Props.Repo.Tags}}<p>{{.Name}} {{.Commit.ShortHash}} {{.Commit.Subject}}</p>
+{{end}}{{end}}
+
+{{define "gitcommit"}}{{template "header" .Props}}{{with .Props.Commit}}<p>commit {{.Hash}}{{range .Parents}} parent {{.}}{{end}}</p>
+<p>Author: {{.Author}} &lt;{{.AuthorEmail}}&gt; {{.AuthorDate.Format "2006-01-02 15:04"}}</p>
+<pre>{{.Message}}</pre>
+{{end}}{{.Props.Content}}{{end}}
+
+{{define "gitfile"}}{{template "header" .Props}}<p>{{.Props.Entry.Path}} ({{.Props.Entry.Size}}B)</p>
+{{.Props.Content}}{{end}}

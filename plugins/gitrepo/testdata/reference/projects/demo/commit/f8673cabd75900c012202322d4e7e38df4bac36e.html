@@ -1,0 +1,37 @@
+<h1>demo</h1>
+<p>Demo repository | git clone https://example.com/demo.git | branch master</p>
+<nav><a href="../log.html">Log</a> <a href="../files.html">Files</a> <a href="../refs.html">Refs</a> <a href="../file/README.md.html">README</a> <a href="../file/LICENSE.html">LICENSE</a></nav>
+<p>commit f8673cabd75900c012202322d4e7e38df4bac36e parent 9af3c9111663f282b311b04b50e0ee5fef3f4d37</p>
+<p>Author: Jane Doe &lt;jane@example.com&gt; 2024-01-02 04:04</p>
+<pre>Print a greeting
+</pre>
+<table class="diffstat">
+<tr><td class="path"><a href="#f0">docs/a b.txt</a></td><td class="add">+0</td><td class="del">-1</td></tr>
+<tr><td class="path"><a href="#f1">logo.bin</a></td><td class="add">+0</td><td class="del">-0</td></tr>
+<tr><td class="path"><a href="#f2">main.go</a></td><td class="add">+5</td><td class="del">-1</td></tr>
+</table>
+<p class="diffsummary">3 files changed, 5 insertions(+), 2 deletions(-)</p>
+<pre class="diff"><b id="f0">diff --git a/docs/a b.txt b/docs/a b.txt</b>
+<span class="head">deleted file mode 100644</span>
+<span class="head">index dab3740db98d5c36ded40fc06e3aec38f2d7bd76..0000000000000000000000000000000000000000</span>
+<span class="head">--- a/docs/a b.txt</span>
+<span class="head">+++ /dev/null</span>
+<span class="hunk">@@ -1 +0,0 @@</span>
+<span class="del">-&lt;hello &amp; goodbye&gt;</span>
+<b id="f1">diff --git a/logo.bin b/logo.bin</b>
+<span class="head">index 8352675d67aed6625ece79af41c27fdb4ee2e867..a903574af00b573ad9bdb2bccf8d93ed00c675de 100644</span>
+<span class="head">Binary files a/logo.bin and b/logo.bin differ</span>
+<b id="f2">diff --git a/main.go b/main.go</b>
+<span class="head">index 38dd16da61accb1a8de6ac8709d2e65ef4a51a4a..0df73790002e380206efc255698ba9015b771f11 100644</span>
+<span class="head">--- a/main.go</span>
+<span class="head">+++ b/main.go</span>
+<span class="hunk">@@ -1,3 +1,7 @@</span>
+ package main
+ 
+<span class="del">-func main() {}</span>
+<span class="add">+import &#34;fmt&#34;</span>
+<span class="add">+</span>
+<span class="add">+func main() {</span>
+<span class="add">+	fmt.Println(&#34;hi&#34;)</span>
+<span class="add">+}</span>
+</pre>

@@ -14,8 +14,8 @@ type cache struct {
 	baseDir string
 }
 
-func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles []*File) (*File, error) {
-	cachePath, err := self.buildCachePath(outputPath, inputFiles, context.cacheNamespace())
+func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles []*File, keys ...string) (*File, error) {
+	cachePath, err := self.buildCachePath(outputPath, inputFiles, context.cacheNamespace(), keys...)
 	if err != nil {
 		return nil, err
 	}
@@ -32,8 +32,8 @@ func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles 
 	return outputFile, nil
 }
 
-func (self *cache) storeFile(outputFile *File, inputFiles []*File, namespace string) (resultErr error) {
-	cachePath, err := self.buildCachePath(outputFile.Path(), inputFiles, namespace)
+func (self *cache) storeFile(outputFile *File, inputFiles []*File, namespace string, keys ...string) (resultErr error) {
+	cachePath, err := self.buildCachePath(outputFile.Path(), inputFiles, namespace, keys...)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (self *cache) storeFile(outputFile *File, inputFiles []*File, namespace str
 	return nil
 }
 
-func (self *cache) buildCachePath(outputPath string, inputFiles []*File, namespace string) (string, error) {
+func (self *cache) buildCachePath(outputPath string, inputFiles []*File, namespace string, keys ...string) (string, error) {
 	if err := validateRelativePath(outputPath); err != nil {
 		return "", err
 	}
@@ -123,6 +123,19 @@ func (self *cache) buildCachePath(outputPath string, inputFiles []*File, namespa
 		binary.LittleEndian.PutUint64(fileInfo[8:], uint64(inputFile.Size()))
 		writeString(inputFile.Path())
 		hasher.Write(fileInfo[:])
+	}
+
+	// File entries always start with a non-empty path, so an empty string marks
+	// the start of the key section unambiguously. Omitting the section when no
+	// keys are given keeps file-only cache paths unchanged.
+	if len(keys) > 0 {
+		writeString("")
+		var count [8]byte
+		binary.LittleEndian.PutUint64(count[:], uint64(len(keys)))
+		hasher.Write(count[:])
+		for _, key := range keys {
+			writeString(key)
+		}
 	}
 
 	cachePath := filepath.Join(self.baseDir, fmt.Sprintf(

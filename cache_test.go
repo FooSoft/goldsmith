@@ -72,6 +72,51 @@ func TestContextCacheIsolation(t *testing.T) {
 
 type cachePluginName string
 
+func TestContextCacheByKey(t *testing.T) {
+	chain := &chainState{cache: &cache{baseDir: t.TempDir()}}
+	context := &Context{chain: chain, plugin: cachePluginName("git"), filesOut: make(chan *File, 2)}
+	output, err := context.CreateFileFromReader("commit/abc.html", strings.NewReader("diff"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	context.DispatchAndCacheFileByKey(output, "abc", "def")
+	if got := <-context.filesOut; got != output {
+		t.Fatal("did not dispatch output")
+	}
+
+	cached := context.RetrieveCachedFileByKey("commit/abc.html", "abc", "def")
+	if cached == nil {
+		t.Fatal("expected cache hit")
+	}
+	if data, err := io.ReadAll(cached); err != nil || string(data) != "diff" {
+		t.Fatalf("got %q, %v", data, err)
+	}
+
+	for name, keys := range map[string][]string{
+		"different key":  {"abc", "xyz"},
+		"reordered keys": {"def", "abc"},
+		"extra key":      {"abc", "def", ""},
+		"no keys":        nil,
+	} {
+		if context.RetrieveCachedFileByKey("commit/abc.html", keys...) != nil {
+			t.Errorf("%s: unexpected cache hit", name)
+		}
+	}
+
+	plain, err := context.CreateFileFromReader("out.txt", strings.NewReader("plain"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	context.DispatchAndCacheFile(plain)
+	<-context.filesOut
+	if context.RetrieveCachedFileByKey("out.txt", "") != nil {
+		t.Fatal("key lookup hit file-based cache entry")
+	}
+	if len(chain.errors) != 0 {
+		t.Fatal(chain.errors)
+	}
+}
+
 func (p cachePluginName) Name() string { return string(p) }
 
 type otherCachePlugin struct{}

@@ -115,6 +115,36 @@ func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) 
 	return outputFile
 }
 
+// DispatchAndCacheFileByKey caches the file data (excluding the metadata),
+// identified by caller-supplied keys rather than input files, and then passes it
+// to the next link in the chain. Keys should change whenever the output would,
+// e.g. content hashes such as git commit or blob IDs. Key order is significant.
+func (self *Context) DispatchAndCacheFileByKey(outputFile *File, keys ...string) {
+	if self.chain.cache != nil {
+		if err := self.chain.cache.storeFile(outputFile, nil, self.cacheNamespace(), keys...); err != nil {
+			self.chain.fault("cache", outputFile, err)
+		}
+	}
+
+	self.DispatchFile(outputFile)
+}
+
+// RetrieveCachedFileByKey looks up file data (excluding the metadata), given an
+// output path and the keys it was stored with by DispatchAndCacheFileByKey. The
+// function will return nil if the desired file is not found in the cache.
+func (self *Context) RetrieveCachedFileByKey(outputPath string, keys ...string) *File {
+	var outputFile *File
+	if self.chain.cache != nil {
+		var err error
+		outputFile, err = self.chain.cache.retrieveFile(self, outputPath, nil, keys...)
+		if err != nil {
+			self.chain.fault("cache", nil, err)
+		}
+	}
+
+	return outputFile
+}
+
 // CacheKey identifies the plugin configuration used to generate cached files.
 // Plugins with configurable output should set this during Initialize. Cached
 // files are also isolated by plugin type, name, and position in the chain.

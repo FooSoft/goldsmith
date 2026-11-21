@@ -152,6 +152,7 @@ A growing set of plugins, filters, and other tools are provided to make it easie
 *   [Document](https://godoc.org/go.foosoft.net/goldsmith/plugins/document): Enable simple DOM modification via an API similar to jQuery.
 *   [Forward](https://godoc.org/go.foosoft.net/goldsmith/plugins/forward): Create simple redirections for pages that have moved to a new URL.
 *   [FrontMatter](https://godoc.org/go.foosoft.net/goldsmith/plugins/frontmatter): Extract the JSON, YAML, or TOML metadata stored in your files.
+*   [GitRepo](https://godoc.org/go.foosoft.net/goldsmith/plugins/gitrepo): Generate stagit-style pages for browsing git repositories.
 *   [Index](https://godoc.org/go.foosoft.net/goldsmith/plugins/index): Create metadata for directory file listings and generate directory index pages.
 *   [Layout](https://godoc.org/go.foosoft.net/goldsmith/plugins/layout): Transform your HTML files with Go templates.
 *   [LiveJs](https://godoc.org/go.foosoft.net/goldsmith/plugins/livejs): Inject JavaScript code to automatically reload pages when modified.
