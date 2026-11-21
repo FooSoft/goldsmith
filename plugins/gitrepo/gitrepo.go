@@ -528,7 +528,7 @@ func (self *generator) createPage(relPath string, body []byte) (*goldsmith.File,
 // dispatchCachedPage dispatches a page whose content depends only on the
 // provided git object hash, rendering it only if it is not already cached.
 func (self *generator) dispatchCachedPage(relPath, layout, hash string, props goldsmith.FileProps, render func() ([]byte, error)) error {
-	if file := self.context.RetrieveCachedFileByKey(path.Join(self.data.Path, relPath), hash); file != nil {
+	if file := self.context.RetrieveCachedFile(path.Join(self.data.Path, relPath), hash); file != nil {
 		self.setPageProps(file, relPath, layout, props)
 		self.context.DispatchFile(file)
 		return nil
@@ -545,7 +545,7 @@ func (self *generator) dispatchCachedPage(relPath, layout, hash string, props go
 	}
 
 	self.setPageProps(file, relPath, layout, props)
-	self.context.DispatchAndCacheFileByKey(file, hash)
+	self.context.DispatchAndCacheFile(file, hash)
 	return nil
 }
 

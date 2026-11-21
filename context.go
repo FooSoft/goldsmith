@@ -87,15 +87,14 @@ func (self *Context) DispatchFile(file *File) {
 	self.filesOut <- file
 }
 
-// DispatchAndCacheFile caches the file data (excluding the metadata), taking
-// dependencies on any input files that are needed to generate it, and then
-// passes it to the next link in the chain.
-func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File) {
+// DispatchAndCacheFile caches the file data (excluding the metadata) under the
+// given keys, and then passes it to the next link in the chain. Keys must change
+// whenever the output would; use FileCacheKeys to derive them from input files,
+// or supply content hashes such as git commit IDs. Key order is significant.
+func (self *Context) DispatchAndCacheFile(outputFile *File, keys ...string) {
 	if self.chain.cache != nil {
-		if keys, err := fileCacheKeys(inputFiles); err != nil {
+		if err := self.chain.cache.storeFile(outputFile, self.cacheNamespace(), keys); err != nil {
 			self.chain.fault("cache", outputFile, err)
-		} else {
-			self.storeCachedFile(outputFile, keys)
 		}
 	}
 
@@ -103,52 +102,13 @@ func (self *Context) DispatchAndCacheFile(outputFile *File, inputFiles ...*File)
 }
 
 // RetrieveCachedFile looks up file data (excluding the metadata), given an
-// output path and any input files that are needed to generate it. The function
-// will return nil if the desired file is not found in the cache.
-func (self *Context) RetrieveCachedFile(outputPath string, inputFiles ...*File) *File {
-	if self.chain.cache == nil {
-		return nil
-	}
-
-	keys, err := fileCacheKeys(inputFiles)
-	if err != nil {
-		self.chain.fault("cache", nil, err)
-		return nil
-	}
-
-	return self.retrieveCachedFile(outputPath, keys)
-}
-
-// DispatchAndCacheFileByKey caches the file data (excluding the metadata),
-// identified by caller-supplied keys rather than input files, and then passes it
-// to the next link in the chain. Keys should change whenever the output would,
-// e.g. content hashes such as git commit or blob IDs. Key order is significant.
-func (self *Context) DispatchAndCacheFileByKey(outputFile *File, keys ...string) {
-	if self.chain.cache != nil {
-		self.storeCachedFile(outputFile, append([]string{"keys"}, keys...))
-	}
-
-	self.DispatchFile(outputFile)
-}
-
-// RetrieveCachedFileByKey looks up file data (excluding the metadata), given an
-// output path and the keys it was stored with by DispatchAndCacheFileByKey. The
+// output path and the keys it was stored with by DispatchAndCacheFile. The
 // function will return nil if the desired file is not found in the cache.
-func (self *Context) RetrieveCachedFileByKey(outputPath string, keys ...string) *File {
+func (self *Context) RetrieveCachedFile(outputPath string, keys ...string) *File {
 	if self.chain.cache == nil {
 		return nil
 	}
 
-	return self.retrieveCachedFile(outputPath, append([]string{"keys"}, keys...))
-}
-
-func (self *Context) storeCachedFile(outputFile *File, keys []string) {
-	if err := self.chain.cache.storeFile(outputFile, self.cacheNamespace(), keys); err != nil {
-		self.chain.fault("cache", outputFile, err)
-	}
-}
-
-func (self *Context) retrieveCachedFile(outputPath string, keys []string) *File {
 	outputFile, err := self.chain.cache.retrieveFile(self, outputPath, keys)
 	if err != nil {
 		self.chain.fault("cache", nil, err)
@@ -157,21 +117,20 @@ func (self *Context) retrieveCachedFile(outputPath string, keys []string) *File 
 	return outputFile
 }
 
-// fileCacheKeys identifies input files by path, modification time, and size.
-// Key lists are tagged by origin ("files" or "keys") so that caller-supplied
-// keys can never match keys derived from input files.
-func fileCacheKeys(inputFiles []*File) ([]string, error) {
-	keys := []string{"files"}
+// FileCacheKeys identifies input files by path, modification time, and size,
+// for use as cache keys. The result does not depend on the order of the files.
+func FileCacheKeys(inputFiles ...*File) []string {
+	var keys []string
 	for _, inputFile := range inputFiles {
 		if inputFile == nil {
-			return nil, errors.New("cache dependency cannot be nil")
+			panic("goldsmith: cache dependency cannot be nil")
 		}
 
 		keys = append(keys, fmt.Sprintf("%q:%d:%d", inputFile.Path(), inputFile.ModTime().UnixNano(), inputFile.Size()))
 	}
 
-	sort.Strings(keys[1:])
-	return keys, nil
+	sort.Strings(keys)
+	return keys
 }
 
 // CacheKey identifies the plugin configuration used to generate cached files.

@@ -26,7 +26,7 @@ func TestContextCacheIsolation(t *testing.T) {
 	}
 	output.SetProp("title", "not cached")
 	context.filesOut = make(chan *File, 1)
-	context.DispatchAndCacheFile(output, input)
+	context.DispatchAndCacheFile(output, FileCacheKeys(input)...)
 	if got := <-context.filesOut; got != output {
 		t.Fatal("did not dispatch output")
 	}
@@ -42,7 +42,7 @@ func TestContextCacheIsolation(t *testing.T) {
 		{"different plugin type", (&Context{chain: chain, plugin: otherCachePlugin{}, index: 1}).CacheKey("config"), false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cached := tc.context.RetrieveCachedFile(output.Path(), input)
+			cached := tc.context.RetrieveCachedFile(output.Path(), FileCacheKeys(input)...)
 			if (cached != nil) != tc.wantHit {
 				t.Fatalf("cache hit = %t, want %t", cached != nil, tc.wantHit)
 			}
@@ -62,7 +62,7 @@ func TestContextCacheIsolation(t *testing.T) {
 		})
 	}
 	input.modTime = input.modTime.Add(time.Second)
-	if context.RetrieveCachedFile(output.Path(), input) != nil {
+	if context.RetrieveCachedFile(output.Path(), FileCacheKeys(input)...) != nil {
 		t.Fatal("modified dependency hit cache")
 	}
 	if len(chain.errors) != 0 {
@@ -72,19 +72,19 @@ func TestContextCacheIsolation(t *testing.T) {
 
 type cachePluginName string
 
-func TestContextCacheByKey(t *testing.T) {
+func TestContextCacheKeys(t *testing.T) {
 	chain := &chainState{cache: &cache{baseDir: t.TempDir()}}
 	context := &Context{chain: chain, plugin: cachePluginName("git"), filesOut: make(chan *File, 2)}
 	output, err := context.CreateFileFromReader("commit/abc.html", strings.NewReader("diff"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	context.DispatchAndCacheFileByKey(output, "abc", "def")
+	context.DispatchAndCacheFile(output, "abc", "def")
 	if got := <-context.filesOut; got != output {
 		t.Fatal("did not dispatch output")
 	}
 
-	cached := context.RetrieveCachedFileByKey("commit/abc.html", "abc", "def")
+	cached := context.RetrieveCachedFile("commit/abc.html", "abc", "def")
 	if cached == nil {
 		t.Fatal("expected cache hit")
 	}
@@ -98,24 +98,11 @@ func TestContextCacheByKey(t *testing.T) {
 		"extra key":      {"abc", "def", ""},
 		"no keys":        nil,
 	} {
-		if context.RetrieveCachedFileByKey("commit/abc.html", keys...) != nil {
+		if context.RetrieveCachedFile("commit/abc.html", keys...) != nil {
 			t.Errorf("%s: unexpected cache hit", name)
 		}
 	}
 
-	plain, err := context.CreateFileFromReader("out.txt", strings.NewReader("plain"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	context.DispatchAndCacheFile(plain, output)
-	<-context.filesOut
-	fileKeys, err := fileCacheKeys([]*File{output})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if context.RetrieveCachedFileByKey("out.txt", fileKeys...) != nil {
-		t.Fatal("key lookup hit file-based cache entry")
-	}
 	if len(chain.errors) != 0 {
 		t.Fatal(chain.errors)
 	}

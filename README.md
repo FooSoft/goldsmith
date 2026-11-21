@@ -139,6 +139,10 @@ Plugin fixture tests build twice to exercise fresh generation and cache retrieva
 Custom plugins that cache configurable output should call `Context.CacheKey` during
 `Initialize` with a stable key containing all options that affect the output.
 Cache entries are also separated by plugin type, name, and position in the chain.
+Within a plugin, `Context.DispatchAndCacheFile` and `Context.RetrieveCachedFile`
+identify entries by the output path plus caller-supplied keys; use
+`goldsmith.FileCacheKeys(inputFiles...)` to derive keys from input files, or pass
+content hashes (such as git commit IDs) directly.
 
 ## Components
 

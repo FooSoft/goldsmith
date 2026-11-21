@@ -58,9 +58,7 @@ func TestCacheKeyDoesNotReorderInputs(t *testing.T) {
 		{relPath: "a.txt", modTime: time.Unix(2, 0)},
 	}
 
-	if _, err := fileCacheKeys(inputs); err != nil {
-		t.Fatal(err)
-	}
+	FileCacheKeys(inputs...)
 	if inputs[0].Path() != "z.txt" || inputs[1].Path() != "a.txt" {
 		t.Fatalf("cache key generation reordered caller inputs: %q, %q", inputs[0].Path(), inputs[1].Path())
 	}
@@ -68,34 +66,27 @@ func TestCacheKeyDoesNotReorderInputs(t *testing.T) {
 
 func TestCacheKeyIncludesFileSize(t *testing.T) {
 	modTime := time.Unix(1, 0)
-	first, err := fileCacheKeys([]*File{{relPath: "input.txt", modTime: modTime, size: 1}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	second, err := fileCacheKeys([]*File{{relPath: "input.txt", modTime: modTime, size: 2}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	first := FileCacheKeys(&File{relPath: "input.txt", modTime: modTime, size: 1})
+	second := FileCacheKeys(&File{relPath: "input.txt", modTime: modTime, size: 2})
 	if strings.Join(first, "\n") == strings.Join(second, "\n") {
 		t.Fatal("cache key did not change with the input size")
 	}
+}
 
-	if _, err := fileCacheKeys([]*File{nil}); err == nil {
-		t.Fatal("nil cache dependency was accepted")
-	}
+func TestCacheKeyRejectsNilFile(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("nil cache dependency was accepted")
+		}
+	}()
+	FileCacheKeys(nil)
 }
 
 func TestCacheKeyIgnoresDependencyOrder(t *testing.T) {
 	first := &File{relPath: "input.txt", modTime: time.Unix(1, 0), size: 1}
 	second := &File{relPath: "input.txt", modTime: time.Unix(2, 0), size: 2}
-	forward, err := fileCacheKeys([]*File{first, second})
-	if err != nil {
-		t.Fatal(err)
-	}
-	reverse, err := fileCacheKeys([]*File{second, first})
-	if err != nil {
-		t.Fatal(err)
-	}
+	forward := FileCacheKeys(first, second)
+	reverse := FileCacheKeys(second, first)
 	if strings.Join(forward, "\n") != strings.Join(reverse, "\n") {
 		t.Fatalf("dependency order changed the cache key: %q != %q", forward, reverse)
 	}
@@ -128,7 +119,7 @@ func (*cacheWriterPlugin) Process(context *Context, input *File) error {
 	if err != nil {
 		return err
 	}
-	context.DispatchAndCacheFile(output, input)
+	context.DispatchAndCacheFile(output, FileCacheKeys(input)...)
 	return nil
 }
 

@@ -113,7 +113,7 @@ func (self *Thumbnail) Process(context *goldsmith.Context, inputFile *goldsmith.
 		return nil
 	}
 
-	if outputFile := context.RetrieveCachedFile(thumbPath, inputFile); outputFile != nil {
+	if outputFile := context.RetrieveCachedFile(thumbPath, goldsmith.FileCacheKeys(inputFile)...); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)
 		return nil
@@ -124,7 +124,7 @@ func (self *Thumbnail) Process(context *goldsmith.Context, inputFile *goldsmith.
 		return err
 	}
 
-	context.DispatchAndCacheFile(outputFile, inputFile)
+	context.DispatchAndCacheFile(outputFile, goldsmith.FileCacheKeys(inputFile)...)
 	return nil
 }
 

@@ -54,7 +54,7 @@ func (self *Markdown) Initialize(context *goldsmith.Context) error {
 
 func (self *Markdown) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
 	outputPath := strings.TrimSuffix(inputFile.Path(), path.Ext(inputFile.Path())) + ".html"
-	if outputFile := context.RetrieveCachedFile(outputPath, inputFile); outputFile != nil {
+	if outputFile := context.RetrieveCachedFile(outputPath, goldsmith.FileCacheKeys(inputFile)...); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)
 		return nil
@@ -76,6 +76,6 @@ func (self *Markdown) Process(context *goldsmith.Context, inputFile *goldsmith.F
 	}
 
 	outputFile.CopyProps(inputFile)
-	context.DispatchAndCacheFile(outputFile, inputFile)
+	context.DispatchAndCacheFile(outputFile, goldsmith.FileCacheKeys(inputFile)...)
 	return nil
 }

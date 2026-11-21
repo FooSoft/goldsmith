@@ -38,7 +38,7 @@ func (self *LiveJs) Initialize(context *goldsmith.Context) error {
 }
 
 func (self *LiveJs) Process(context *goldsmith.Context, inputFile *goldsmith.File) error {
-	if outputFile := context.RetrieveCachedFile(inputFile.Path(), inputFile); outputFile != nil {
+	if outputFile := context.RetrieveCachedFile(inputFile.Path(), goldsmith.FileCacheKeys(inputFile)...); outputFile != nil {
 		outputFile.CopyProps(inputFile)
 		context.DispatchFile(outputFile)
 		return nil
@@ -62,6 +62,6 @@ func (self *LiveJs) Process(context *goldsmith.Context, inputFile *goldsmith.Fil
 	}
 
 	outputFile.CopyProps(inputFile)
-	context.DispatchAndCacheFile(outputFile, inputFile)
+	context.DispatchAndCacheFile(outputFile, goldsmith.FileCacheKeys(inputFile)...)
 	return nil
 }
