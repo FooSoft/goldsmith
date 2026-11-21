@@ -5,11 +5,14 @@
 // pages are HTML files with a "Layout" property, intended to be rendered by the
 // "layout" plugin. Commit diffs and file contents are provided as page content
 // (available to templates as "Content") and are cached by git object hash, so
-// only new commits and changed files are processed on subsequent builds.
+// only new commits and changed files are diffed or read on subsequent builds;
+// all pages are still dispatched (and laid out) on every build, so use
+// MaxCommits to bound the work for repositories with long histories.
 //
 // A single branch is tracked per repository: the branch referenced by HEAD,
-// unless overridden with Branch or a "Branch" metadata property. For example,
-// given "projects/demo/index.md" containing:
+// unless overridden with a "Branch" metadata property. If HEAD refers to a
+// branch with no commits yet, pages are generated with no commits or files, and
+// Repository.Head is nil. For example, given "projects/demo/index.md" containing:
 //
 //	---
 //	Repository: demo
@@ -34,17 +37,26 @@
 //	commit/<hash>.html   layout "gitcommit", with diffstat and diff as content
 //	file/<path>.html     layout "gitfile", with file contents as content
 //
+// Pages are generated in the directory of the source page, so each directory
+// may contain only one source page with a "Repository" property; pages for
+// multiple repositories in the same directory overwrite each other.
+//
 // Every page, including the source page, has a "Repo" property (*Repository)
 // and a "RepoRoot" property containing the relative path back to the
 // repository directory (e.g. "../" on commit pages), for building links such as
 // {{.Props.RepoRoot}}{{.Page}}. Commit pages also have a "Commit" property
 // (*Commit) and file pages an "Entry" property (*Entry).
 //
-// A top-level markdown README is rendered to Repository.ReadmeHTML for display
-// on the source page. Relative links in it that point to files in the tracked
-// branch are rewritten to their file pages, and relative images are rewritten
-// to raw copies of the files, which are written to "raw/<path>". Links that do
-// not resolve to a file are left unchanged.
+// Repository descriptions and clone URLs are read from the "description" and
+// "url" files in the git directory, as with stagit.
+//
+// A top-level markdown README (preferred over other README files) is rendered
+// to Repository.ReadmeHTML for display on the source page. Raw HTML in it is
+// omitted, as are links with unsafe schemes such as "javascript:". Relative
+// links in it that point to files in the tracked branch are rewritten to their
+// file pages, and relative images are rewritten to raw copies of the files,
+// which are written to "raw/<path>". Links that do not resolve to a file are
+// left unchanged.
 //
 // When using devserver, include the repository directories in the watch list
 // so that new commits trigger a rebuild.
@@ -61,6 +73,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -68,14 +81,12 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
-	fdiff "github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
-	gmhtml "github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 
@@ -90,7 +101,7 @@ type Repository struct {
 	Branch      string
 	Path        string // site-relative directory containing the repository pages
 
-	Head     *Commit
+	Head     *Commit   // nil if the tracked branch has no commits yet
 	Commits  []*Commit // newest first, limited by MaxCommits
 	Branches []*Ref
 	Tags     []*Ref // newest first
@@ -107,12 +118,9 @@ type Commit struct {
 	ShortHash string
 	Parents   []string
 
-	Author         string
-	AuthorEmail    string
-	AuthorDate     time.Time
-	Committer      string
-	CommitterEmail string
-	CommitterDate  time.Time
+	Author      string
+	AuthorEmail string
+	AuthorDate  time.Time
 
 	Subject string
 	Message string
@@ -146,7 +154,6 @@ type GitRepo struct {
 	rootDir     string
 	repoKey     string
 	branchKey   string
-	branch      string
 	layoutKey   string
 	maxCommits  int
 	maxFileSize int64
@@ -176,12 +183,6 @@ func (self *GitRepo) BranchKey(key string) *GitRepo {
 	return self
 }
 
-// Branch sets the default tracked branch (default: the branch referenced by HEAD).
-func (self *GitRepo) Branch(branch string) *GitRepo {
-	self.branch = branch
-	return self
-}
-
 // LayoutKey sets the metadata key used to assign layouts to generated pages (default: "Layout").
 func (self *GitRepo) LayoutKey(key string) *GitRepo {
 	self.layoutKey = key
@@ -189,14 +190,14 @@ func (self *GitRepo) LayoutKey(key string) *GitRepo {
 }
 
 // MaxCommits limits the number of commits listed in the log and given commit
-// pages; zero means no limit (default: 0).
+// pages; zero or less means no limit (default: 0).
 func (self *GitRepo) MaxCommits(count int) *GitRepo {
 	self.maxCommits = count
 	return self
 }
 
 // MaxFileSize sets the largest file size, in bytes, whose contents are
-// rendered on file pages; zero means no limit (default: 1 MiB).
+// rendered on file pages; zero or less means no limit (default: 1 MiB).
 func (self *GitRepo) MaxFileSize(size int64) *GitRepo {
 	self.maxFileSize = size
 	return self
@@ -207,11 +208,7 @@ func (*GitRepo) Name() string {
 }
 
 func (self *GitRepo) Initialize(context *goldsmith.Context) error {
-	if self.maxCommits < 0 || self.maxFileSize < 0 {
-		return errors.New("gitrepo limits cannot be negative")
-	}
-
-	context.CacheKey(fmt.Sprintf("%d", self.maxFileSize))
+	context.CacheKey(strconv.FormatInt(self.maxFileSize, 10))
 	return nil
 }
 
@@ -229,7 +226,7 @@ func (self *GitRepo) Process(context *goldsmith.Context, inputFile *goldsmith.Fi
 		repoPath = filepath.Join(self.rootDir, repoPath)
 	}
 
-	branch := self.branch
+	var branch string
 	if branchProp, ok := inputFile.Prop(self.branchKey); ok {
 		if branch, ok = branchProp.(string); !ok || branch == "" {
 			return fmt.Errorf("invalid %s property: %v", self.branchKey, branchProp)
@@ -237,11 +234,14 @@ func (self *GitRepo) Process(context *goldsmith.Context, inputFile *goldsmith.Fi
 	}
 
 	gen, err := newGenerator(self, context, inputFile, repoPath, branch)
+	if err == nil {
+		err = gen.generate()
+	}
 	if err != nil {
-		return err
+		return fmt.Errorf("repository %s: %w", repoPath, err)
 	}
 
-	return gen.generate()
+	return nil
 }
 
 type generator struct {
@@ -249,7 +249,7 @@ type generator struct {
 	context   *goldsmith.Context
 	indexFile *goldsmith.File
 	repo      *git.Repository
-	head      *object.Commit
+	head      *object.Commit // nil if the tracked branch has no commits yet
 	data      *Repository
 	commits   map[plumbing.Hash]*Commit
 	files     map[string]*Entry
@@ -258,24 +258,18 @@ type generator struct {
 func newGenerator(plugin *GitRepo, context *goldsmith.Context, indexFile *goldsmith.File, repoPath, branch string) (*generator, error) {
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open repository %s: %w", repoPath, err)
-	}
-
-	var ref *plumbing.Reference
-	if branch == "" {
-		if ref, err = repo.Head(); err == nil && !ref.Name().IsBranch() {
-			err = errors.New("HEAD is not a branch")
-		}
-	} else {
-		ref, err = repo.Reference(plumbing.NewBranchReferenceName(branch), true)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve branch in %s: %w", repoPath, err)
-	}
-
-	head, err := repo.CommitObject(ref.Hash())
-	if err != nil {
 		return nil, err
+	}
+
+	refName := plumbing.NewBranchReferenceName(branch)
+	if branch == "" {
+		head, err := repo.Reference(plumbing.HEAD, false)
+		if err != nil {
+			return nil, err
+		}
+		if refName = head.Target(); !refName.IsBranch() {
+			return nil, errors.New("HEAD is not a branch")
+		}
 	}
 
 	gitDir := repoPath
@@ -292,28 +286,34 @@ func newGenerator(plugin *GitRepo, context *goldsmith.Context, indexFile *goldsm
 	if strings.HasPrefix(description, "Unnamed repository") {
 		description = ""
 	}
-	cloneURL := readMetaFile(gitDir, "cloneurl")
-	if cloneURL == "" {
-		cloneURL = readMetaFile(gitDir, "url")
-	}
 
 	gen := &generator{
 		plugin:    plugin,
 		context:   context,
 		indexFile: indexFile,
 		repo:      repo,
-		head:      head,
 		commits:   make(map[plumbing.Hash]*Commit),
 		files:     make(map[string]*Entry),
 		data: &Repository{
 			Name:        strings.TrimSuffix(name, ".git"),
 			Description: description,
-			CloneURL:    cloneURL,
-			Branch:      ref.Name().Short(),
+			CloneURL:    readMetaFile(gitDir, "url"),
+			Branch:      refName.Short(),
 			Path:        indexFile.Dir(),
 		},
 	}
-	gen.data.Head = gen.commit(head)
+
+	ref, err := repo.Reference(refName, true)
+	if errors.Is(err, plumbing.ErrReferenceNotFound) && branch == "" {
+		return gen, nil // HEAD refers to a branch with no commits yet
+	}
+	if err != nil {
+		return nil, fmt.Errorf("branch %s: %w", refName.Short(), err)
+	}
+	if gen.head, err = repo.CommitObject(ref.Hash()); err != nil {
+		return nil, err
+	}
+	gen.data.Head = gen.commit(gen.head)
 
 	return gen, nil
 }
@@ -334,17 +334,14 @@ func (self *generator) commit(commit *object.Commit) *Commit {
 
 	subject, _, _ := strings.Cut(strings.TrimSpace(commit.Message), "\n")
 	data := &Commit{
-		Hash:           commit.Hash.String(),
-		ShortHash:      commit.Hash.String()[:7],
-		Author:         commit.Author.Name,
-		AuthorEmail:    commit.Author.Email,
-		AuthorDate:     commit.Author.When,
-		Committer:      commit.Committer.Name,
-		CommitterEmail: commit.Committer.Email,
-		CommitterDate:  commit.Committer.When,
-		Subject:        strings.TrimSpace(subject),
-		Message:        commit.Message,
-		object:         commit,
+		Hash:        commit.Hash.String(),
+		ShortHash:   commit.Hash.String()[:7],
+		Author:      commit.Author.Name,
+		AuthorEmail: commit.Author.Email,
+		AuthorDate:  commit.Author.When,
+		Subject:     strings.TrimSpace(subject),
+		Message:     commit.Message,
+		object:      commit,
 	}
 	for _, parent := range commit.ParentHashes {
 		data.Parents = append(data.Parents, parent.String())
@@ -355,17 +352,19 @@ func (self *generator) commit(commit *object.Commit) *Commit {
 }
 
 func (self *generator) generate() error {
-	if err := self.collectLog(); err != nil {
-		return err
-	}
 	if err := self.collectRefs(); err != nil {
 		return err
 	}
-	if err := self.collectFiles(); err != nil {
-		return err
-	}
-	if err := self.renderReadme(); err != nil {
-		return fmt.Errorf("failed to render README: %w", err)
+	if self.head != nil {
+		if err := self.collectLog(); err != nil {
+			return err
+		}
+		if err := self.collectFiles(); err != nil {
+			return err
+		}
+		if err := self.renderReadme(); err != nil {
+			return fmt.Errorf("failed to render README: %w", err)
+		}
 	}
 
 	for _, page := range []struct{ path, layout string }{
@@ -373,17 +372,13 @@ func (self *generator) generate() error {
 		{"files.html", "gitfiles"},
 		{"refs.html", "gitrefs"},
 	} {
-		file, err := self.createPage(page.path, nil)
-		if err != nil {
+		if err := self.dispatchPage(page.path, page.layout, "", nil, nil); err != nil {
 			return err
 		}
-
-		self.setPageProps(file, page.path, page.layout, nil)
-		self.context.DispatchFile(file)
 	}
 
 	for _, commit := range self.data.Commits {
-		err := self.dispatchCachedPage(commit.Page, "gitcommit", commit.Hash, goldsmith.FileProps{"Commit": commit}, func() ([]byte, error) {
+		err := self.dispatchPage(commit.Page, "gitcommit", commit.Hash, goldsmith.FileProps{"Commit": commit}, func() ([]byte, error) {
 			return renderDiff(commit.object)
 		})
 		if err != nil {
@@ -392,15 +387,13 @@ func (self *generator) generate() error {
 	}
 
 	for _, entry := range self.data.Files {
-		err := self.dispatchCachedPage("file/"+entry.Path+".html", "gitfile", entry.Hash, goldsmith.FileProps{"Entry": entry}, func() ([]byte, error) {
+		err := self.dispatchPage("file/"+entry.Path+".html", "gitfile", entry.Hash, goldsmith.FileProps{"Entry": entry}, func() ([]byte, error) {
 			return self.renderFile(entry.file)
 		})
 		if err != nil {
 			return fmt.Errorf("failed to generate page for file %s: %w", entry.Path, err)
 		}
-	}
 
-	for _, entry := range self.data.Files {
 		if entry.Raw != "" {
 			if err := self.dispatchRawFile(entry); err != nil {
 				return fmt.Errorf("failed to generate raw file %s: %w", entry.Path, err)
@@ -408,7 +401,8 @@ func (self *generator) generate() error {
 		}
 	}
 
-	self.setCommonProps(self.indexFile, "")
+	self.indexFile.SetProp("Repo", self.data)
+	self.indexFile.SetProp("RepoRoot", "")
 	self.context.DispatchFile(self.indexFile)
 	return nil
 }
@@ -433,38 +427,37 @@ func (self *generator) collectLog() error {
 }
 
 func (self *generator) collectRefs() error {
-	branches, err := self.repo.Branches()
-	if err != nil {
-		return err
-	}
-	err = branches.ForEach(func(ref *plumbing.Reference) error {
-		commit, err := self.repo.CommitObject(ref.Hash())
-		if err != nil {
-			return err
-		}
-
-		self.data.Branches = append(self.data.Branches, &Ref{Name: ref.Name().Short(), Commit: self.commit(commit)})
-		return nil
-	})
+	refs, err := self.repo.References()
 	if err != nil {
 		return err
 	}
 
-	tags, err := self.repo.Tags()
-	if err != nil {
-		return err
-	}
-	err = tags.ForEach(func(ref *plumbing.Reference) error {
-		var commit *object.Commit
-		if tag, err := self.repo.TagObject(ref.Hash()); err == nil {
-			if commit, err = tag.Commit(); err != nil {
-				return nil // tags of non-commit objects are not listed
-			}
-		} else if commit, err = self.repo.CommitObject(ref.Hash()); err != nil {
+	err = refs.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Type() != plumbing.HashReference || !ref.Name().IsBranch() && !ref.Name().IsTag() {
 			return nil
 		}
 
-		self.data.Tags = append(self.data.Tags, &Ref{Name: ref.Name().Short(), Commit: self.commit(commit)})
+		obj, err := self.repo.Object(plumbing.AnyObject, ref.Hash())
+		if err != nil {
+			return err
+		}
+		if tag, ok := obj.(*object.Tag); ok {
+			if obj, err = tag.Object(); err != nil {
+				return err
+			}
+		}
+		commit, ok := obj.(*object.Commit)
+		if !ok {
+			return nil // refs to trees and blobs are not listed
+		}
+
+		data := &Ref{Name: ref.Name().Short(), Commit: self.commit(commit)}
+		if ref.Name().IsBranch() {
+			self.data.Branches = append(self.data.Branches, data)
+		} else {
+			self.data.Tags = append(self.data.Tags, data)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -507,7 +500,7 @@ func (self *generator) collectFiles() error {
 		if !strings.Contains(file.Name, "/") {
 			stem := strings.ToUpper(strings.TrimSuffix(entry.Name, path.Ext(entry.Name)))
 			switch {
-			case stem == "README" && self.data.Readme == nil:
+			case stem == "README" && (self.data.Readme == nil || isMarkdown(entry.Name)):
 				self.data.Readme = entry
 			case (stem == "LICENSE" || stem == "LICENCE" || stem == "COPYING") && self.data.License == nil:
 				self.data.License = entry
@@ -518,12 +511,14 @@ func (self *generator) collectFiles() error {
 	})
 }
 
+func isMarkdown(name string) bool {
+	ext := strings.ToLower(path.Ext(name))
+	return ext == ".md" || ext == ".markdown"
+}
+
 func (self *generator) renderReadme() error {
 	readme := self.data.Readme
-	if readme == nil {
-		return nil
-	}
-	if ext := strings.ToLower(path.Ext(readme.Name)); ext != ".md" && ext != ".markdown" {
+	if readme == nil || !isMarkdown(readme.Name) {
 		return nil
 	}
 
@@ -538,7 +533,6 @@ func (self *generator) renderReadme() error {
 			parser.WithAutoHeadingID(),
 			parser.WithASTTransformers(util.Prioritized(readmeLinks{self}, 0)),
 		),
-		goldmark.WithRendererOptions(gmhtml.WithUnsafe()),
 	)
 
 	var buff bytes.Buffer
@@ -626,52 +620,52 @@ func modeString(mode filemode.FileMode) string {
 	}
 }
 
-func (self *generator) setCommonProps(file *goldsmith.File, relPath string) {
+// dispatchPage dispatches a generated page with content produced by render,
+// which is nil for pages without content. If hash is not empty, the content
+// depends only on that git object, and is cached by it.
+func (self *generator) dispatchPage(relPath, layout, hash string, props goldsmith.FileProps, render func() ([]byte, error)) error {
+	outputPath := path.Join(self.data.Path, relPath)
+
+	var file *goldsmith.File
+	if hash != "" {
+		file = self.context.RetrieveCachedFile(outputPath, hash)
+	}
+
+	cached := file != nil
+	if !cached {
+		var body []byte
+		if render != nil {
+			var err error
+			if body, err = render(); err != nil {
+				return err
+			}
+		}
+
+		var err error
+		if file, err = self.context.CreateFileFromReader(outputPath, bytes.NewReader(body)); err != nil {
+			return err
+		}
+	}
+
 	file.SetProp("Repo", self.data)
 	file.SetProp("RepoRoot", strings.Repeat("../", strings.Count(relPath, "/")))
-}
-
-func (self *generator) setPageProps(file *goldsmith.File, relPath, layout string, props goldsmith.FileProps) {
-	self.setCommonProps(file, relPath)
 	file.SetProp(self.plugin.layoutKey, layout)
 	for name, value := range props {
 		file.SetProp(name, value)
 	}
-}
 
-func (self *generator) createPage(relPath string, body []byte) (*goldsmith.File, error) {
-	return self.context.CreateFileFromReader(path.Join(self.data.Path, relPath), bytes.NewReader(body))
-}
-
-// dispatchCachedPage dispatches a page whose content depends only on the
-// provided git object hash, rendering it only if it is not already cached.
-func (self *generator) dispatchCachedPage(relPath, layout, hash string, props goldsmith.FileProps, render func() ([]byte, error)) error {
-	if file := self.context.RetrieveCachedFile(path.Join(self.data.Path, relPath), hash); file != nil {
-		self.setPageProps(file, relPath, layout, props)
+	if cached || hash == "" {
 		self.context.DispatchFile(file)
-		return nil
+	} else {
+		self.context.DispatchAndCacheFile(file, hash)
 	}
 
-	body, err := render()
-	if err != nil {
-		return err
-	}
-
-	file, err := self.createPage(relPath, body)
-	if err != nil {
-		return err
-	}
-
-	self.setPageProps(file, relPath, layout, props)
-	self.context.DispatchAndCacheFile(file, hash)
 	return nil
 }
 
 func (self *generator) renderFile(file *object.File) ([]byte, error) {
-	var buff bytes.Buffer
 	if self.plugin.maxFileSize > 0 && file.Size > self.plugin.maxFileSize {
-		buff.WriteString("<p class=\"file-too-large\">File too large to display.</p>\n")
-		return buff.Bytes(), nil
+		return []byte("<p class=\"file-too-large\">File too large to display.</p>\n"), nil
 	}
 
 	binary, err := file.IsBinary()
@@ -679,8 +673,7 @@ func (self *generator) renderFile(file *object.File) ([]byte, error) {
 		return nil, err
 	}
 	if binary {
-		buff.WriteString("<p class=\"file-binary\">Binary file.</p>\n")
-		return buff.Bytes(), nil
+		return []byte("<p class=\"file-binary\">Binary file.</p>\n"), nil
 	}
 
 	contents, err := file.Contents()
@@ -688,8 +681,9 @@ func (self *generator) renderFile(file *object.File) ([]byte, error) {
 		return nil, err
 	}
 
+	var buff bytes.Buffer
 	buff.WriteString("<pre><code")
-	if lexer := lexers.Match(path.Base(file.Name)); lexer != nil {
+	if lexer := lexers.Match(file.Name); lexer != nil {
 		config := lexer.Config()
 		language := strings.ToLower(config.Name)
 		if len(config.Aliases) > 0 {
@@ -728,16 +722,20 @@ func renderDiff(commit *object.Commit) ([]byte, error) {
 		return nil, err
 	}
 
-	var stats, diff, encoded bytes.Buffer
-	var files, additions, deletions int
-	for _, filePatch := range patch.FilePatches() {
-		from, to := filePatch.Files()
-		if from == nil && to == nil {
-			continue
-		}
+	var encoded bytes.Buffer
+	if err := patch.Encode(&encoded); err != nil {
+		return nil, err
+	}
 
+	// The encoded patch has a "diff --git" header for each file patch, in order.
+	type fileStat struct {
+		name                 string
+		additions, deletions int
+	}
+	var stats []fileStat
+	for _, filePatch := range patch.FilePatches() {
 		var name string
-		switch {
+		switch from, to := filePatch.Files(); {
 		case from == nil:
 			name = to.Path()
 		case to == nil || from.Path() == to.Path():
@@ -745,102 +743,69 @@ func renderDiff(commit *object.Commit) ([]byte, error) {
 		default:
 			name = from.Path() + " => " + to.Path()
 		}
+		stats = append(stats, fileStat{name: name})
+	}
 
-		var fileAdditions, fileDeletions int
-		for _, chunk := range filePatch.Chunks() {
-			switch chunk.Type() {
-			case fdiff.Add:
-				fileAdditions += countLines(chunk.Content())
-			case fdiff.Delete:
-				fileDeletions += countLines(chunk.Content())
-			}
+	var diff bytes.Buffer
+	file, inHeader := -1, false
+	for _, line := range strings.SplitAfter(encoded.String(), "\n") {
+		if line == "" {
+			continue
 		}
 
-		fmt.Fprintf(
-			&stats,
-			"<tr><td class=\"path\"><a href=\"#f%d\">%s</a></td><td class=\"add\">+%d</td><td class=\"del\">-%d</td></tr>\n",
-			files, html.EscapeString(name), fileAdditions, fileDeletions,
-		)
+		content := strings.TrimSuffix(line, "\n")
+		newline := line[len(content):]
 
-		encoded.Reset()
-		if err := fdiff.NewUnifiedEncoder(&encoded, fdiff.DefaultContextLines).Encode(singlePatch{filePatch}); err != nil {
-			return nil, err
+		var class string
+		switch {
+		case strings.HasPrefix(line, "diff --git "):
+			file++
+			inHeader = true
+			fmt.Fprintf(&diff, "<b id=\"f%d\">%s</b>%s", file, html.EscapeString(content), newline)
+			continue
+		case strings.HasPrefix(line, "@@"):
+			class = "hunk"
+			inHeader = false
+		case inHeader:
+			class = "head"
+		case strings.HasPrefix(line, "+"):
+			class = "add"
+			stats[file].additions++
+		case strings.HasPrefix(line, "-"):
+			class = "del"
+			stats[file].deletions++
 		}
 
-		inHeader := true
-		for i, line := range strings.SplitAfter(encoded.String(), "\n") {
-			if line == "" {
-				continue
-			}
-
-			content := strings.TrimSuffix(line, "\n")
-			newline := line[len(content):]
-
-			var class string
-			switch {
-			case i == 0:
-				fmt.Fprintf(&diff, "<b id=\"f%d\">%s</b>%s", files, html.EscapeString(content), newline)
-				continue
-			case strings.HasPrefix(line, "@@"):
-				class = "hunk"
-				inHeader = false
-			case inHeader:
-				class = "head"
-			case strings.HasPrefix(line, "+"):
-				class = "add"
-			case strings.HasPrefix(line, "-"):
-				class = "del"
-			}
-
-			if class == "" {
-				diff.WriteString(html.EscapeString(line))
-			} else {
-				fmt.Fprintf(&diff, "<span class=\"%s\">%s</span>%s", class, html.EscapeString(content), newline)
-			}
+		if class == "" {
+			diff.WriteString(html.EscapeString(line))
+		} else {
+			fmt.Fprintf(&diff, "<span class=\"%s\">%s</span>%s", class, html.EscapeString(content), newline)
 		}
-
-		files++
-		additions += fileAdditions
-		deletions += fileDeletions
 	}
 
 	var buff bytes.Buffer
-	fmt.Fprintf(&buff, "<table class=\"diffstat\">\n%s</table>\n", stats.Bytes())
+	var additions, deletions int
+	buff.WriteString("<table class=\"diffstat\">\n")
+	for i, stat := range stats {
+		fmt.Fprintf(
+			&buff,
+			"<tr><td class=\"path\"><a href=\"#f%d\">%s</a></td><td class=\"add\">+%d</td><td class=\"del\">-%d</td></tr>\n",
+			i, html.EscapeString(stat.name), stat.additions, stat.deletions,
+		)
+		additions += stat.additions
+		deletions += stat.deletions
+	}
+	buff.WriteString("</table>\n")
 	fmt.Fprintf(
 		&buff,
 		"<p class=\"diffsummary\">%d %s changed, %d %s(+), %d %s(-)</p>\n",
-		files, plural(files, "file", "files"),
+		len(stats), plural(len(stats), "file", "files"),
 		additions, plural(additions, "insertion", "insertions"),
 		deletions, plural(deletions, "deletion", "deletions"),
 	)
 	fmt.Fprintf(&buff, "<pre class=\"diff\">%s</pre>\n", diff.Bytes())
 
 	return buff.Bytes(), nil
-}
-
-type singlePatch struct {
-	filePatch fdiff.FilePatch
-}
-
-func (self singlePatch) FilePatches() []fdiff.FilePatch {
-	return []fdiff.FilePatch{self.filePatch}
-}
-
-func (singlePatch) Message() string {
-	return ""
-}
-
-func countLines(content string) int {
-	if content == "" {
-		return 0
-	}
-
-	count := strings.Count(content, "\n")
-	if !strings.HasSuffix(content, "\n") {
-		count++
-	}
-
-	return count
 }
 
 func plural(count int, singular, plural string) string {

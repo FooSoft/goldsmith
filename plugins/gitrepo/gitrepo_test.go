@@ -93,11 +93,17 @@ const readme = `# Demo
 - [web](https://example.com/)
 - [mail](mailto:jane@example.com)
 - [top](#demo)
+- [script](javascript:alert(1))
+
+Inline <b>html</b>.
+
+<div onclick="alert(1)">block html</div>
 `
 
 func createDemoRepo(t *testing.T, dir string) *testRepo {
 	repo := newTestRepo(t, dir)
 	first := repo.commit("Initial commit\n\nAdd the basics.\n", map[string]string{
+		"README":             "Plain text README\n",
 		"README.md":          readme,
 		"LICENSE":            "MIT\n",
 		"main.go":            "package main\n\nfunc main() {}\n",
@@ -105,15 +111,17 @@ func createDemoRepo(t *testing.T, dir string) *testRepo {
 		"docs/guide/run.txt": "go run .\n",
 		"logo.bin":           "\x00\x01\x02",
 		"50% #1.txt":         "fifty\n",
+		"notes.txt":          "one\ntwo\nthree\n",
 	})
 	if _, err := repo.repo.CreateTag("v0.1", first, &git.CreateTagOptions{Tagger: repo.signature(), Message: "v0.1"}); err != nil {
 		t.Fatal(err)
 	}
 
 	second := repo.commit("Print a greeting\n", map[string]string{
-		"main.go":  "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"hi\")\n}\n",
-		"logo.bin": "\x00\x03",
-	}, "docs/a b.txt")
+		"main.go":        "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"hi\")\n}\n",
+		"logo.bin":       "\x00\x03",
+		"docs/notes.txt": "one\ntwo\nthree\n",
+	}, "docs/a b.txt", "notes.txt")
 	if _, err := repo.repo.CreateTag("v0.2", second, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +130,7 @@ func createDemoRepo(t *testing.T, dir string) *testRepo {
 	repo.commit("Add feature\n", map[string]string{"feature.txt": "feature\n"})
 	repo.checkout("master", false)
 
-	for name, data := range map[string]string{"description": "Demo repository\n", "cloneurl": "https://example.com/demo.git\n"} {
+	for name, data := range map[string]string{"description": "Demo repository\n", "url": "https://example.com/demo.git\n"} {
 		if err := os.WriteFile(filepath.Join(dir, ".git", name), []byte(data), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -216,5 +224,27 @@ func TestInvalidRepository(t *testing.T) {
 	gs.Begin(sourceDir).Chain(frontmatter.New()).Chain(New(rootDir))
 	if errs := gs.End(filepath.Join(rootDir, "target")); len(errs) == 0 {
 		t.Fatal("expected error for missing repository")
+	}
+}
+
+func TestEmptyRepository(t *testing.T) {
+	var (
+		rootDir   = t.TempDir()
+		sourceDir = filepath.Join(rootDir, "source")
+		targetDir = filepath.Join(rootDir, "target")
+	)
+	newTestRepo(t, filepath.Join(rootDir, "empty"))
+	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "index.html"), []byte("---\nRepository: empty\n---\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	build(t, sourceDir, targetDir, "", New(rootDir))
+	for _, name := range []string{"index.html", "log.html", "files.html", "refs.html"} {
+		if _, err := os.Stat(filepath.Join(targetDir, name)); err != nil {
+			t.Error(err)
+		}
 	}
 }

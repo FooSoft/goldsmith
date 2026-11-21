@@ -1,7 +1,7 @@
 <h1>demo</h1>
 <p>Demo repository | git clone https://example.com/demo.git | branch master</p>
 <nav><a href="../log.html">Log</a> <a href="../files.html">Files</a> <a href="../refs.html">Refs</a> <a href="../file/README.md.html">README</a> <a href="../file/LICENSE.html">LICENSE</a></nav>
-<p>commit 8872cffd082318357f0d75517ebf2808a76b6695</p>
+<p>commit e60c1da45c91302ed7cba39b4895c7068872017a</p>
 <p>Author: Jane Doe &lt;jane@example.com&gt; 2024-01-02 03:04</p>
 <pre>Initial commit
 
@@ -10,13 +10,15 @@ Add the basics.
 <table class="diffstat">
 <tr><td class="path"><a href="#f0">50% #1.txt</a></td><td class="add">+1</td><td class="del">-0</td></tr>
 <tr><td class="path"><a href="#f1">LICENSE</a></td><td class="add">+1</td><td class="del">-0</td></tr>
-<tr><td class="path"><a href="#f2">README.md</a></td><td class="add">+12</td><td class="del">-0</td></tr>
-<tr><td class="path"><a href="#f3">docs/a b.txt</a></td><td class="add">+1</td><td class="del">-0</td></tr>
-<tr><td class="path"><a href="#f4">docs/guide/run.txt</a></td><td class="add">+1</td><td class="del">-0</td></tr>
-<tr><td class="path"><a href="#f5">logo.bin</a></td><td class="add">+0</td><td class="del">-0</td></tr>
-<tr><td class="path"><a href="#f6">main.go</a></td><td class="add">+3</td><td class="del">-0</td></tr>
+<tr><td class="path"><a href="#f2">README</a></td><td class="add">+1</td><td class="del">-0</td></tr>
+<tr><td class="path"><a href="#f3">README.md</a></td><td class="add">+17</td><td class="del">-0</td></tr>
+<tr><td class="path"><a href="#f4">docs/a b.txt</a></td><td class="add">+1</td><td class="del">-0</td></tr>
+<tr><td class="path"><a href="#f5">docs/guide/run.txt</a></td><td class="add">+1</td><td class="del">-0</td></tr>
+<tr><td class="path"><a href="#f6">logo.bin</a></td><td class="add">+0</td><td class="del">-0</td></tr>
+<tr><td class="path"><a href="#f7">main.go</a></td><td class="add">+3</td><td class="del">-0</td></tr>
+<tr><td class="path"><a href="#f8">notes.txt</a></td><td class="add">+3</td><td class="del">-0</td></tr>
 </table>
-<p class="diffsummary">7 files changed, 19 insertions(+), 0 deletions(-)</p>
+<p class="diffsummary">9 files changed, 28 insertions(+), 0 deletions(-)</p>
 <pre class="diff"><b id="f0">diff --git a/50% #1.txt b/50% #1.txt</b>
 <span class="head">new file mode 100644</span>
 <span class="head">index 0000000000000000000000000000000000000000..c8e77195b96ea9fd3f8fadaf378cd365637208dc</span>
@@ -31,12 +33,19 @@ Add the basics.
 <span class="head">+++ b/LICENSE</span>
 <span class="hunk">@@ -0,0 +1 @@</span>
 <span class="add">+MIT</span>
-<b id="f2">diff --git a/README.md b/README.md</b>
+<b id="f2">diff --git a/README b/README</b>
 <span class="head">new file mode 100644</span>
-<span class="head">index 0000000000000000000000000000000000000000..990fcbe04b4759373a439922088f828eeb1dfe3a</span>
+<span class="head">index 0000000000000000000000000000000000000000..ef1b7614eea5e0f5f249c35f36bc85c05282eaee</span>
+<span class="head">--- /dev/null</span>
+<span class="head">+++ b/README</span>
+<span class="hunk">@@ -0,0 +1 @@</span>
+<span class="add">+Plain text README</span>
+<b id="f3">diff --git a/README.md b/README.md</b>
+<span class="head">new file mode 100644</span>
+<span class="head">index 0000000000000000000000000000000000000000..86d614f32159b1ab5f3230614a952b04f2c89eac</span>
 <span class="head">--- /dev/null</span>
 <span class="head">+++ b/README.md</span>
-<span class="hunk">@@ -0,0 +1,12 @@</span>
+<span class="hunk">@@ -0,0 +1,17 @@</span>
 <span class="add">+# Demo</span>
 <span class="add">+</span>
 <span class="add">+![logo](./logo.bin) ![missing](missing.png) ![remote](https://example.com/logo.png)</span>
@@ -49,25 +58,30 @@ Add the basics.
 <span class="add">+- [web](https://example.com/)</span>
 <span class="add">+- [mail](mailto:jane@example.com)</span>
 <span class="add">+- [top](#demo)</span>
-<b id="f3">diff --git a/docs/a b.txt b/docs/a b.txt</b>
+<span class="add">+- [script](javascript:alert(1))</span>
+<span class="add">+</span>
+<span class="add">+Inline &lt;b&gt;html&lt;/b&gt;.</span>
+<span class="add">+</span>
+<span class="add">+&lt;div onclick=&#34;alert(1)&#34;&gt;block html&lt;/div&gt;</span>
+<b id="f4">diff --git a/docs/a b.txt b/docs/a b.txt</b>
 <span class="head">new file mode 100644</span>
 <span class="head">index 0000000000000000000000000000000000000000..dab3740db98d5c36ded40fc06e3aec38f2d7bd76</span>
 <span class="head">--- /dev/null</span>
 <span class="head">+++ b/docs/a b.txt</span>
 <span class="hunk">@@ -0,0 +1 @@</span>
 <span class="add">+&lt;hello &amp; goodbye&gt;</span>
-<b id="f4">diff --git a/docs/guide/run.txt b/docs/guide/run.txt</b>
+<b id="f5">diff --git a/docs/guide/run.txt b/docs/guide/run.txt</b>
 <span class="head">new file mode 100644</span>
 <span class="head">index 0000000000000000000000000000000000000000..4beb55a2709b7d22edbd9c27d754df4b95dd3c91</span>
 <span class="head">--- /dev/null</span>
 <span class="head">+++ b/docs/guide/run.txt</span>
 <span class="hunk">@@ -0,0 +1 @@</span>
 <span class="add">+go run .</span>
-<b id="f5">diff --git a/logo.bin b/logo.bin</b>
+<b id="f6">diff --git a/logo.bin b/logo.bin</b>
 <span class="head">new file mode 100644</span>
 <span class="head">index 0000000000000000000000000000000000000000..8352675d67aed6625ece79af41c27fdb4ee2e867</span>
 <span class="head">Binary files /dev/null and b/logo.bin differ</span>
-<b id="f6">diff --git a/main.go b/main.go</b>
+<b id="f7">diff --git a/main.go b/main.go</b>
 <span class="head">new file mode 100644</span>
 <span class="head">index 0000000000000000000000000000000000000000..38dd16da61accb1a8de6ac8709d2e65ef4a51a4a</span>
 <span class="head">--- /dev/null</span>
@@ -76,4 +90,13 @@ Add the basics.
 <span class="add">+package main</span>
 <span class="add">+</span>
 <span class="add">+func main() {}</span>
+<b id="f8">diff --git a/notes.txt b/notes.txt</b>
+<span class="head">new file mode 100644</span>
+<span class="head">index 0000000000000000000000000000000000000000..4cb29ea38f70d7c61b2a3a25b02e3bdf44905402</span>
+<span class="head">--- /dev/null</span>
+<span class="head">+++ b/notes.txt</span>
+<span class="hunk">@@ -0,0 +1,3 @@</span>
+<span class="add">+one</span>
+<span class="add">+two</span>
+<span class="add">+three</span>
 </pre>
