@@ -46,10 +46,10 @@ package gitrepo
 
 import (
 	"bytes"
-	gocontext "context"
 	"errors"
 	"fmt"
 	"html"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -101,7 +101,9 @@ type Commit struct {
 	Subject string
 	Message string
 
-	Page string // page path relative to the repository directory, empty if no page was generated
+	Page string // page URL relative to the repository directory, empty if no page was generated
+
+	object *object.Commit
 }
 
 // Ref contains metadata about a branch or tag.
@@ -117,16 +119,9 @@ type Entry struct {
 	Mode string
 	Size int64
 	Hash string
-	Page string // page path relative to the repository directory
-}
+	Page string // page URL relative to the repository directory
 
-// Layouts contains the layout names assigned to generated pages.
-type Layouts struct {
-	Log    string
-	Files  string
-	Refs   string
-	Commit string
-	File   string
+	file *object.File
 }
 
 // GitRepo chainable context.
@@ -136,7 +131,6 @@ type GitRepo struct {
 	branchKey   string
 	branch      string
 	layoutKey   string
-	layouts     Layouts
 	maxCommits  int
 	maxFileSize int64
 }
@@ -145,17 +139,10 @@ type GitRepo struct {
 // are resolved against rootDir.
 func New(rootDir string) *GitRepo {
 	return &GitRepo{
-		rootDir:   rootDir,
-		repoKey:   "Repository",
-		branchKey: "Branch",
-		layoutKey: "Layout",
-		layouts: Layouts{
-			Log:    "gitlog",
-			Files:  "gitfiles",
-			Refs:   "gitrefs",
-			Commit: "gitcommit",
-			File:   "gitfile",
-		},
+		rootDir:     rootDir,
+		repoKey:     "Repository",
+		branchKey:   "Branch",
+		layoutKey:   "Layout",
 		maxFileSize: 1 << 20,
 	}
 }
@@ -181,13 +168,6 @@ func (self *GitRepo) Branch(branch string) *GitRepo {
 // LayoutKey sets the metadata key used to assign layouts to generated pages (default: "Layout").
 func (self *GitRepo) LayoutKey(key string) *GitRepo {
 	self.layoutKey = key
-	return self
-}
-
-// Layouts sets the layout names assigned to generated pages (default:
-// "gitlog", "gitfiles", "gitrefs", "gitcommit", and "gitfile").
-func (self *GitRepo) Layouts(layouts Layouts) *GitRepo {
-	self.layouts = layouts
 	return self
 }
 
@@ -345,6 +325,7 @@ func (self *generator) commit(commit *object.Commit) *Commit {
 		CommitterDate:  commit.Committer.When,
 		Subject:        strings.TrimSpace(subject),
 		Message:        commit.Message,
+		object:         commit,
 	}
 	for _, parent := range commit.ParentHashes {
 		data.Parents = append(data.Parents, parent.String())
@@ -354,28 +335,21 @@ func (self *generator) commit(commit *object.Commit) *Commit {
 	return data
 }
 
-type fileItem struct {
-	entry *Entry
-	file  *object.File
-}
-
 func (self *generator) generate() error {
-	commits, err := self.collectLog()
-	if err != nil {
+	if err := self.collectLog(); err != nil {
 		return err
 	}
 	if err := self.collectRefs(); err != nil {
 		return err
 	}
-	files, err := self.collectFiles()
-	if err != nil {
+	if err := self.collectFiles(); err != nil {
 		return err
 	}
 
 	for _, page := range []struct{ path, layout string }{
-		{"log.html", self.plugin.layouts.Log},
-		{"files.html", self.plugin.layouts.Files},
-		{"refs.html", self.plugin.layouts.Refs},
+		{"log.html", "gitlog"},
+		{"files.html", "gitfiles"},
+		{"refs.html", "gitrefs"},
 	} {
 		file, err := self.createPage(page.path, nil)
 		if err != nil {
@@ -386,15 +360,21 @@ func (self *generator) generate() error {
 		self.context.DispatchFile(file)
 	}
 
-	for _, commit := range commits {
-		if err := self.dispatchCommitPage(commit); err != nil {
-			return err
+	for _, commit := range self.data.Commits {
+		err := self.dispatchCachedPage(commit.Page, "gitcommit", commit.Hash, goldsmith.FileProps{"Commit": commit}, func() ([]byte, error) {
+			return renderDiff(commit.object)
+		})
+		if err != nil {
+			return fmt.Errorf("failed to generate page for commit %s: %w", commit.Hash, err)
 		}
 	}
 
-	for _, item := range files {
-		if err := self.dispatchFilePage(item); err != nil {
-			return err
+	for _, entry := range self.data.Files {
+		err := self.dispatchCachedPage("file/"+entry.Path+".html", "gitfile", entry.Hash, goldsmith.FileProps{"Entry": entry}, func() ([]byte, error) {
+			return self.renderFile(entry.file)
+		})
+		if err != nil {
+			return fmt.Errorf("failed to generate page for file %s: %w", entry.Path, err)
 		}
 	}
 
@@ -403,27 +383,23 @@ func (self *generator) generate() error {
 	return nil
 }
 
-func (self *generator) collectLog() ([]*object.Commit, error) {
+func (self *generator) collectLog() error {
 	iter, err := self.repo.Log(&git.LogOptions{From: self.head.Hash, Order: git.LogOrderCommitterTime})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer iter.Close()
 
-	var commits []*object.Commit
-	err = iter.ForEach(func(commit *object.Commit) error {
-		if self.plugin.maxCommits > 0 && len(commits) >= self.plugin.maxCommits {
+	return iter.ForEach(func(commit *object.Commit) error {
+		if self.plugin.maxCommits > 0 && len(self.data.Commits) >= self.plugin.maxCommits {
 			return storer.ErrStop
 		}
 
 		data := self.commit(commit)
 		data.Page = "commit/" + data.Hash + ".html"
 		self.data.Commits = append(self.data.Commits, data)
-		commits = append(commits, commit)
 		return nil
 	})
-
-	return commits, err
 }
 
 func (self *generator) collectRefs() error {
@@ -479,24 +455,23 @@ func (self *generator) collectRefs() error {
 	return nil
 }
 
-func (self *generator) collectFiles() ([]fileItem, error) {
+func (self *generator) collectFiles() error {
 	tree, err := self.head.Tree()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var items []fileItem
-	err = tree.Files().ForEach(func(file *object.File) error {
+	return tree.Files().ForEach(func(file *object.File) error {
 		entry := &Entry{
 			Path: file.Name,
 			Name: path.Base(file.Name),
 			Mode: modeString(file.Mode),
 			Size: file.Size,
 			Hash: file.Hash.String(),
-			Page: "file/" + file.Name + ".html",
+			Page: "file/" + escapePath(file.Name) + ".html",
+			file: file,
 		}
 		self.data.Files = append(self.data.Files, entry)
-		items = append(items, fileItem{entry, file})
 
 		if !strings.Contains(file.Name, "/") {
 			stem := strings.ToUpper(strings.TrimSuffix(entry.Name, path.Ext(entry.Name)))
@@ -510,8 +485,16 @@ func (self *generator) collectFiles() ([]fileItem, error) {
 
 		return nil
 	})
+}
 
-	return items, err
+// escapePath escapes each segment of a slash-separated path for use in URLs.
+func escapePath(relPath string) string {
+	segments := strings.Split(relPath, "/")
+	for i, segment := range segments {
+		segments[i] = url.PathEscape(segment)
+	}
+
+	return strings.Join(segments, "/")
 }
 
 func modeString(mode filemode.FileMode) string {
@@ -564,31 +547,6 @@ func (self *generator) dispatchCachedPage(relPath, layout, hash string, props go
 	self.setPageProps(file, relPath, layout, props)
 	self.context.DispatchAndCacheFileByKey(file, hash)
 	return nil
-}
-
-func (self *generator) dispatchCommitPage(commit *object.Commit) error {
-	data := self.commit(commit)
-	props := goldsmith.FileProps{"Commit": data}
-
-	return self.dispatchCachedPage(data.Page, self.plugin.layouts.Commit, data.Hash, props, func() ([]byte, error) {
-		body, err := renderDiff(commit)
-		if err != nil {
-			return nil, fmt.Errorf("failed to diff commit %s: %w", data.Hash, err)
-		}
-		return body, nil
-	})
-}
-
-func (self *generator) dispatchFilePage(item fileItem) error {
-	props := goldsmith.FileProps{"Entry": item.entry}
-
-	return self.dispatchCachedPage(item.entry.Page, self.plugin.layouts.File, item.entry.Hash, props, func() ([]byte, error) {
-		body, err := self.renderFile(item.file)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read file %s: %w", item.file.Name, err)
-		}
-		return body, nil
-	})
 }
 
 func (self *generator) renderFile(file *object.File) ([]byte, error) {
@@ -647,86 +605,52 @@ func renderDiff(commit *object.Commit) ([]byte, error) {
 		}
 	}
 
-	ctx := gocontext.Background()
-	changes, err := object.DiffTreeWithOptions(ctx, parentTree, tree, object.DefaultDiffTreeOptions)
-	if err != nil {
-		return nil, err
-	}
-	patch, err := changes.PatchContext(ctx)
+	patch, err := parentTree.Patch(tree)
 	if err != nil {
 		return nil, err
 	}
 
-	type fileStat struct {
-		name      string
-		additions int
-		deletions int
-	}
-
-	var (
-		stats       []fileStat
-		diffs       [][]byte
-		totalAdd    int
-		totalDelete int
-	)
+	var stats, diff, encoded bytes.Buffer
+	var files, additions, deletions int
 	for _, filePatch := range patch.FilePatches() {
 		from, to := filePatch.Files()
 		if from == nil && to == nil {
 			continue
 		}
 
-		var stat fileStat
+		var name string
 		switch {
 		case from == nil:
-			stat.name = to.Path()
+			name = to.Path()
 		case to == nil || from.Path() == to.Path():
-			stat.name = from.Path()
+			name = from.Path()
 		default:
-			stat.name = from.Path() + " => " + to.Path()
+			name = from.Path() + " => " + to.Path()
 		}
+
+		var fileAdditions, fileDeletions int
 		for _, chunk := range filePatch.Chunks() {
-			lines := countLines(chunk.Content())
 			switch chunk.Type() {
 			case fdiff.Add:
-				stat.additions += lines
+				fileAdditions += countLines(chunk.Content())
 			case fdiff.Delete:
-				stat.deletions += lines
+				fileDeletions += countLines(chunk.Content())
 			}
 		}
-		totalAdd += stat.additions
-		totalDelete += stat.deletions
 
-		var diff bytes.Buffer
-		if err := fdiff.NewUnifiedEncoder(&diff, fdiff.DefaultContextLines).Encode(singlePatch{filePatch}); err != nil {
+		fmt.Fprintf(
+			&stats,
+			"<tr><td class=\"path\"><a href=\"#f%d\">%s</a></td><td class=\"add\">+%d</td><td class=\"del\">-%d</td></tr>\n",
+			files, html.EscapeString(name), fileAdditions, fileDeletions,
+		)
+
+		encoded.Reset()
+		if err := fdiff.NewUnifiedEncoder(&encoded, fdiff.DefaultContextLines).Encode(singlePatch{filePatch}); err != nil {
 			return nil, err
 		}
 
-		stats = append(stats, stat)
-		diffs = append(diffs, diff.Bytes())
-	}
-
-	var buff bytes.Buffer
-	buff.WriteString("<table class=\"diffstat\">\n")
-	for i, stat := range stats {
-		fmt.Fprintf(
-			&buff,
-			"<tr><td class=\"path\"><a href=\"#f%d\">%s</a></td><td class=\"add\">+%d</td><td class=\"del\">-%d</td></tr>\n",
-			i, html.EscapeString(stat.name), stat.additions, stat.deletions,
-		)
-	}
-	buff.WriteString("</table>\n")
-	fmt.Fprintf(
-		&buff,
-		"<p class=\"diffsummary\">%d %s changed, %d %s(+), %d %s(-)</p>\n",
-		len(stats), plural(len(stats), "file", "files"),
-		totalAdd, plural(totalAdd, "insertion", "insertions"),
-		totalDelete, plural(totalDelete, "deletion", "deletions"),
-	)
-
-	buff.WriteString("<pre class=\"diff\">")
-	for i, diff := range diffs {
 		inHeader := true
-		for j, line := range strings.SplitAfter(string(diff), "\n") {
+		for i, line := range strings.SplitAfter(encoded.String(), "\n") {
 			if line == "" {
 				continue
 			}
@@ -736,8 +660,8 @@ func renderDiff(commit *object.Commit) ([]byte, error) {
 
 			var class string
 			switch {
-			case j == 0:
-				fmt.Fprintf(&buff, "<b id=\"f%d\">%s</b>%s", i, html.EscapeString(content), newline)
+			case i == 0:
+				fmt.Fprintf(&diff, "<b id=\"f%d\">%s</b>%s", files, html.EscapeString(content), newline)
 				continue
 			case strings.HasPrefix(line, "@@"):
 				class = "hunk"
@@ -751,13 +675,27 @@ func renderDiff(commit *object.Commit) ([]byte, error) {
 			}
 
 			if class == "" {
-				buff.WriteString(html.EscapeString(line))
+				diff.WriteString(html.EscapeString(line))
 			} else {
-				fmt.Fprintf(&buff, "<span class=\"%s\">%s</span>%s", class, html.EscapeString(content), newline)
+				fmt.Fprintf(&diff, "<span class=\"%s\">%s</span>%s", class, html.EscapeString(content), newline)
 			}
 		}
+
+		files++
+		additions += fileAdditions
+		deletions += fileDeletions
 	}
-	buff.WriteString("</pre>\n")
+
+	var buff bytes.Buffer
+	fmt.Fprintf(&buff, "<table class=\"diffstat\">\n%s</table>\n", stats.Bytes())
+	fmt.Fprintf(
+		&buff,
+		"<p class=\"diffsummary\">%d %s changed, %d %s(+), %d %s(-)</p>\n",
+		files, plural(files, "file", "files"),
+		additions, plural(additions, "insertion", "insertions"),
+		deletions, plural(deletions, "deletion", "deletions"),
+	)
+	fmt.Fprintf(&buff, "<pre class=\"diff\">%s</pre>\n", diff.Bytes())
 
 	return buff.Bytes(), nil
 }

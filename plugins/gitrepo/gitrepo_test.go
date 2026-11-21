@@ -90,6 +90,7 @@ func createDemoRepo(t *testing.T, dir string) *testRepo {
 		"docs/a b.txt":       "<hello & goodbye>\n",
 		"docs/guide/run.txt": "go run .\n",
 		"logo.bin":           "\x00\x01\x02",
+		"50% #1.txt":         "fifty\n",
 	})
 	if _, err := repo.repo.CreateTag("v0.1", first, &git.CreateTagOptions{Tagger: repo.signature(), Message: "v0.1"}); err != nil {
 		t.Fatal(err)

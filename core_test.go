@@ -58,7 +58,7 @@ func TestCacheKeyDoesNotReorderInputs(t *testing.T) {
 		{relPath: "a.txt", modTime: time.Unix(2, 0)},
 	}
 
-	if _, err := (&cache{baseDir: t.TempDir()}).buildCachePath("out.txt", inputs, ""); err != nil {
+	if _, err := fileCacheKeys(inputs); err != nil {
 		t.Fatal(err)
 	}
 	if inputs[0].Path() != "z.txt" || inputs[1].Path() != "a.txt" {
@@ -68,20 +68,19 @@ func TestCacheKeyDoesNotReorderInputs(t *testing.T) {
 
 func TestCacheKeyIncludesFileSize(t *testing.T) {
 	modTime := time.Unix(1, 0)
-	cache := &cache{baseDir: t.TempDir()}
-	first, err := cache.buildCachePath("out.txt", []*File{{relPath: "input.txt", modTime: modTime, size: 1}}, "")
+	first, err := fileCacheKeys([]*File{{relPath: "input.txt", modTime: modTime, size: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := cache.buildCachePath("out.txt", []*File{{relPath: "input.txt", modTime: modTime, size: 2}}, "")
+	second, err := fileCacheKeys([]*File{{relPath: "input.txt", modTime: modTime, size: 2}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first == second {
+	if strings.Join(first, "\n") == strings.Join(second, "\n") {
 		t.Fatal("cache key did not change with the input size")
 	}
 
-	if _, err := cache.buildCachePath("out.txt", []*File{nil}, ""); err == nil {
+	if _, err := fileCacheKeys([]*File{nil}); err == nil {
 		t.Fatal("nil cache dependency was accepted")
 	}
 }
@@ -89,16 +88,15 @@ func TestCacheKeyIncludesFileSize(t *testing.T) {
 func TestCacheKeyIgnoresDependencyOrder(t *testing.T) {
 	first := &File{relPath: "input.txt", modTime: time.Unix(1, 0), size: 1}
 	second := &File{relPath: "input.txt", modTime: time.Unix(2, 0), size: 2}
-	cache := &cache{baseDir: t.TempDir()}
-	forward, err := cache.buildCachePath("out.txt", []*File{first, second}, "")
+	forward, err := fileCacheKeys([]*File{first, second})
 	if err != nil {
 		t.Fatal(err)
 	}
-	reverse, err := cache.buildCachePath("out.txt", []*File{second, first}, "")
+	reverse, err := fileCacheKeys([]*File{second, first})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if forward != reverse {
+	if strings.Join(forward, "\n") != strings.Join(reverse, "\n") {
 		t.Fatalf("dependency order changed the cache key: %q != %q", forward, reverse)
 	}
 }
@@ -113,7 +111,7 @@ func TestCacheStorePreservesFileOffset(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := (&cache{baseDir: t.TempDir()}).storeFile(file, nil, ""); err != nil {
+	if err := (&cache{baseDir: t.TempDir()}).storeFile(file, "", nil); err != nil {
 		t.Fatal(err)
 	}
 	if offset, err := file.Seek(0, io.SeekCurrent); err != nil || offset != 3 {

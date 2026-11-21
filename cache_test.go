@@ -107,9 +107,13 @@ func TestContextCacheByKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	context.DispatchAndCacheFile(plain)
+	context.DispatchAndCacheFile(plain, output)
 	<-context.filesOut
-	if context.RetrieveCachedFileByKey("out.txt", "") != nil {
+	fileKeys, err := fileCacheKeys([]*File{output})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if context.RetrieveCachedFileByKey("out.txt", fileKeys...) != nil {
 		t.Fatal("key lookup hit file-based cache entry")
 	}
 	if len(chain.errors) != 0 {

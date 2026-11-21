@@ -7,15 +7,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 )
 
 type cache struct {
 	baseDir string
 }
 
-func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles []*File, keys ...string) (*File, error) {
-	cachePath, err := self.buildCachePath(outputPath, inputFiles, context.cacheNamespace(), keys...)
+func (self *cache) retrieveFile(context *Context, outputPath string, keys []string) (*File, error) {
+	cachePath, err := self.buildCachePath(outputPath, context.cacheNamespace(), keys)
 	if err != nil {
 		return nil, err
 	}
@@ -32,8 +31,8 @@ func (self *cache) retrieveFile(context *Context, outputPath string, inputFiles 
 	return outputFile, nil
 }
 
-func (self *cache) storeFile(outputFile *File, inputFiles []*File, namespace string, keys ...string) (resultErr error) {
-	cachePath, err := self.buildCachePath(outputFile.Path(), inputFiles, namespace, keys...)
+func (self *cache) storeFile(outputFile *File, namespace string, keys []string) (resultErr error) {
+	cachePath, err := self.buildCachePath(outputFile.Path(), namespace, keys)
 	if err != nil {
 		return err
 	}
@@ -80,62 +79,18 @@ func (self *cache) storeFile(outputFile *File, inputFiles []*File, namespace str
 	return nil
 }
 
-func (self *cache) buildCachePath(outputPath string, inputFiles []*File, namespace string, keys ...string) (string, error) {
+func (self *cache) buildCachePath(outputPath, namespace string, keys []string) (string, error) {
 	if err := validateRelativePath(outputPath); err != nil {
 		return "", err
 	}
 	outputPath = filepath.ToSlash(filepath.Clean(filepath.FromSlash(outputPath)))
 
 	hasher := sha256.New()
-	writeString := func(value string) {
+	for _, value := range append([]string{namespace, outputPath}, keys...) {
 		var size [8]byte
 		binary.LittleEndian.PutUint64(size[:], uint64(len(value)))
 		hasher.Write(size[:])
 		hasher.Write([]byte(value))
-	}
-	writeString(namespace)
-	writeString(outputPath)
-
-	inputs := append([]*File(nil), inputFiles...)
-	sort.Slice(inputs, func(i, j int) bool {
-		if inputs[i] == nil {
-			return inputs[j] != nil
-		}
-		if inputs[j] == nil {
-			return false
-		}
-		if inputs[i].Path() != inputs[j].Path() {
-			return inputs[i].Path() < inputs[j].Path()
-		}
-		if !inputs[i].ModTime().Equal(inputs[j].ModTime()) {
-			return inputs[i].ModTime().Before(inputs[j].ModTime())
-		}
-		return inputs[i].Size() < inputs[j].Size()
-	})
-
-	for _, inputFile := range inputs {
-		if inputFile == nil {
-			return "", fmt.Errorf("cache dependency cannot be nil")
-		}
-
-		var fileInfo [16]byte
-		binary.LittleEndian.PutUint64(fileInfo[:8], uint64(inputFile.ModTime().UnixNano()))
-		binary.LittleEndian.PutUint64(fileInfo[8:], uint64(inputFile.Size()))
-		writeString(inputFile.Path())
-		hasher.Write(fileInfo[:])
-	}
-
-	// File entries always start with a non-empty path, so an empty string marks
-	// the start of the key section unambiguously. Omitting the section when no
-	// keys are given keeps file-only cache paths unchanged.
-	if len(keys) > 0 {
-		writeString("")
-		var count [8]byte
-		binary.LittleEndian.PutUint64(count[:], uint64(len(keys)))
-		hasher.Write(count[:])
-		for _, key := range keys {
-			writeString(key)
-		}
 	}
 
 	cachePath := filepath.Join(self.baseDir, fmt.Sprintf(
