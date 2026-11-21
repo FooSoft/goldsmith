@@ -81,10 +81,24 @@ func (self *testRepo) checkout(branch string, create bool) {
 	}
 }
 
+const readme = `# Demo
+
+![logo](./logo.bin) ![missing](missing.png) ![remote](https://example.com/logo.png)
+
+- [guide](docs/guide/run.txt)
+- [main](/main.go#L1)
+- [escaped](../../LICENSE)
+- [percent](50%25%20%231.txt)
+- [deleted](docs/a%20b.txt)
+- [web](https://example.com/)
+- [mail](mailto:jane@example.com)
+- [top](#demo)
+`
+
 func createDemoRepo(t *testing.T, dir string) *testRepo {
 	repo := newTestRepo(t, dir)
 	first := repo.commit("Initial commit\n\nAdd the basics.\n", map[string]string{
-		"README.md":          "# Demo\n",
+		"README.md":          readme,
 		"LICENSE":            "MIT\n",
 		"main.go":            "package main\n\nfunc main() {}\n",
 		"docs/a b.txt":       "<hello & goodbye>\n",

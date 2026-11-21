@@ -4,6 +4,7 @@
 {{end}}
 
 {{define "gitindex"}}{{template "header" .Props}}{{.Props.Content}}
+{{.Props.Repo.ReadmeHTML}}
 <p>Latest: <a href="{{.Props.Repo.Head.Page}}">{{.Props.Repo.Head.ShortHash}}</a> {{.Props.Repo.Head.Subject}}</p>
 {{end}}
 

@@ -40,6 +40,12 @@
 // {{.Props.RepoRoot}}{{.Page}}. Commit pages also have a "Commit" property
 // (*Commit) and file pages an "Entry" property (*Entry).
 //
+// A top-level markdown README is rendered to Repository.ReadmeHTML for display
+// on the source page. Relative links in it that point to files in the tracked
+// branch are rewritten to their file pages, and relative images are rewritten
+// to raw copies of the files, which are written to "raw/<path>". Links that do
+// not resolve to a file are left unchanged.
+//
 // When using devserver, include the repository directories in the watch list
 // so that new commits trigger a rebuild.
 package gitrepo
@@ -49,6 +55,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"html/template"
 	"net/url"
 	"os"
 	"path"
@@ -64,6 +71,13 @@ import (
 	fdiff "github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	gmhtml "github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
+	"github.com/yuin/goldmark/util"
 
 	"go.foosoft.net/goldsmith"
 )
@@ -83,6 +97,8 @@ type Repository struct {
 	Files    []*Entry
 	Readme   *Entry
 	License  *Entry
+
+	ReadmeHTML template.HTML // rendered markdown README, with links relative to the repository directory
 }
 
 // Commit contains metadata about a single commit.
@@ -120,6 +136,7 @@ type Entry struct {
 	Size int64
 	Hash string
 	Page string // page URL relative to the repository directory
+	Raw  string // raw file URL relative to the repository directory, set only for README images
 
 	file *object.File
 }
@@ -235,6 +252,7 @@ type generator struct {
 	head      *object.Commit
 	data      *Repository
 	commits   map[plumbing.Hash]*Commit
+	files     map[string]*Entry
 }
 
 func newGenerator(plugin *GitRepo, context *goldsmith.Context, indexFile *goldsmith.File, repoPath, branch string) (*generator, error) {
@@ -286,6 +304,7 @@ func newGenerator(plugin *GitRepo, context *goldsmith.Context, indexFile *goldsm
 		repo:      repo,
 		head:      head,
 		commits:   make(map[plumbing.Hash]*Commit),
+		files:     make(map[string]*Entry),
 		data: &Repository{
 			Name:        strings.TrimSuffix(name, ".git"),
 			Description: description,
@@ -345,6 +364,9 @@ func (self *generator) generate() error {
 	if err := self.collectFiles(); err != nil {
 		return err
 	}
+	if err := self.renderReadme(); err != nil {
+		return fmt.Errorf("failed to render README: %w", err)
+	}
 
 	for _, page := range []struct{ path, layout string }{
 		{"log.html", "gitlog"},
@@ -375,6 +397,14 @@ func (self *generator) generate() error {
 		})
 		if err != nil {
 			return fmt.Errorf("failed to generate page for file %s: %w", entry.Path, err)
+		}
+	}
+
+	for _, entry := range self.data.Files {
+		if entry.Raw != "" {
+			if err := self.dispatchRawFile(entry); err != nil {
+				return fmt.Errorf("failed to generate raw file %s: %w", entry.Path, err)
+			}
 		}
 	}
 
@@ -472,6 +502,7 @@ func (self *generator) collectFiles() error {
 			file: file,
 		}
 		self.data.Files = append(self.data.Files, entry)
+		self.files[entry.Path] = entry
 
 		if !strings.Contains(file.Name, "/") {
 			stem := strings.ToUpper(strings.TrimSuffix(entry.Name, path.Ext(entry.Name)))
@@ -485,6 +516,93 @@ func (self *generator) collectFiles() error {
 
 		return nil
 	})
+}
+
+func (self *generator) renderReadme() error {
+	readme := self.data.Readme
+	if readme == nil {
+		return nil
+	}
+	if ext := strings.ToLower(path.Ext(readme.Name)); ext != ".md" && ext != ".markdown" {
+		return nil
+	}
+
+	source, err := readme.file.Contents()
+	if err != nil {
+		return err
+	}
+
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM, extension.Typographer),
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+			parser.WithASTTransformers(util.Prioritized(readmeLinks{self}, 0)),
+		),
+		goldmark.WithRendererOptions(gmhtml.WithUnsafe()),
+	)
+
+	var buff bytes.Buffer
+	if err := md.Convert([]byte(source), &buff); err != nil {
+		return err
+	}
+
+	self.data.ReadmeHTML = template.HTML(buff.String())
+	return nil
+}
+
+// readmeLinks rewrites README links and images that refer to files in the
+// tracked branch, marking image targets to be written as raw files.
+type readmeLinks struct {
+	gen *generator
+}
+
+func (self readmeLinks) Transform(doc *ast.Document, _ text.Reader, _ parser.Context) {
+	ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+
+		switch node := node.(type) {
+		case *ast.Link:
+			if entry := self.gen.resolveLink(node.Destination); entry != nil {
+				node.Destination = []byte(entry.Page)
+			}
+		case *ast.Image:
+			if entry := self.gen.resolveLink(node.Destination); entry != nil {
+				entry.Raw = "raw/" + escapePath(entry.Path)
+				node.Destination = []byte(entry.Raw)
+			}
+		}
+
+		return ast.WalkContinue, nil
+	})
+}
+
+// resolveLink finds the file referenced by a relative link from the top-level
+// README, where paths beginning with "/" are relative to the repository root.
+func (self *generator) resolveLink(destination []byte) *Entry {
+	target, err := url.Parse(string(destination))
+	if err != nil || target.Scheme != "" || target.Host != "" || target.Path == "" {
+		return nil
+	}
+
+	return self.files[strings.TrimPrefix(path.Clean("/"+target.Path), "/")]
+}
+
+func (self *generator) dispatchRawFile(entry *Entry) error {
+	reader, err := entry.file.Reader()
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	file, err := self.context.CreateFileFromReader(path.Join(self.data.Path, "raw", entry.Path), reader)
+	if err != nil {
+		return err
+	}
+
+	self.context.DispatchFile(file)
+	return nil
 }
 
 // escapePath escapes each segment of a slash-separated path for use in URLs.
