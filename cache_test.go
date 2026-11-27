@@ -79,11 +79,9 @@ type otherCachePlugin struct{}
 func (otherCachePlugin) Name() string { return "first" }
 
 func TestCacheRetrievalErrors(t *testing.T) {
-	root := t.TempDir()
-	broken := filepath.Join(root, "file")
-	if err := os.WriteFile(broken, nil, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// A NUL byte produces a path error on every platform. Traversing a regular
+	// file instead reports a missing path on Windows, which is a cache miss.
+	broken := filepath.Join(t.TempDir(), "invalid\x00")
 	context := &Context{chain: &chainState{cache: &cache{baseDir: broken}}, plugin: cachePluginName("test")}
 	if context.RetrieveCachedFile("output.txt") != nil {
 		t.Fatal("unexpected cached file")

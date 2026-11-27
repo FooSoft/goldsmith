@@ -1,0 +1,2 @@
+# Fixture tests compare exact bytes, including line endings and binary data.
+**/testdata/** -text
