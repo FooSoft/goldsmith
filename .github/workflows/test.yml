@@ -1,0 +1,88 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Each pushed commit gets its own group so a later push never cancels its tests.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}${{ github.event_name == 'push' && format('-{0}', github.sha) || '' }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test -race -coverprofile=coverage.out ./...
+      - name: Build coverage report
+        if: ${{ !cancelled() && hashFiles('coverage.out') != '' }}
+        run: |
+          mkdir -p site
+          go tool cover -html=coverage.out -o site/index.html
+          percent="$(go tool cover -func=coverage.out | awk '/^total:/ { sub(/%/, "", $NF); print $NF }')"
+          color="$(awk -v p="$percent" 'BEGIN {
+            if (p >= 90) print "brightgreen"; else if (p >= 80) print "green"; else if (p >= 70) print "yellowgreen";
+            else if (p >= 60) print "yellow"; else if (p >= 50) print "orange"; else print "red" }')"
+          printf '{"schemaVersion":1,"label":"coverage","message":"%.0f%%","color":"%s"}\n' "$percent" "$color" > site/badge.json
+          cat site/badge.json
+          echo "Total coverage: ${percent}%" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: site
+          if-no-files-found: ignore
+          retention-days: 14
+
+  coverage:
+    name: Publish coverage report and badge
+    needs: linux
+    # Pages serves the report and badge data; a branch would be pruned by the push mirror.
+    if: github.repository == 'FooSoft/goldsmith' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage-report
+          path: site
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v5
+
+  windows:
+    name: Windows
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Test
+        run: .\test.bat

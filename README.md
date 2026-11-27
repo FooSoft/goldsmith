@@ -1,5 +1,8 @@
 # Goldsmith
 
+[![Tests](https://github.com/FooSoft/goldsmith/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/FooSoft/goldsmith/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Ffoosoft.github.io%2Fgoldsmith%2Fbadge.json)](https://foosoft.github.io/goldsmith/)
+
 Goldsmith is a fast and easily extensible static website generator written in Go. In contrast to many other generators, Goldsmith does not force any design paradigms or file organization rules on the user, making it possible to generate anything from blogs to image galleries using the same tool.
 
 ## Tutorial
