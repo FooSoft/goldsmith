@@ -49,10 +49,28 @@ jobs:
           retention-days: 14
 
   coverage:
-    name: Publish coverage report and badge
+    name: Build coverage report and badge
     needs: linux
     # Pages serves the report and badge data; a branch would be pruned by the push mirror.
     if: github.repository == 'FooSoft/goldsmith' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: read
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage-report
+          path: site
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  pages:
+    name: Publish coverage report and badge
+    # Deploying in the uploading job races the artifact listing (actions/deploy-pages#451)
+    # and cannot be re-run without duplicating the artifact.
+    needs: coverage
     runs-on: ubuntu-24.04
     permissions:
       pages: write
@@ -64,14 +82,6 @@ jobs:
       group: pages
       cancel-in-progress: false
     steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: coverage-report
-          path: site
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: site
       - id: deploy
         uses: actions/deploy-pages@v5
 
